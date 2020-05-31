@@ -85,14 +85,6 @@ void ModeCustom::run()
         break;
     }
 
-    // call attitude controller
-    attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(target_roll, target_pitch, target_yaw_rate);
-
-    // output pilot's throttle
-    attitude_control->set_throttle_out(get_pilot_desired_throttle(),
-                                       true,
-                                       g.throttle_filt);
-
 
     // Begin custom code
 
@@ -134,5 +126,10 @@ void ModeCustom::run()
 
     // real32_T u1 = rtY_.u[0];
     // gcs().send_text(MAV_SEVERITY_DEBUG, "u1 %5.3f", u1);
+    
+    motors->rc_write(0, (uint16_t) (rtY_.u[1]*1000+1000));
+    motors->rc_write(1, (uint16_t) (rtY_.u[3]*1000+1000));
+    motors->rc_write(2, (uint16_t) (rtY_.u[0]*1000+1000));
+    motors->rc_write(3, (uint16_t) (rtY_.u[2]*1000+1000));
 
 }
