@@ -92,4 +92,47 @@ void ModeCustom::run()
     attitude_control->set_throttle_out(get_pilot_desired_throttle(),
                                        true,
                                        g.throttle_filt);
+
+
+    // Begin custom code
+
+    // Assign commands to the custom controller
+    ExtU rtU_;
+    ExtY rtY_;
+    rtU_.ch18[0] = yaw_out;
+    rtU_.ch18[1] = - throttle_control;
+    rtU_.ch18[2] = roll_out;
+    rtU_.ch18[3] = pitch_out;
+    rtU_.ch18[4] = 0.0f;
+    rtU_.ch18[5] = 0.0f;
+    rtU_.ch18[6] = 0.0f;
+    rtU_.ch18[7] = 0.0f;
+    //gcs().send_text(MAV_SEVERITY_DEBUG, "ch1 %5.3f", (double)rtU_.ch18[0]);
+
+    // Assign measures to the custom controller
+    rtU_.OutputMeasure[0] = rates[0];
+    rtU_.OutputMeasure[1] = rates[1];
+    rtU_.OutputMeasure[2] = rates[2];
+    float roll_angle = attitude_vehicle_quat.get_euler_roll();
+    float pitch_angle = attitude_vehicle_quat.get_euler_pitch();
+    float yaw_angle = attitude_vehicle_quat.get_euler_yaw();
+    rtU_.OutputMeasure[3] = roll_angle;
+    rtU_.OutputMeasure[4] = pitch_angle;
+    rtU_.OutputMeasure[5] = yaw_angle;
+    rtU_.OutputMeasure[6] = velocity[0];
+    rtU_.OutputMeasure[7] = velocity[1];
+    rtU_.OutputMeasure[8] = velocity[2];
+
+    // Assign controller inputs to the controller object
+    controller.rtU = rtU_;
+
+    // Perform a controller executation
+    controller.step();
+
+    // Get controller output
+    rtY_ = controller.rtY;
+
+    // real32_T u1 = rtY_.u[0];
+    // gcs().send_text(MAV_SEVERITY_DEBUG, "u1 %5.3f", u1);
+
 }

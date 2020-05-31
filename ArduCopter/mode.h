@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Copter.h"
+#include <AC_AttitudeControl/ControllerSimple.h>    // new
 
 class Parameters;
 class ParametersG2;
@@ -135,6 +136,9 @@ protected:
     RC_Channel *&channel_throttle;
     RC_Channel *&channel_yaw;
     float &G_Dt;
+
+    // init instance of class ControllerSimpleModelClass
+    ControllerSimpleModelClass controller;
 
     // note that we support two entirely different automatic takeoffs:
 
