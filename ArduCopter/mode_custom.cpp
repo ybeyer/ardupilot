@@ -1,4 +1,6 @@
 #include "Copter.h"
+#include <AP_Motors/AP_MotorsMatrix.h>
+#include <GCS_MAVLink/GCS.h>
 
 /*
  * Init and run calls for stabilize flight mode
@@ -10,6 +12,38 @@ void ModeCustom::run()
 {
     // apply simple mode transform to pilot inputs
     update_simple_mode();
+
+
+    // Begin custom code
+
+    // Get stick inputs, -1 ... 1
+    int16_t tr_max = 4500;
+    // fetch roll and pitch inputs
+    float roll_out_high = channel_roll->get_control_in();
+    float roll_out = roll_out_high / tr_max;
+    float pitch_out_high = channel_pitch->get_control_in();
+    float pitch_out = pitch_out_high / tr_max;
+    float throttle_control_high = channel_throttle->get_control_in();
+    float throttle_control = throttle_control_high / 1000 * 2 - 1;
+    // get pilot's desired yaw rate
+    float yaw_out_high = channel_yaw->get_control_in();
+    float yaw_out = yaw_out_high / tr_max;
+
+    // Get measured values
+    // Retrieve quaternion vehicle attitude
+    const AP_AHRS_View& ahrs_ = attitude_control->get_ahrs();
+    Quaternion attitude_vehicle_quat;
+    ahrs_.get_quat_body_to_ned(attitude_vehicle_quat);
+    // Get velocity relative to the ground in NED
+    //bool check = ahrs_.have_inertial_nav(void);
+    Vector3f velocity;
+    bool a = ahrs_.get_velocity_NED(velocity);
+    // gcs().send_text(MAV_SEVERITY_DEBUG, "u %5.3f", (double)velocity[0]);
+    Vector3f rates = ahrs_.get_gyro_latest();
+    // gcs().send_text(MAV_SEVERITY_DEBUG, "q %5.3f", (double)rates[0]);
+
+    // End custom code
+
 
     // convert pilot input to lean angles
     float target_roll, target_pitch;
