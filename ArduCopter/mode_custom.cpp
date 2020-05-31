@@ -126,10 +126,37 @@ void ModeCustom::run()
 
     // real32_T u1 = rtY_.u[0];
     // gcs().send_text(MAV_SEVERITY_DEBUG, "u1 %5.3f", u1);
-    
-    motors->rc_write(0, (uint16_t) (rtY_.u[1]*1000+1000));
-    motors->rc_write(1, (uint16_t) (rtY_.u[3]*1000+1000));
-    motors->rc_write(2, (uint16_t) (rtY_.u[0]*1000+1000));
-    motors->rc_write(3, (uint16_t) (rtY_.u[2]*1000+1000));
+
+
+    switch (motors->get_spool_state()) {
+    case AP_Motors::SpoolState::SHUT_DOWN:
+        // Motors Stopped
+        //attitude_control->set_yaw_target_to_current_heading();
+        //attitude_control->reset_rate_controller_I_terms();
+        break;
+    case AP_Motors::SpoolState::GROUND_IDLE:
+        // Landed
+        // sends output to motors when armed but not flying
+        //attitude_control->set_yaw_target_to_current_heading();
+        //attitude_control->reset_rate_controller_I_terms();
+        break;
+    case AP_Motors::SpoolState::THROTTLE_UNLIMITED:
+        // clear landing flag above zero throttle
+        motors->set_custom_input( 0, rtY_.u[1] );
+        motors->set_custom_input( 1, rtY_.u[3] );
+        motors->set_custom_input( 2, rtY_.u[0] );
+        motors->set_custom_input( 3, rtY_.u[2] );
+        break;
+    case AP_Motors::SpoolState::SPOOLING_UP:
+    case AP_Motors::SpoolState::SPOOLING_DOWN:
+        motors->set_custom_input( 0, rtY_.u[1] );
+        motors->set_custom_input( 1, rtY_.u[3] );
+        motors->set_custom_input( 2, rtY_.u[0] );
+        motors->set_custom_input( 3, rtY_.u[2] );
+        // do nothing
+        break;
+    }
+
+    gcs().send_text(MAV_SEVERITY_DEBUG, "test   ");
 
 }
