@@ -36,6 +36,7 @@ public:
         FOLLOW    =    23,  // follow attempts to follow another vehicle or ground station
         ZIGZAG    =    24,  // ZIGZAG mode is able to fly in a zigzag manner with predefined point A and point B
         SYSTEMID  =    25,  // System ID mode produces automated system identification signals in the controllers
+        CUSTOM    =    26,  // custom flight mode from MATLAB/Simulink
     };
 
     // constructor
@@ -1151,6 +1152,28 @@ protected:
 
     const char *name() const override { return "STABILIZE"; }
     const char *name4() const override { return "STAB"; }
+
+private:
+
+};
+
+class ModeCustom : public Mode {
+
+public:
+    // inherit constructor
+    using Mode::Mode;
+
+    virtual void run() override;
+
+    bool requires_GPS() const override { return false; }
+    bool has_manual_throttle() const override { return true; }
+    bool allows_arming(bool from_gcs) const override { return true; };
+    bool is_autopilot() const override { return false; }
+
+protected:
+
+    const char *name() const override { return "STABILIZE2"; }
+    const char *name4() const override { return "XXXX"; }
 
 private:
 
