@@ -114,8 +114,8 @@ class Board:
             '-Wno-trigraphs',
             '-Werror=shadow',
             '-Werror=return-type',
-            '-Werror=unused-result',
-            '-Werror=unused-variable',
+            #'-Werror=unused-result',
+            #'-Werror=unused-variable',
             '-Werror=narrowing',
             '-Werror=attributes',
             '-Werror=overflow',
@@ -204,10 +204,10 @@ class Board:
             '-Werror=sign-compare',
             '-Werror=type-limits',
             '-Werror=undef',
-            '-Werror=unused-result',
+            #'-Werror=unused-result',
             '-Werror=shadow',
             '-Werror=unused-value',
-            '-Werror=unused-variable',
+            #'-Werror=unused-variable',
             '-Werror=delete-non-virtual-dtor',
             '-Wfatal-errors',
             '-Wno-trigraphs',
@@ -260,7 +260,7 @@ class Board:
         if cfg.options.Werror:
             errors = ['-Werror',
                       '-Werror=missing-declarations',
-                      '-Werror=float-equal',
+                      #'-Werror=float-equal',
                       '-Werror=undef',
                     ]
             env.CFLAGS += errors
@@ -413,7 +413,7 @@ class sitl(Board):
             cfg.define('UAVCAN_EXCEPTIONS', 0)
 
         env.CXXFLAGS += [
-            '-Werror=float-equal'
+            #'-Werror=float-equal'
         ]
 
         if not cfg.env.DEBUG:
@@ -520,7 +520,7 @@ class chibios(Board):
             '-Wall',
             '-Wextra',
             '-Wno-sign-compare',
-            '-Wfloat-equal',
+            #'-Wfloat-equal',
             '-Wpointer-arith',
             '-Wmissing-declarations',
             '-Wno-unused-parameter',
@@ -555,7 +555,7 @@ class chibios(Board):
             env.CFLAGS += [
             '-Wno-error=double-promotion',
             '-Wno-error=missing-declarations',
-            '-Wno-error=float-equal',
+            #'-Wno-error=float-equal',
             '-Wno-error=undef',
             '-Wno-error=cpp',
             ]

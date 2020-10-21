@@ -160,6 +160,7 @@ public:
     friend class ModeQAutotune;
     friend class ModeTakeoff;
     friend class ModeThermal;
+    friend class ModeCustom; //added friend class for new mode
 
     Plane(void);
 
@@ -282,6 +283,7 @@ private:
     ModeQAcro mode_qacro;
     ModeQAutotune mode_qautotune;
     ModeTakeoff mode_takeoff;
+    ModeCustom mode_lqr; //added
 #if HAL_SOARING_ENABLED
     ModeThermal mode_thermal;
 #endif

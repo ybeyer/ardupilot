@@ -25,8 +25,11 @@
 class AP_AHRS_View
 {
 public:
+    friend class Plane;
+    friend class ControllerModelClass;
     // Constructor
     AP_AHRS_View(AP_AHRS &ahrs, enum Rotation rotation, float pitch_trim_deg=0);
+   
 
     // update state
     void update(bool skip_ins_update=false);
@@ -175,7 +178,11 @@ public:
     float roll;
     float pitch;
     float yaw;
-    int32_t roll_sensor;
+    float get_roll() const { return roll; } //added
+    float get_pitch() const { return pitch; }
+    float get_yaw() const { return  yaw; } 
+
+      int32_t roll_sensor;
     int32_t pitch_sensor;
     int32_t yaw_sensor;
 

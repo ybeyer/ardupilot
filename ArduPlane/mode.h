@@ -6,6 +6,7 @@
 #include <AP_Common/Location.h>
 #include <AP_Soaring/AP_Soaring.h>
 #include <AP_ADSB/AP_ADSB.h>
+#include <AP_Common/MatlabController.h>
 
 class Mode
 {
@@ -42,6 +43,7 @@ public:
         QAUTOTUNE     = 22,
         QACRO         = 23,
         THERMAL       = 24,
+        CUSTOM        = 25, //add mode 
     };
 
     // Constructor
@@ -89,6 +91,8 @@ protected:
 
     // subclasses override this to perform any required cleanup when exiting the mode
     virtual void _exit() { return; }
+
+    MatlabControllerClass custom_controller;
 };
 
 
@@ -219,6 +223,22 @@ protected:
     void _exit() override;
 };
 
+class ModeCustom : public Mode //added
+{
+public:
+
+    Number mode_number() const override { return Number::CUSTOM; }
+    const char* name() const override { return "CUSTOM"; }
+    const char* name4() const override { return "CUSTOM"; }
+
+    // methods that affect movement of the vehicle in this mode
+    void update() override;
+
+protected:
+
+    bool _enter() override;
+  
+};
 
 class ModeRTL : public Mode
 {
