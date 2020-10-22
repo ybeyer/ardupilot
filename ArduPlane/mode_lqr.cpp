@@ -44,6 +44,13 @@ void ModeCustom::update()
     // gcs().send_text(MAV_SEVERITY_DEBUG, "a %d", (int8_t)a);
     // gcs().send_text(MAV_SEVERITY_DEBUG, "test %5.3f %5.3f %5.3f %5.3f", (double)attitude_vehicle_quat[0], (double)attitude_vehicle_quat[1], attitude_vehicle_quat[2], attitude_vehicle_quat[3]);
 
+    AP::logger().Write("QUAT", "TimeUS,q0,q1,q2,q3", "Qffff",
+                                        AP_HAL::micros64(),
+                                        (double)attitude_vehicle_quat[0],
+                                        (double)attitude_vehicle_quat[1],
+                                        (double)attitude_vehicle_quat[2],
+                                        (double)attitude_vehicle_quat[3]);
+
     float roll = plane.ahrs.get_roll();
     float pitch = plane.ahrs.get_pitch();
     float yaw = plane.ahrs.get_yaw();
@@ -65,7 +72,7 @@ void ModeCustom::update()
     rtU_.cmd.roll = roll_out;
     rtU_.cmd.pitch = pitch_out;
     rtU_.cmd.yaw = yaw_out;
-    rtU_.cmd.thr = throttle_control;
+    rtU_.cmd.thr = -throttle_control;
 
     rtU_.measure.omega_Kb[0] = angular_velocity_Kb[0];
     rtU_.measure.omega_Kb[1] = angular_velocity_Kb[1];
@@ -95,9 +102,21 @@ void ModeCustom::update()
     custom_controller.step(); //run a step in controller. 
     rtY_ = custom_controller.rtY;
 
-    SRV_Channels::set_output_pwm(SRV_Channel::k_elevon_left, (rtY_.u[0])*1000+1000); //set output values
-    SRV_Channels::set_output_pwm(SRV_Channel::k_elevon_right, (rtY_.u[1])*1000+1000);
-    SRV_Channels::set_output_pwm(SRV_Channel::k_throttleLeft, rtY_.u[2]*1000+1000);
-    SRV_Channels::set_output_pwm(SRV_Channel::k_throttleRight, rtY_.u[3]*1000+1000);
+
+    // send controller outputs to channels and set PWMs
+    for (uint8_t i=0; i<NUM_SERVO_CHANNELS; i++) {
+        SRV_Channel::Aux_servo_function_t function_i = SRV_Channels::channel_function(i);
+        SRV_Channel *c = SRV_Channels::srv_channel(i);
+        bool is_servo = c->is_servo();
+        float u_norm = rtY_.u[i];
+        if (is_servo) {
+            u_norm = rtY_.u[i]*2-1;
+        }
+        if (c->get_reversed()) {
+            u_norm = -u_norm;
+        }
+        SRV_Channels::set_output_norm(function_i, u_norm);
+    }
+    
 
 }

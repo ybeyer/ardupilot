@@ -408,20 +408,23 @@ void Plane::stabilize()
                !quadplane.in_tailsitter_vtol_transition()) {
         quadplane.control_run();
     } else {
-        if (g.stick_mixing == STICK_MIXING_FBW && control_mode != &mode_stabilize) {
-            stabilize_stick_mixing_fbw();
+        if (control_mode != &mode_custom) {
+            if (g.stick_mixing == STICK_MIXING_FBW && control_mode != &mode_stabilize) {
+                stabilize_stick_mixing_fbw();
+            }
+            stabilize_roll(speed_scaler);
+            stabilize_pitch(speed_scaler);
+            if (g.stick_mixing == STICK_MIXING_DIRECT || control_mode == &mode_stabilize) {
+                stabilize_stick_mixing_direct();
+            }
+            stabilize_yaw(speed_scaler);
         }
-        stabilize_roll(speed_scaler);
-        stabilize_pitch(speed_scaler);
-        if (g.stick_mixing == STICK_MIXING_DIRECT || control_mode == &mode_stabilize) {
-            stabilize_stick_mixing_direct();
-        }
-        stabilize_yaw(speed_scaler);
     }
 
     /*
       see if we should zero the attitude controller integrators. 
      */
+    /*
     if (get_throttle_input() == 0 &&
         fabsf(relative_altitude) < 5.0f && 
         fabsf(barometer.get_climb_rate()) < 0.5f &&
@@ -438,6 +441,7 @@ void Plane::stabilize()
             steerController.reset_I();            
         }
     }
+    */
 }
 
 

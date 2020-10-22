@@ -77,7 +77,7 @@ Mode *Plane::mode_from_mode_num(const enum Mode::Number num)
         ret = &mode_takeoff;
         break;
     case Mode::Number::CUSTOM:
-        ret = &mode_lqr;
+        ret = &mode_custom;
         break;
     case Mode::Number::THERMAL:
 #if HAL_SOARING_ENABLED

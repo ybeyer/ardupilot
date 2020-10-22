@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'MatlabController'.
 //
-// Model version                  : 1.382
+// Model version                  : 1.385
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Wed Oct 21 14:30:02 2020
+// C/C++ source code generated on : Thu Oct 22 16:10:19 2020
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -250,7 +250,7 @@ class MatlabControllerClass {
 //  '<Root>' : 'MatlabController'
 //  '<S1>'   : 'MatlabController/Actuator muxer'
 //  '<S2>'   : 'MatlabController/Atti INDI simple1'
-//  '<S3>'   : 'MatlabController/MATLAB Function'
+//  '<S3>'   : 'MatlabController/output norm'
 //  '<S4>'   : 'MatlabController/Atti INDI simple1/LQR for error regulation'
 //  '<S5>'   : 'MatlabController/Atti INDI simple1/PT1 reference model'
 //  '<S6>'   : 'MatlabController/Atti INDI simple1/PT2 discrete reference model1'
@@ -273,6 +273,7 @@ class MatlabControllerClass {
 //  '<S23>'  : 'MatlabController/Atti INDI simple1/reference trajectory/PT1 discrete reference model'
 //  '<S24>'  : 'MatlabController/Atti INDI simple1/reference trajectory/PT2 discrete reference model'
 //  '<S25>'  : 'MatlabController/Atti INDI simple1/reference trajectory/wrap angle'
+//  '<S26>'  : 'MatlabController/output norm/MATLAB Function'
 
 #endif                                 // RTW_HEADER_MatlabController_h_
 

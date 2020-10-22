@@ -895,28 +895,31 @@ void Plane::servos_output(void)
 {
     SRV_Channels::cork();
 
-    // support twin-engine aircraft
-    servos_twin_engine_mix();
+    if (control_mode != &mode_custom) {
+        // support twin-engine aircraft
+        servos_twin_engine_mix();
 
-    // cope with tailsitters and bicopters
-    quadplane.tailsitter_output();
-    quadplane.tiltrotor_bicopter();
+        // cope with tailsitters and bicopters
+        quadplane.tailsitter_output();
+        quadplane.tiltrotor_bicopter();
 
-    // run vtail and elevon mixers
-    servo_output_mixers();
+        // run vtail and elevon mixers
+        servo_output_mixers();
 
-    // support MANUAL_RCMASK
-    if (g2.manual_rc_mask.get() != 0 && control_mode == &mode_manual) {
-        SRV_Channels::copy_radio_in_out_mask(uint16_t(g2.manual_rc_mask.get()));
+        // support MANUAL_RCMASK
+        if (g2.manual_rc_mask.get() != 0 && control_mode == &mode_manual) {
+            SRV_Channels::copy_radio_in_out_mask(uint16_t(g2.manual_rc_mask.get()));
+        }
+
+        SRV_Channels::calc_pwm();
+
     }
-
-    SRV_Channels::calc_pwm();
 
     SRV_Channels::output_ch_all();
 
     SRV_Channels::push();
 
-    if (g2.servo_channels.auto_trim_enabled()) {
+    if (g2.servo_channels.auto_trim_enabled() && control_mode != &mode_custom) {
         servos_auto_trim();
     }
 }

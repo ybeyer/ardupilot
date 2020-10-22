@@ -283,7 +283,7 @@ private:
     ModeQAcro mode_qacro;
     ModeQAutotune mode_qautotune;
     ModeTakeoff mode_takeoff;
-    ModeCustom mode_lqr; //added
+    ModeCustom mode_custom; //added
 #if HAL_SOARING_ENABLED
     ModeThermal mode_thermal;
 #endif

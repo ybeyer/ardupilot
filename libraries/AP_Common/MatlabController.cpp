@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'MatlabController'.
 //
-// Model version                  : 1.382
+// Model version                  : 1.385
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Wed Oct 21 14:30:02 2020
+// C/C++ source code generated on : Thu Oct 22 16:10:19 2020
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -1442,21 +1442,6 @@ void MatlabControllerClass::step()
 
   // Saturate: '<S2>/Saturation1'
   if (q0_q3 > 2000.0F) {
-    q1_q3 = 2000.0F;
-  } else if (q0_q3 < 1000.0F) {
-    q1_q3 = 1000.0F;
-  } else {
-    q1_q3 = q0_q3;
-  }
-
-  // Sum: '<S2>/Add3' incorporates:
-  //   DiscreteIntegrator: '<S6>/x'
-
-  rtb_umin[1] = q0_q3;
-  q0_q3 = rtb_u0[2] + rtDW.x_DSTATE_cg[2];
-
-  // Saturate: '<S2>/Saturation1'
-  if (q0_q3 > 2000.0F) {
     q1_q2 = 2000.0F;
   } else if (q0_q3 < 1000.0F) {
     q1_q2 = 1000.0F;
@@ -1467,13 +1452,8 @@ void MatlabControllerClass::step()
   // Sum: '<S2>/Add3' incorporates:
   //   DiscreteIntegrator: '<S6>/x'
 
-  rtb_umin[2] = q0_q3;
-  q0_q3 = rtb_u0[3] + rtDW.x_DSTATE_cg[3];
-
-  // Outport: '<Root>/u' incorporates:
-  //   MATLAB Function: '<Root>/MATLAB Function'
-
-  rtY.u[0] = (q1_q3 - 1500.0F) / 1000.0F + 0.5F;
+  rtb_umin[1] = q0_q3;
+  q0_q3 = rtb_u0[2] + rtDW.x_DSTATE_cg[2];
 
   // Saturate: '<S2>/Saturation1'
   if (q0_q3 > 2000.0F) {
@@ -1484,14 +1464,30 @@ void MatlabControllerClass::step()
     q1_q3 = q0_q3;
   }
 
-  // Outport: '<Root>/u' incorporates:
-  //   MATLAB Function: '<Root>/MATLAB Function'
+  // Sum: '<S2>/Add3' incorporates:
+  //   DiscreteIntegrator: '<S6>/x'
 
+  rtb_umin[2] = q0_q3;
+  q0_q3 = rtb_u0[3] + rtDW.x_DSTATE_cg[3];
+
+  // Saturate: '<S2>/Saturation1'
+  if (q0_q3 > 2000.0F) {
+    rtb_EulerAngles_idx_2 = 2000.0F;
+  } else if (q0_q3 < 1000.0F) {
+    rtb_EulerAngles_idx_2 = 1000.0F;
+  } else {
+    rtb_EulerAngles_idx_2 = q0_q3;
+  }
+
+  // Outport: '<Root>/u' incorporates:
+  //   MATLAB Function: '<S3>/MATLAB Function'
+
+  rtY.u[0] = (rtb_EulerAngles_idx_2 - 1500.0F) / 1000.0F + 0.5F;
   rtY.u[1] = (q1_q3 - 1500.0F) / 1000.0F + 0.5F;
-  rtY.u[2] = (cos_Theta - 1500.0F) / 1000.0F + 0.5F;
-  rtY.u[3] = (q1_q2 - 1500.0F) / 1000.0F + 0.5F;
-  rtY.u[4] = 0.0F;
-  rtY.u[5] = 0.0F;
+  rtY.u[2] = 0.0F;
+  rtY.u[3] = 0.0F;
+  rtY.u[4] = -((q1_q2 - 1500.0F) / 1000.0F) + 0.5F;
+  rtY.u[5] = (cos_Theta - 1500.0F) / 1000.0F + 0.5F;
   rtY.u[6] = 0.0F;
   rtY.u[7] = 0.0F;
 

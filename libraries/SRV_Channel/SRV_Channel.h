@@ -240,6 +240,10 @@ public:
     // used by DO_SET_SERVO commands
     void ignore_small_rcin_changes() { ign_small_rcin_changes = true; }
 
+    bool is_servo(void) const {
+        return type_angle;
+    }
+
 private:
     AP_Int16 servo_min;
     AP_Int16 servo_max;
