@@ -1,31 +1,18 @@
 #include "mode.h"
 #include "Plane.h"
-#include "quadplane.h"
-#include <AP_AHRS/AP_AHRS_View.h>
-#include <AP_Motors/AP_Motors.h>
-#include <GCS_MAVLink/GCS.h>
 #include <AP_Common/MatlabController.h>
 
-bool ModeCustom::_enter() //copy of mode_manual, but with vtol_mode
+bool ModeCustom::_enter()
 {
-    
-    
-    // plane.throttle_allows_nudging = false;
-    // plane.auto_throttle_mode = false; //dont call speed/height-controller
-    // plane.auto_navigation_mode = false;
-    // plane.auto_state.vtol_mode = true; //this might be problematic since the line above says that we're not in auto-mode
-
     return true;
 }
-
-
 
 
 void ModeCustom::update() 
 {
     
+    // get pilot inputs
     int16_t tr_max = 4500;
-
     float roll_out_high = plane.channel_roll->get_control_in();
     float roll_out = roll_out_high / tr_max;
     float pitch_out_high = plane.channel_pitch->get_control_in();
@@ -36,7 +23,7 @@ void ModeCustom::update()
     float throttle_control = throttle_control_high / 100 * 2 - 1;
 
 
-
+    // get measured inputs
     Vector3f angular_velocity_Kb = plane.ahrs.get_gyro();
 
     Quaternion attitude_vehicle_quat;
@@ -51,10 +38,6 @@ void ModeCustom::update()
                                         (double)attitude_vehicle_quat[2],
                                         (double)attitude_vehicle_quat[3]);
 
-    float roll = plane.ahrs.get_roll();
-    float pitch = plane.ahrs.get_pitch();
-    float yaw = plane.ahrs.get_yaw();
-
     Vector3f acc_NED = plane.ahrs.get_accel_ef_blended();
 
     Vector3f velocity_NED;
@@ -64,10 +47,8 @@ void ModeCustom::update()
     plane.ahrs.get_relative_position_NED_home(position_NED);
 
 
-
+    // assign commanded and measured values to controller inputs struct
     ExtU rtU_;
-    ExtY rtY_;
-
 
     rtU_.cmd.roll = roll_out;
     rtU_.cmd.pitch = pitch_out;
@@ -98,9 +79,10 @@ void ModeCustom::update()
     rtU_.measure.lla[2] = plane.current_loc.alt;
 
 
+    // get controller outputs struct
     custom_controller.rtU = rtU_;
     custom_controller.step(); //run a step in controller. 
-    rtY_ = custom_controller.rtY;
+    ExtY rtY_ = custom_controller.rtY;
 
 
     // send controller outputs to channels and set PWMs
@@ -115,7 +97,6 @@ void ModeCustom::update()
         if (c->get_reversed()) {
             u_norm = -u_norm;
         }
-
         // similar to servos.cpp, l. 714
         if (!hal.util->get_soft_armed() && !c->is_servo()) {
             if (plane.arming.arming_required() == AP_Arming::Required::YES_ZERO_PWM) {
