@@ -115,7 +115,17 @@ void ModeCustom::update()
         if (c->get_reversed()) {
             u_norm = -u_norm;
         }
-        SRV_Channels::set_output_norm(function_i, u_norm);
+
+        // similar to servos.cpp, l. 714
+        if (!hal.util->get_soft_armed() && !c->is_servo()) {
+            if (plane.arming.arming_required() == AP_Arming::Required::YES_ZERO_PWM) {
+                SRV_Channels::set_output_limit(function_i, SRV_Channel::Limit::ZERO_PWM);
+            } else {
+                SRV_Channels::set_output_norm(function_i, 0);
+            }
+        } else {
+            SRV_Channels::set_output_norm(function_i, u_norm);
+        }
     }
     
 
