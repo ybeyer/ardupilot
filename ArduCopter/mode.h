@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Copter.h"
-#include <AC_AttitudeControl/ControllerSimple.h>    // new
+#include <AC_AttitudeControl/MatlabController.h>    // new
 
 class Parameters;
 class ParametersG2;
@@ -137,8 +137,8 @@ protected:
     RC_Channel *&channel_yaw;
     float &G_Dt;
 
-    // init instance of class ControllerSimpleModelClass
-    ControllerSimpleModelClass controller;
+    MatlabControllerClass custom_controller;
+
 
     // note that we support two entirely different automatic takeoffs:
 
@@ -1167,17 +1167,21 @@ public:
     // inherit constructor
     using Mode::Mode;
 
+    bool init(bool ignore_checks) override;
     virtual void run() override;
 
-    bool requires_GPS() const override { return false; }
+    bool requires_GPS() const override { return true; }
     bool has_manual_throttle() const override { return true; }
     bool allows_arming(bool from_gcs) const override { return true; };
     bool is_autopilot() const override { return false; }
 
 protected:
 
-    const char *name() const override { return "STABILIZE2"; }
+    const char *name() const override { return "CUSTOM"; }
     const char *name4() const override { return "XXXX"; }
+    float yawInit;
+    float sInit[3];
+    void override_cntrl_params();
 
 private:
 
