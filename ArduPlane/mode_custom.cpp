@@ -84,6 +84,27 @@ void ModeCustom::update()
     custom_controller.step(); //run a step in controller. 
     ExtY rtY_ = custom_controller.rtY;
 
+    // log data
+    AP::logger().Write(
+        "ML", "TimeUS,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15",
+        "Qfffffffffffffff",
+        AP_HAL::micros64(),
+        (double)custom_controller.rtY.logs[0],
+        (double)custom_controller.rtY.logs[1],
+        (double)custom_controller.rtY.logs[2],
+        (double)custom_controller.rtY.logs[3],
+        (double)custom_controller.rtY.logs[4],
+        (double)custom_controller.rtY.logs[5],
+        (double)custom_controller.rtY.logs[6],
+        (double)custom_controller.rtY.logs[7],
+        (double)custom_controller.rtY.logs[8],
+        (double)custom_controller.rtY.logs[9],
+        (double)custom_controller.rtY.logs[10],
+        (double)custom_controller.rtY.logs[11],
+        (double)custom_controller.rtY.logs[12],
+        (double)custom_controller.rtY.logs[13],
+        (double)custom_controller.rtY.logs[14]);
+
 
     // send controller outputs to channels and set PWMs
     for (uint8_t i=0; i<NUM_SERVO_CHANNELS; i++) {
