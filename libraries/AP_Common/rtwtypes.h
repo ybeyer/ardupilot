@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'MatlabController'.
 //
-// Model version                  : 1.385
+// Model version                  : 1.398
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Thu Oct 22 16:10:19 2020
+// C/C++ source code generated on : Fri Apr 23 12:15:54 2021
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
