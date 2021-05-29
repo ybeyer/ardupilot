@@ -54,7 +54,6 @@ void ModeCustom::run()
     float pitch_out = pitch_out_high / tr_max;
     float throttle_control_high = channel_throttle->get_control_in();
     float throttle_control = throttle_control_high / 1000 * 2 - 1;
-    if (fabs(throttle_control) < 0.5) throttle_control = 0;
     // get pilot's desired yaw rate
     float yaw_out_high = channel_yaw->get_control_in();
     float yaw_out = yaw_out_high / tr_max;
@@ -143,7 +142,9 @@ void ModeCustom::run()
     rtU_.cmd.s_Kg_init[1] = sInit[1];
     rtU_.cmd.s_Kg_init[2] = sInit[2];
     rtU_.cmd.yaw_init = yawInit;
-    rtU_.cmd.RC1_pwm = g2.rc_channels.channel(15)->get_radio_in();
+    for (i=0;i<16;i++) {
+        rtU_.cmd.RC_pwm[i] = g2.rc_channels.channel(i)->get_radio_in();
+    }
     real32_T debug_var = throttle_control;
     // gcs().send_text(MAV_SEVERITY_DEBUG, "debug var %5.3f", (float)debug_var);
 
