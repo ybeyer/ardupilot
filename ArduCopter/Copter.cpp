@@ -224,11 +224,18 @@ void Copter::fast_loop()
     // update INS immediately to get current gyro data populated
     ins.update();
 
-    // run low level rate controllers that only require IMU data
-    attitude_control->rate_controller_run();
-
-    // send outputs to the motors library immediately
-    motors_output();
+    // if custom mode is enabled, call custom output method
+    const char *fm_name_pointer = flightmode->name4();
+    //std::string fm_name(fm_name_pointer, 4);  // string not supported for build
+    char comparison_char = 'X';
+    bool is_custom_mode = *fm_name_pointer == comparison_char;
+    //bool is_custom_mode = fm_name.compare("XXXX") == 0;   // string not supported for build
+    if(!is_custom_mode) { 
+        // run low level rate controllers that only require IMU data
+        attitude_control->rate_controller_run();
+        // send outputs to the motors library immediately
+        motors_output();
+    }
 
     // run EKF state estimator (expensive)
     // --------------------
@@ -250,6 +257,10 @@ void Copter::fast_loop()
 
     // run the attitude controllers
     update_flight_mode();
+
+    if(is_custom_mode) {
+        motors_output();
+    }
 
     // update home from EKF if necessary
     update_home_from_EKF();

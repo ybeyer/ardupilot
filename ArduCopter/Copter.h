@@ -216,6 +216,7 @@ public:
     friend class ModeSmartRTL;
     friend class ModeSport;
     friend class ModeStabilize;
+    friend class ModeCustom;
     friend class ModeStabilize_Heli;
     friend class ModeSystemId;
     friend class ModeThrow;
@@ -937,6 +938,9 @@ private:
 #endif
 #if MODE_DRIFT_ENABLED == ENABLED
     ModeDrift mode_drift;
+#endif
+#if MODE_CUSTOM_ENABLED == ENABLED
+    ModeCustom mode_custom;
 #endif
 #if MODE_FLIP_ENABLED == ENABLED
     ModeFlip mode_flip;

@@ -67,6 +67,9 @@ public:
     // Empty destructor to suppress compiler warning
     virtual ~AC_AttitudeControl() {}
 
+    // Get _ahrs object
+    const AP_AHRS_View& get_ahrs() { return _ahrs; };
+
     // pid accessors
     AC_P& get_angle_roll_p() { return _p_angle_roll; }
     AC_P& get_angle_pitch_p() { return _p_angle_pitch; }

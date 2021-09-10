@@ -182,6 +182,50 @@ void AP_MotorsMatrix::output_to_motors()
     }
 }
 
+void AP_MotorsMulticopter::output_to_motors_custom()
+{
+    int8_t i;
+    
+
+    switch (_spool_state) {
+        case SpoolState::SHUT_DOWN: {
+            // no output
+            for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
+                if (motor_enabled[i]) {
+                    _actuator[i] = 0.0f;
+                }
+            }
+            break;
+        }
+        case SpoolState::GROUND_IDLE:
+            // sends output to motors when armed but not flying
+            for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
+                if (motor_enabled[i]) {
+                    set_actuator_with_slew(_actuator[i], actuator_spin_up_to_ground_idle());
+                }
+            }
+            break;
+        case SpoolState::SPOOLING_UP:
+        case SpoolState::THROTTLE_UNLIMITED:
+        case SpoolState::SPOOLING_DOWN:
+            // set motor output based on thrust requests
+            for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
+                if (motor_enabled[i]) {
+                    //set_actuator_with_slew(_actuator[i], thrust_to_actuator(_thrust_rpyt_out[i]));
+                    _actuator[i] = _custom_input[i];
+                }
+            }
+            break;
+    }
+
+    // convert output to PWM and send to each motor
+    for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
+        if (motor_enabled[i]) {
+            rc_write(i, output_to_pwm(_actuator[i]));
+        }
+    }
+}
+
 // get_motor_mask - returns a bitmask of which outputs are being used for motors (1 means being used)
 //  this can be used to ensure other pwm outputs (i.e. for servos) do not conflict
 uint16_t AP_MotorsMatrix::get_motor_mask()

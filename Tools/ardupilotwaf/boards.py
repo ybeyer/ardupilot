@@ -142,7 +142,6 @@ class Board:
             '-Werror=shadow',
             '-Werror=return-type',
             '-Werror=unused-result',
-            '-Werror=unused-variable',
             '-Werror=narrowing',
             '-Werror=attributes',
             '-Werror=overflow',
@@ -253,8 +252,11 @@ class Board:
             '-Werror=undef',
             '-Werror=unused-result',
             '-Werror=shadow',
+<<<<<<< HEAD
             '-Werror=unused-value',
             '-Werror=unused-variable',
+=======
+>>>>>>> origin/Copter-Matlab
             '-Werror=delete-non-virtual-dtor',
             '-Wfatal-errors',
             '-Wno-trigraphs',
@@ -505,7 +507,7 @@ class sitl(Board):
             cfg.define('UAVCAN_EXCEPTIONS', 0)
 
         env.CXXFLAGS += [
-            '-Werror=float-equal'
+            #'-Werror=float-equal'
         ]
 
         if not cfg.env.DEBUG:

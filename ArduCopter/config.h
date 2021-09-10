@@ -253,6 +253,12 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
+// Custom - custom flight mode by MATLAB/Simulink
+#ifndef MODE_CUSTOM_ENABLED
+# define MODE_CUSTOM_ENABLED ENABLED
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
 // flip - fly vehicle in flip in pitch and roll direction mode
 #ifndef MODE_FLIP_ENABLED
 # define MODE_FLIP_ENABLED ENABLED

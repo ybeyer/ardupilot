@@ -173,9 +173,28 @@ void Copter::motors_output()
             motors->set_interlock(false);
             AP::logger().Write_Event(LogEvent::MOTORS_INTERLOCK_DISABLED);
         }
+<<<<<<< HEAD
 
         // send output signals to motors
         flightmode->output_to_motors();
+=======
+        
+        // if custom mode is enabled, call custom output method
+        const char *fm_name_pointer = flightmode->name4();
+        //std::string fm_name(fm_name_pointer, 4);  // string not supported for build
+        char comparison_char = 'X';
+        bool is_custom_mode = *fm_name_pointer == comparison_char;
+        //bool is_custom_mode = fm_name.compare("XXXX") == 0;   // string not supported for build
+        if(!is_custom_mode) { 
+            // send output signals to motors
+            motors->output();
+        }
+        else
+        {
+            motors->output_custom();
+        }
+        
+>>>>>>> origin/Copter-Matlab
     }
 
     // push all channels
