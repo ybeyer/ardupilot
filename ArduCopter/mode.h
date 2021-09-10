@@ -1,11 +1,8 @@
 #pragma once
 
 #include "Copter.h"
-<<<<<<< HEAD
-=======
 #include <AC_AttitudeControl/MatlabController.h>    // new
 
->>>>>>> origin/Copter-Matlab
 class Parameters;
 class ParametersG2;
 
@@ -40,13 +37,10 @@ public:
         FOLLOW    =    23,  // follow attempts to follow another vehicle or ground station
         ZIGZAG    =    24,  // ZIGZAG mode is able to fly in a zigzag manner with predefined point A and point B
         SYSTEMID  =    25,  // System ID mode produces automated system identification signals in the controllers
-<<<<<<< HEAD
         AUTOROTATE =   26,  // Autonomous autorotation
         AUTO_RTL =     27,  // Auto RTL, this is not a true mode, AUTO will report as this mode if entered to perform a DO_LAND_START Landing sequence
         TURTLE =       28,  // Flip over after crash
-=======
-        CUSTOM    =    26,  // custom flight mode from MATLAB/Simulink
->>>>>>> origin/Copter-Matlab
+        CUSTOM    =    29,  // custom flight mode from MATLAB/Simulink
     };
 
     // constructor

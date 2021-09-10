@@ -252,11 +252,6 @@ class Board:
             '-Werror=undef',
             '-Werror=unused-result',
             '-Werror=shadow',
-<<<<<<< HEAD
-            '-Werror=unused-value',
-            '-Werror=unused-variable',
-=======
->>>>>>> origin/Copter-Matlab
             '-Werror=delete-non-virtual-dtor',
             '-Wfatal-errors',
             '-Wno-trigraphs',

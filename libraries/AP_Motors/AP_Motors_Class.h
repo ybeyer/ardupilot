@@ -229,18 +229,12 @@ public:
                     PWM_TYPE_DSHOT1200  = 7,
                     PWM_TYPE_PWM_RANGE  = 8 };
     pwm_type            get_pwm_type(void) const { return (pwm_type)_pwm_type.get(); }
-<<<<<<< HEAD
 
     MAV_TYPE get_frame_mav_type() const { return _mav_type; }
 
     // direct motor write
     virtual void        rc_write(uint8_t chan, uint16_t pwm);
 
-=======
-    
-    virtual void        rc_write(uint8_t chan, uint16_t pwm);
-    
->>>>>>> origin/Copter-Matlab
 protected:
     // output functions that should be overloaded by child classes
     virtual void        output_armed_stabilizing() = 0;
