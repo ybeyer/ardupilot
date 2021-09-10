@@ -142,7 +142,7 @@ void ModeCustom::run()
     rtU_.cmd.s_Kg_init[1] = sInit[1];
     rtU_.cmd.s_Kg_init[2] = sInit[2];
     rtU_.cmd.yaw_init = yawInit;
-    for (i=0;i<16;i++) {
+    for (int i=0;i<16;i++) {
         rtU_.cmd.RC_pwm[i] = g2.rc_channels.channel(i)->get_radio_in();
     }
     real32_T debug_var = throttle_control;

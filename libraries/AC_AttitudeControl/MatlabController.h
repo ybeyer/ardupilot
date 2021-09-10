@@ -37,7 +37,7 @@ typedef struct {
   real32_T thr;
   real32_T s_Kg_init[3];
   real32_T yaw_init;
-  real32_T RC1_pwm;
+  real32_T RC_pwm[16];
 } cmdBus;
 
 #endif
