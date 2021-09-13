@@ -1,7 +1,12 @@
 #pragma once
 
+//#define Custom_Matlab_Output //define for the custom simulink output
+
 #include "Copter.h"
 #include <AC_AttitudeControl/MatlabController.h>    // new
+#ifdef Custom_Matlab_Output
+    #include <AP_HAL/utility/Socket.h>
+#endif
 
 class Parameters;
 class ParametersG2;
@@ -172,7 +177,11 @@ protected:
     float &G_Dt;
 
     MatlabControllerClass custom_controller;
-
+#ifdef Custom_Matlab_Output
+    SocketAPM socket_debug; //
+    const char *_debug_address = "127.0.0.1";
+    int _debug_port = 9004;
+#endif
 
     // note that we support two entirely different automatic takeoffs:
 

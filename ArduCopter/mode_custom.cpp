@@ -177,6 +177,9 @@ void ModeCustom::run()
 
     // real32_T u1 = rtY_.u[0];
     // gcs().send_text(MAV_SEVERITY_DEBUG, "u1 %5.3f", u1);
+    
+    //Example of sending the rotation rates omega_Kb to simulink (uncomment the following line and define Custom_Matlab_Output in mode.h)
+    //socket_debug.sendto(&rtU_.measure.omega_Kb, sizeof(rtU_.measure.omega_Kb), _debug_address, _debug_port); 
 
     // log data
     AP::logger().Write(

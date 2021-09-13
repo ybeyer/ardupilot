@@ -23,6 +23,9 @@ Mode::Mode(void) :
     channel_throttle(copter.channel_throttle),
     channel_yaw(copter.channel_yaw),
     G_Dt(copter.G_Dt)
+    #ifdef Custom_Matlab_Output
+    ,socket_debug(true)
+    #endif
 { };
 
 // return the static controller object corresponding to supplied mode
