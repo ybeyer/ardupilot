@@ -202,32 +202,8 @@ void ModeCustom::run()
         (double)custom_controller.rtY.logs[13],
         (double)custom_controller.rtY.logs[14]);
 
-    switch (motors->get_spool_state()) {
-    case AP_Motors::SpoolState::SHUT_DOWN:
-        // Motors Stopped
-        //attitude_control->set_yaw_target_to_current_heading();
-        //attitude_control->reset_rate_controller_I_terms();
-        break;
-    case AP_Motors::SpoolState::GROUND_IDLE:
-        // Landed
-        // sends output to motors when armed but not flying
-        //attitude_control->set_yaw_target_to_current_heading();
-        //attitude_control->reset_rate_controller_I_terms();
-        break;
-    case AP_Motors::SpoolState::THROTTLE_UNLIMITED:
-        // clear landing flag above zero throttle
-        motors->set_custom_input( 0, rtY_.u[0] );
-        motors->set_custom_input( 1, rtY_.u[1] );
-        motors->set_custom_input( 2, rtY_.u[2] );
-        motors->set_custom_input( 3, rtY_.u[3] );
-        break;
-    case AP_Motors::SpoolState::SPOOLING_UP:
-    case AP_Motors::SpoolState::SPOOLING_DOWN:
-        motors->set_custom_input( 0, rtY_.u[0] );
-        motors->set_custom_input( 1, rtY_.u[1] );
-        motors->set_custom_input( 2, rtY_.u[2] );
-        motors->set_custom_input( 3, rtY_.u[3] );
-        // do nothing
-        break;
+    // set outputs in the same order as Simulink
+    for (int i=0;i<8;i++) {
+        motors->set_custom_input( i, rtY_.u[i] );
     }
 }

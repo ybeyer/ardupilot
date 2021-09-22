@@ -48,6 +48,27 @@ AP_Motors::AP_Motors(uint16_t loop_rate, uint16_t speed_hz) :
     _thrust_balanced = true;
 };
 
+// set a motor command to the desired index of the _custom_intput array
+void AP_Motors::set_custom_input(int index, float input)
+{
+    _custom_input[index] = input;
+}
+
+// output - sends commands to the motors
+void AP_Motors::output_custom()
+{
+    if (!armed()) {
+        for (int i = 0; i < 8; i++) {
+            _custom_input[i] = 0;
+        }
+    }
+
+    // convert output to PWM and send to each motor
+    for (int i = 0; i < 8; i++) {
+        rc_write(i, _custom_input[i]*1000 + 1000 );
+    }
+};
+
 void AP_Motors::get_frame_and_type_string(char *buffer, uint8_t buflen) const
 {
     const char *frame_str = get_frame_string();

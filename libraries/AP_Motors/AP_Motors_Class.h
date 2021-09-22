@@ -72,6 +72,9 @@ public:
         MOTOR_FRAME_TYPE_BF_X_REV = 18, // X frame, betaflight ordering, reversed motors
     };
 
+    // modified version of output() for custom controllers
+    void                output_custom();
+
     // return string corresponding to frame_type
     virtual const char* get_type_string() const { return ""; }
 
@@ -235,6 +238,9 @@ public:
     // direct motor write
     virtual void        rc_write(uint8_t chan, uint16_t pwm);
 
+    // set a new custom motor input to the desired index of the array for custom controllers
+    void                set_custom_input(int index, float input);
+
 protected:
     // output functions that should be overloaded by child classes
     virtual void        output_armed_stabilizing() = 0;
@@ -299,6 +305,9 @@ protected:
     float               _thrust_boost_ratio;    // choice between highest and second highest motor output for output mixing (0 ~ 1). Zero is normal operation
 
     MAV_TYPE _mav_type; // MAV_TYPE_GENERIC = 0;
+
+    // for mode_custom
+    float _custom_input[AP_MOTORS_MAX_NUM_MOTORS];
 
 private:
 

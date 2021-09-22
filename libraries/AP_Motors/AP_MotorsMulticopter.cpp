@@ -254,34 +254,6 @@ void AP_MotorsMulticopter::output()
     output_rpyt();
 };
 
-// output - sends commands to the motors
-void AP_MotorsMulticopter::output_custom()
-{
-    // update throttle filter
-    update_throttle_filter();
-
-    // calc filtered battery voltage and lift_max
-    update_lift_max_from_batt_voltage();
-
-    // run spool logic
-    output_logic();
-
-    // calculate thrust
-    output_armed_stabilizing();
-
-    // apply any thrust compensation for the frame
-    thrust_compensation();
-
-    // convert rpy_thrust values to pwm
-    output_to_motors_custom();
-
-    // output any booster throttle
-    output_boost_throttle();
-
-    // output raw roll/pitch/yaw/thrust
-    output_rpyt();
-};
-
 // output booster throttle, if any
 void AP_MotorsMulticopter::output_boost_throttle(void)
 {
@@ -479,12 +451,6 @@ void AP_MotorsMulticopter::set_actuator_with_slew(float& actuator_output, float 
 
     // Constrain change in output to within the above limits
     actuator_output = constrain_float(input, output_slew_limit_dn, output_slew_limit_up);
-}
-
-// set a motor command to the desired index of the _custom_intput array
-void AP_MotorsMulticopter::set_custom_input(int index, float input)
-{
-    _custom_input[index] = input;
 }
 
 // gradually increase actuator output to spin_min

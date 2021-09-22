@@ -38,9 +38,6 @@ public:
     // output - sends commands to the motors
     virtual void        output() override;
 
-    // modified version of output() for custom controllers
-    void                output_custom();
-
     // output_min - sends minimum values out to the motors
     void                output_min() override;
 
@@ -109,9 +106,6 @@ public:
     // var_info for holding Parameter information
     static const struct AP_Param::GroupInfo        var_info[];
 
-    // set a new custom motor input to the desired index of the array for custom controllers
-    void                set_custom_input(int index, float input);
-
 protected:
 
     // run spool logic
@@ -119,9 +113,6 @@ protected:
 
     // output_to_motors - sends commands to the motors
     virtual void        output_to_motors() = 0;
-
-    // modified version of output_to_motors() for custom controller
-    void                output_to_motors_custom();
 
     // update the throttle input filter
     virtual void        update_throttle_filter() override;
@@ -216,5 +207,4 @@ protected:
 
     // array of motor output values
     float _actuator[AP_MOTORS_MAX_NUM_MOTORS];
-    float _custom_input[AP_MOTORS_MAX_NUM_MOTORS];
 };
