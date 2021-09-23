@@ -24,7 +24,11 @@ bool ModeCustom::init(bool ignore_checks)
 
     // initialize position to measured value
     Vector3f position_NED;
-    bool b = ahrs_.get_relative_position_NED_home(position_NED);
+    if (!ahrs_.get_relative_position_NED_home(position_NED)){
+        position_NED[0] = 0;
+        position_NED[1] = 0;
+        position_NED[2] = 0; 
+    }
     sInit[0] = position_NED[0];
     sInit[1] = position_NED[1];
     sInit[2] = position_NED[2];
@@ -66,7 +70,11 @@ void ModeCustom::run()
     // Get velocity relative to the ground in NED
     //bool check = ahrs_.have_inertial_nav(void);
     Vector3f velocity_NED;
-    bool a = ahrs_.get_velocity_NED(velocity_NED);
+    if (!ahrs_.get_velocity_NED(velocity_NED)) {
+        velocity_NED[0] = 0;
+        velocity_NED[1] = 0;
+        velocity_NED[2] = 0;
+    }
     // gcs().send_text(MAV_SEVERITY_DEBUG, "u %5.3f", (double)velocity[0]);
 
     Vector3f angular_velocity_Kb = ahrs_.get_gyro_latest();
@@ -77,15 +85,18 @@ void ModeCustom::run()
     float yaw_angle = attitude_vehicle_quat.get_euler_yaw();
     // Get position relative to the ground in NED
     Vector3f position_NED;
-    bool b = ahrs_.get_relative_position_NED_home(position_NED);
+    if (!ahrs_.get_relative_position_NED_home(position_NED)) {
+        position_NED[0] = 0;
+        position_NED[1] = 0;
+        position_NED[2] = 0;
+    }
     // end custom code
 
     // convert pilot input to lean angles
-    float target_roll, target_pitch;
-    get_pilot_desired_lean_angles(target_roll, target_pitch, copter.aparm.angle_max, copter.aparm.angle_max);
-
+    // float target_roll, target_pitch;
+    // get_pilot_desired_lean_angles(target_roll, target_pitch, copter.aparm.angle_max, copter.aparm.angle_max);
     // get pilot's desired yaw rate
-    float target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->get_control_in());
+    // float target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->get_control_in());
 
     if (!motors->armed()) {
         // Motors should be Stopped
@@ -145,7 +156,8 @@ void ModeCustom::run()
     for (int i=0;i<16;i++) {
         rtU_.cmd.RC_pwm[i] = g2.rc_channels.channel(i)->get_radio_in();
     }
-    real32_T debug_var = throttle_control;
+    
+    // real32_T debug_var = throttle_control;
     // gcs().send_text(MAV_SEVERITY_DEBUG, "debug var %5.3f", (float)debug_var);
 
     rtU_.measure.omega_Kb[0] = angular_velocity_Kb[0];
