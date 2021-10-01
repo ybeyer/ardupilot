@@ -1,15 +1,15 @@
 //
-// Sponsored License - for use in support of a program or activity
-// sponsored by MathWorks.  Not for government, commercial or other
-// non-sponsored organizational use.
+// Academic License - for use in teaching, academic research, and meeting
+// course requirements at degree granting institutions only.  Not for
+// government, commercial, or other organizational use.
 //
 // File: MatlabController.cpp
 //
-// Code generated for Simulink model 'MatlabController'.
+// Code generated for Simulink model 'ArduCopter_TemplateController'.
 //
-// Model version                  : 1.378
+// Model version                  : 1.382
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Thu Mar 18 16:08:05 2021
+// C/C++ source code generated on : Fri Oct  1 10:20:29 2021
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)

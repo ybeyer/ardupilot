@@ -1,15 +1,15 @@
 //
-// Sponsored License - for use in support of a program or activity
-// sponsored by MathWorks.  Not for government, commercial or other
-// non-sponsored organizational use.
+// Academic License - for use in teaching, academic research, and meeting
+// course requirements at degree granting institutions only.  Not for
+// government, commercial, or other organizational use.
 //
 // File: MatlabController.h
 //
-// Code generated for Simulink model 'MatlabController'.
+// Code generated for Simulink model 'ArduCopter_TemplateController'.
 //
-// Model version                  : 1.378
+// Model version                  : 1.382
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Thu Mar 18 16:08:05 2021
+// C/C++ source code generated on : Fri Oct  1 10:20:29 2021
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -21,10 +21,10 @@
 #ifndef RTW_HEADER_MatlabController_h_
 #define RTW_HEADER_MatlabController_h_
 #include "rtwtypes.h"
-#ifndef MatlabController_COMMON_INCLUDES_
-# define MatlabController_COMMON_INCLUDES_
+#ifndef ArduCopter_TemplateController_COMMON_INCLUDES_
+# define ArduCopter_TemplateController_COMMON_INCLUDES_
 #include "rtwtypes.h"
-#endif                                 // MatlabController_COMMON_INCLUDES_
+#endif                                 // ArduCopter_TemplateController_COMMON_INCLUDES_ 
 
 // Macros for accessing real-time model data structure
 #ifndef DEFINED_TYPEDEF_FOR_cmdBus_
@@ -38,6 +38,9 @@ typedef struct {
   real32_T s_Kg_init[3];
   real32_T yaw_init;
   real32_T RC_pwm[16];
+  real32_T waypoints[40];
+  uint16_T mission_change;
+  uint16_T num_waypoints;
 } cmdBus;
 
 #endif
@@ -53,6 +56,7 @@ typedef struct {
   real32_T V_Kg[3];
   real32_T s_Kg[3];
   real32_T lla[3];
+  real32_T rangefinder[6];
 } measureBus;
 
 #endif
@@ -80,7 +84,7 @@ typedef struct {
 // Constant parameters (default storage)
 extern const ConstP rtConstP;
 
-// Class declaration for model MatlabController
+// Class declaration for model ArduCopter_TemplateController
 class MatlabControllerClass {
   // public data and function members
  public:
@@ -107,6 +111,12 @@ class MatlabControllerClass {
 };
 
 //-
+//  These blocks were eliminated from the model due to optimizations:
+//
+//  Block '<S1>/Data Type Conversion' : Eliminate redundant data type conversion
+
+
+//-
 //  The generated code includes comments that allow you to trace directly
 //  back to the appropriate location in the model.  The basic format
 //  is <system>/block_name, where system is the system number (uniquely
@@ -120,10 +130,10 @@ class MatlabControllerClass {
 //
 //  Here is the system hierarchy for this model
 //
-//  '<Root>' : 'MatlabController'
-//  '<S1>'   : 'MatlabController/Actuator muxer'
-//  '<S2>'   : 'MatlabController/dummy test controller'
-//  '<S3>'   : 'MatlabController/log muxer'
+//  '<Root>' : 'ArduCopter_TemplateController'
+//  '<S1>'   : 'ArduCopter_TemplateController/Actuator muxer'
+//  '<S2>'   : 'ArduCopter_TemplateController/dummy test controller'
+//  '<S3>'   : 'ArduCopter_TemplateController/log muxer'
 
 #endif                                 // RTW_HEADER_MatlabController_h_
 

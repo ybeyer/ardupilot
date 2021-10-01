@@ -1408,6 +1408,7 @@ public:
     bool allows_arming(AP_Arming::Method method) const override { return true; };
     bool is_autopilot() const override { return false; }
     void output_to_motors() override { motors->output_custom(); }
+    bool load_waypoints();
 
 protected:
 
@@ -1418,7 +1419,12 @@ protected:
     void override_cntrl_params();
 
 private:
+    static const int max_num_of_waypoints = 10;
+    int numberOfCommands;
+    int numberOfNavCommands;
+    float waypoints[max_num_of_waypoints][4];
 
+    bool updated_waypoints = false;
 };
 
 #if FRAME_CONFIG == HELI_FRAME
