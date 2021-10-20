@@ -1408,7 +1408,9 @@ public:
     bool allows_arming(AP_Arming::Method method) const override { return true; };
     bool is_autopilot() const override { return false; }
     void output_to_motors() override { motors->output_custom(); }
-    bool load_waypoints();
+    void add_waypoint(uint16_T index, Vector3f location);
+    void add_speed(uint16_T index, float V_k);
+    void mission_updated(){updated_waypoints = true;};
 
 protected:
 
@@ -1420,8 +1422,8 @@ protected:
 
 private:
     static const int max_num_of_waypoints = 10;
-    int numberOfCommands;
-    int numberOfNavCommands;
+    static const int matlab_max_num_waypoints = 10;
+    int numberOfNavCommands = 0;
     float waypoints[max_num_of_waypoints][4];
 
     bool updated_waypoints = false;

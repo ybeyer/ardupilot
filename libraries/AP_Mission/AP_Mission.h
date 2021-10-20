@@ -591,6 +591,8 @@ public:
     bool get_item(uint16_t index, mavlink_mission_item_int_t& result) const ;
     bool set_item(uint16_t index, mavlink_mission_item_int_t& source) ;
 
+    //setting the mission updated bool in mode_custom
+    void mission_complete();
 private:
     static AP_Mission *_singleton;
 

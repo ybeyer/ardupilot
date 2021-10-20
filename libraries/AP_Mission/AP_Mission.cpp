@@ -5,6 +5,7 @@
 #include <AP_Terrain/AP_Terrain.h>
 #include <GCS_MAVLink/GCS.h>
 #include <AP_AHRS/AP_AHRS.h>
+#include <../ArduCopter/Copter.h>
 
 const AP_Param::GroupInfo AP_Mission::var_info[] = {
 
@@ -770,7 +771,21 @@ bool AP_Mission::write_cmd_to_storage(uint16_t index, const Mission_Command& cmd
                       "packed.bytes is big enough to take content");
         memcpy(packed.bytes, &cmd.content, 12);
     }
-
+    if (cmd.id == MAV_CMD_NAV_WAYPOINT)
+    {
+        Vector3f waypoint_pos_neu;
+        if(cmd.content.location.get_vector_from_origin_NEU(waypoint_pos_neu)){
+            copter.mode_custom.add_waypoint(index,waypoint_pos_neu);
+        }
+    }
+    if (cmd.id == MAV_CMD_DO_CHANGE_SPEED)
+    {
+        copter.mode_custom.add_speed(index,cmd.content.speed.target_ms);
+        
+    }
+    
+    
+    
     // calculate where in storage the command should be placed
     uint16_t pos_in_storage = 4 + (index * AP_MISSION_EEPROM_COMMAND_SIZE);
 
@@ -793,6 +808,10 @@ bool AP_Mission::write_cmd_to_storage(uint16_t index, const Mission_Command& cmd
     return true;
 }
 
+void AP_Mission::mission_complete(){
+
+    copter.mode_custom.mission_updated();
+}
 /// write_home_to_storage - writes the special purpose cmd 0 (home) to storage
 ///     home is taken directly from ahrs
 void AP_Mission::write_home_to_storage()

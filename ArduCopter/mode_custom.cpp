@@ -63,12 +63,7 @@ void ModeCustom::run()
     float yaw_out = yaw_out_high / tr_max;
    
   
-    if (numberOfCommands != copter.mode_auto.mission.num_commands())
-    {
-        numberOfCommands = copter.mode_auto.mission.num_commands();
-        load_waypoints();
-        updated_waypoints = true;
-    }
+
     
     // Get measured values
     // Retrieve quaternion vehicle attitude
@@ -165,15 +160,30 @@ void ModeCustom::run()
         rtU_.cmd.RC_pwm[i] = g2.rc_channels.channel(i)->get_radio_in();
     }
     
-    for (int i = 0; i<max_num_of_waypoints; i++)
     {
-        rtU_.cmd.waypoints[4*i]   = waypoints[i][0];
-        rtU_.cmd.waypoints[4*i+1] = waypoints[i][1];
-        rtU_.cmd.waypoints[4*i+2] = waypoints[i][2];
-        rtU_.cmd.waypoints[4*i+3] = waypoints[i][3];
+        int i=0,j=0;
+        while (j<max_num_of_waypoints&&i<matlab_max_num_waypoints)
+        {
+            if (waypoints[j][0] != 0.0)
+            {
+                rtU_.cmd.waypoints[4*i]   = waypoints[j][0];
+                rtU_.cmd.waypoints[4*i+1] = waypoints[j][1];
+                rtU_.cmd.waypoints[4*i+2] = waypoints[j][2];
+                rtU_.cmd.waypoints[4*i+3] = waypoints[j][3];
+                i+=1;
+                j+=1;
+            }else{
+                j+=1;
+        
+            }
+        
+
+        }
+    numberOfNavCommands = i;
     }
     rtU_.cmd.num_waypoints = numberOfNavCommands;
     rtU_.cmd.mission_change = updated_waypoints;
+    updated_waypoints = false;
     // real32_T debug_var = throttle_control;
     // gcs().send_text(MAV_SEVERITY_DEBUG, "debug var %5.3f", (float)debug_var);
 
@@ -237,35 +247,19 @@ void ModeCustom::run()
     }
 }
 
-bool ModeCustom::load_waypoints(){
-    AP_Mission::Mission_Command temp;
-    Vector3f distance_from_orig;
-    float info[numberOfCommands][4];
-    uint16_T j = 0;
-    for (int i = 0; i < numberOfCommands; i++)
-    {
-        copter.mode_auto.mission.read_cmd_from_storage(i,temp);
-        if (copter.mode_auto.mission.is_nav_cmd(temp))
-        {
 
-            if(temp.content.location.get_vector_from_origin_NEU(distance_from_orig)){
-                info[j][0] = distance_from_orig.x;
-                info[j][1] = distance_from_orig.y;
-                info[j][2] = distance_from_orig.z;
-                info[j][3] = 0;
-            }
-            j++;
-        }
-        
-    }
-    for (size_t i = 0; i < j; i++)
-    {
-        waypoints[i][0] = info[i][0];
-        waypoints[i][1] = info[i][1];
-        waypoints[i][2] = info[i][2];
-        waypoints[i][3] = info[i][3];
-    }
-    numberOfNavCommands = j;
+void ModeCustom::add_waypoint(uint16_T index,Vector3f location){
+        waypoints[index][0] = location.x;
+        waypoints[index][1] = location.y;
+        waypoints[index][2] = -location.z;
+        waypoints[index][3] = 0.0;
+        //updated_waypoints = true;
+}
 
-    return true;
+void ModeCustom::add_speed(uint16_T index, float V_k){
+    if(waypoints[index-1][1] != 0.0){
+        waypoints[index-1][3] = V_k;
+        //updated_waypoints = true;
+    }
+
 }
