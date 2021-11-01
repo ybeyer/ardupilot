@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'ArduCopter_TemplateController'.
 //
-// Model version                  : 1.382
+// Model version                  : 1.395
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Fri Oct  1 10:20:29 2021
+// C/C++ source code generated on : Mon Nov  1 17:23:44 2021
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)

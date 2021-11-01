@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'ArduCopter_TemplateController'.
 //
-// Model version                  : 1.382
+// Model version                  : 1.395
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Fri Oct  1 10:20:29 2021
+// C/C++ source code generated on : Mon Nov  1 17:23:44 2021
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -21,6 +21,7 @@
 #ifndef RTW_HEADER_MatlabController_h_
 #define RTW_HEADER_MatlabController_h_
 #include "rtwtypes.h"
+#include <cmath>
 #ifndef ArduCopter_TemplateController_COMMON_INCLUDES_
 # define ArduCopter_TemplateController_COMMON_INCLUDES_
 #include "rtwtypes.h"
@@ -38,8 +39,8 @@ typedef struct {
   real32_T s_Kg_init[3];
   real32_T yaw_init;
   real32_T RC_pwm[16];
-  real32_T waypoints[40];
   uint16_T mission_change;
+  real32_T waypoints[40];
   uint16_T num_waypoints;
 } cmdBus;
 
@@ -61,10 +62,15 @@ typedef struct {
 
 #endif
 
+// Block signals and states (default storage) for system '<Root>'
+typedef struct {
+  real32_T distance;                   // '<S5>/MATLAB Function'
+} DW;
+
 // Constant parameters (default storage)
 typedef struct {
   // Computed Parameter: Constant_Value
-  //  Referenced by: '<S2>/Constant'
+  //  Referenced by: '<S3>/Constant'
 
   real32_T Constant_Value[8];
 } ConstP;
@@ -108,6 +114,8 @@ class MatlabControllerClass {
 
   // private data and function members
  private:
+  // Block signals and states
+  DW rtDW;
 };
 
 //-
@@ -132,8 +140,11 @@ class MatlabControllerClass {
 //
 //  '<Root>' : 'ArduCopter_TemplateController'
 //  '<S1>'   : 'ArduCopter_TemplateController/Actuator muxer'
-//  '<S2>'   : 'ArduCopter_TemplateController/dummy test controller'
-//  '<S3>'   : 'ArduCopter_TemplateController/log muxer'
+//  '<S2>'   : 'ArduCopter_TemplateController/Subsystem'
+//  '<S3>'   : 'ArduCopter_TemplateController/dummy test controller'
+//  '<S4>'   : 'ArduCopter_TemplateController/log muxer'
+//  '<S5>'   : 'ArduCopter_TemplateController/Subsystem/Subsystem'
+//  '<S6>'   : 'ArduCopter_TemplateController/Subsystem/Subsystem/MATLAB Function'
 
 #endif                                 // RTW_HEADER_MatlabController_h_
 
