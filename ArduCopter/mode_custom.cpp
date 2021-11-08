@@ -164,7 +164,7 @@ void ModeCustom::run()
         int i=0,j=0;
         while (j<max_num_of_waypoints&&i<matlab_max_num_waypoints)
         {
-            if (waypoints[j][0] != 0.0||waypoints[j][1] != 0.0||waypoints[j][2] != 0.0)
+            if (abs(waypoints[j][0] + waypoints[j][1] + waypoints[j][2]) <= 0.1f)
             {
                 rtU_.cmd.waypoints[4*i]   = waypoints[j][0];
                 rtU_.cmd.waypoints[4*i+1] = waypoints[j][1];
@@ -209,14 +209,13 @@ void ModeCustom::run()
     rtU_.measure.lla[0] = copter.current_loc.lat;
     rtU_.measure.lla[1] = copter.current_loc.lng;
     rtU_.measure.lla[2] = copter.current_loc.alt;
-
+    
     custom_controller.rtU = rtU_;
     custom_controller.step();
     rtY_ = custom_controller.rtY;
 
     // real32_T u1 = rtY_.u[0];
     // gcs().send_text(MAV_SEVERITY_DEBUG, "u1 %5.3f", u1);
-    
     //Example of sending the rotation rates omega_Kb to simulink (uncomment the following line and define Custom_Matlab_Output in mode.h)
     //socket_debug.sendto(&rtU_.measure, sizeof(rtU_.measure), _debug_address, _debug_port); 
 
@@ -252,14 +251,12 @@ void ModeCustom::add_waypoint(uint16_T index,Vector3f location){
         waypoints[index][0] = location.x;
         waypoints[index][1] = location.y;
         waypoints[index][2] = -location.z;
-        waypoints[index][3] = 0.0;
-        //updated_waypoints = true;
+        waypoints[index][3] = 0.0f;
 }
 
 void ModeCustom::add_speed(uint16_T index, float V_k){
-    if(waypoints[index-1][1] != 0.0){
+    if(abs(waypoints[index-1][0] + waypoints[index-1][1] + waypoints[index-1][2]) >= 0.1f){
         waypoints[index-1][3] = V_k;
-        //updated_waypoints = true;
     }
 
 }
