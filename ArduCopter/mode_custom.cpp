@@ -164,7 +164,7 @@ void ModeCustom::run()
         int i=0,j=0;
         while (j<max_num_of_waypoints&&i<matlab_max_num_waypoints)
         {
-            if (abs(waypoints[j][0] + waypoints[j][1] + waypoints[j][2]) <= 0.1f)
+            if (abs(waypoints[j][0]) + abs(waypoints[j][1]) + abs(waypoints[j][2]) <= 0.01f)
             {
                 rtU_.cmd.waypoints[4*i]   = waypoints[j][0];
                 rtU_.cmd.waypoints[4*i+1] = waypoints[j][1];
