@@ -949,8 +949,17 @@ void NavEKF3_core::calcOutputStates()
 
         // calculate a correction to the delta angle
         // that will cause the INS to track the EKF quaternions
-        delAngCorrection = deltaAngErr * errorGain * dtIMUavg;
+    if (deltaAngErr.length()<0.05f)
+       {
+            
+            delAngCorrection = deltaAngErr * errorGain * dtIMUavg;
 
+        }
+        else{
+            delAngCorrection = deltaAngErr * errorGain * dtIMUavg * 0.01f;
+        }
+      
+        
         // calculate velocity and position tracking errors
         Vector3F velErr = (stateStruct.velocity - outputDataDelayed.velocity);
         Vector3F posErr = (stateStruct.position - outputDataDelayed.position);
