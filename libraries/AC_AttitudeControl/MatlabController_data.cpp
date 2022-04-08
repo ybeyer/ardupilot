@@ -5,14 +5,14 @@
 //
 // File: MatlabController_data.cpp
 //
-// Code generated for Simulink model 'ArduCopter_MinnieLoiterController_3_mot_fails'.
+// Code generated for Simulink model 'ArduCopter_MinnieLoiterFtc'.
 //
-// Model version                  : 1.402
+// Model version                  : 1.393
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Thu Jan 20 16:38:28 2022
+// C/C++ source code generated on : Fri Apr  8 14:03:02 2022
 //
 // Target selection: ert.tlc
-// Embedded hardware selection: ARM Compatible->ARM Cortex
+// Embedded hardware selection: ARM Compatible->ARM 7
 // Code generation objectives:
 //    1. Execution efficiency
 //    2. RAM efficiency
@@ -20,99 +20,96 @@
 //
 #include "MatlabController.h"
 
-// Invariant block signals (default storage)
-const ConstB rtConstB = {
-  {
-    -0.0F,
-    -0.0F,
-    9.81F
-  }
-  // '<S25>/Gain2'
-};
-
 // Constant parameters (default storage)
 const ConstP rtConstP = {
+  // Expression: ca
+  //  Referenced by: '<S29>/MATLAB Function2'
+
+  {
+    { 0.1, 0.1, 0.1, 0.1 },
+
+    { 1.0, 1.0, 1.0, 1.0 },
+
+    { 0.1, 0.1, 0.1, 0.1 },
+
+    { 10.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0,
+      0.0, 1.0 },
+
+    { 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+      1.0 },
+    1000.0,
+
+    { 0.0, 0.0, 0.0, 0.0 },
+    100.0
+  },
+
+  // Computed Parameter: Constant2_Value
+  //  Referenced by: '<S7>/Constant2'
+
+  { 0.0F, 0.365F, 0.0F, 0.0F, 0.0F, -0.365F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+    0.0F, -0.365F, 0.0F, 0.0F, 0.0F, 0.365F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+    0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
+    0.0F, 0.0F, 0.0F },
+
   // Computed Parameter: ny_du_red_trim_Value
-  //  Referenced by: '<S51>/ny_du_red_trim'
+  //  Referenced by: '<S28>/ny_du_red_trim'
 
   { -552.858215F, 599.994324F, -42.9285F, -16.0513F, -552.86F, -599.994507F,
     42.9418F, -16.0513F, 552.859802F, -598.937683F, -31.9157F, -16.0513F,
     552.858521F, 598.937927F, 31.9025F, -16.0513F },
 
   // Computed Parameter: ny_du_dt_Value
-  //  Referenced by: '<S51>/ny_du_dt'
+  //  Referenced by: '<S28>/ny_du_dt'
 
   { 0.069F, -0.0001F, -4.8857F, 0.0F, -0.069F, 0.0001F, 4.8857F, 0.0F, 0.069F,
     -0.0001F, -4.8857F, 0.0F, -0.069F, 0.0001F, 4.8857F, 0.0F },
 
-  // Computed Parameter: Constant5_Value
-  //  Referenced by: '<S52>/Constant5'
+  // Computed Parameter: Constant1_Value
+  //  Referenced by: '<S7>/Constant1'
 
-  { 10.0F, 0.0F, 0.0F, 0.0F, 0.0F, 10.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.01F, 0.0F,
-    0.0F, 0.0F, 0.0F, 1.0F },
+  { 0.0F, 2.0F, 4.5F, 7.0F, 9.5F, 12.0F, 14.5F, 17.0F, 19.5F, 22.0F },
 
-  // Expression: [horiz_pos_cntrl.limits.e_xy_max;1000;1000;1000;1000]
-  //  Referenced by: '<S28>/Saturation1'
+  // Pooled Parameter (Mixed Expressions)
+  //  Referenced by:
+  //    '<Root>/1-D Lookup Table'
+  //    '<S24>/1-D Lookup Table2'
 
-  { 12.2174311F, 12.2174311F, 1000.0F, 1000.0F, 1000.0F, 1000.0F },
+  { 0.0F, 1.0F },
 
-  // Expression: -[horiz_pos_cntrl.limits.e_xy_max;1000;1000;1000;1000]
-  //  Referenced by: '<S28>/Saturation1'
+  // Pooled Parameter (Expression: [1000;2000])
+  //  Referenced by:
+  //    '<Root>/1-D Lookup Table'
+  //    '<S8>/1-D Lookup Table'
+  //    '<S8>/1-D Lookup Table1'
 
-  { -12.2174311F, -12.2174311F, -1000.0F, -1000.0F, -1000.0F, -1000.0F },
-
-  // Expression: horiz_pos_cntrl.K
-  //  Referenced by: '<S28>/Gain'
-
-  { 3.3528F, 0.0F, 0.0F, 3.3528F, 3.9012F, 0.0F, 0.0F, 3.9012F, 0.7114F, 0.0F,
-    0.0F, 0.7114F },
+  { 1000.0F, 2000.0F },
 
   // Computed Parameter: uDLookupTable_tableData
-  //  Referenced by: '<S90>/1-D Lookup Table'
+  //  Referenced by: '<S61>/1-D Lookup Table'
 
   { 4.0F, 0.0F, -10.0F },
 
   // Computed Parameter: uDLookupTable_bp01Data
-  //  Referenced by: '<S90>/1-D Lookup Table'
+  //  Referenced by: '<S61>/1-D Lookup Table'
 
   { -1.0F, 0.0F, 1.0F },
 
-  // Computed Parameter: Constant6_Value
-  //  Referenced by: '<S52>/Constant6'
-
-  { 1.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F,
-    0.0F, 0.0F, 1.0F },
-
   // Computed Parameter: uDLookupTable1_tableData
-  //  Referenced by: '<S42>/1-D Lookup Table1'
+  //  Referenced by: '<S24>/1-D Lookup Table1'
 
   { -1000.0F, -1000.0F, 0.0F, 0.0F },
 
   // Computed Parameter: uDLookupTable1_bp01Data
-  //  Referenced by: '<S42>/1-D Lookup Table1'
+  //  Referenced by: '<S24>/1-D Lookup Table1'
 
   { 0.0F, 0.1F, 0.2F, 1.0F },
-
-  // Expression: atti_cntrl.K
-  //  Referenced by: '<S61>/Gain'
-
-  { 200.0F, 0.0F, 0.0F, 0.0F, 200.0F, 0.0F, 0.0F, -0.0F, 50.0F, 39.9604F, 0.0F,
-    0.0F, 0.0F, 39.9604F, -0.0F, 0.0F, -0.0F, 15.6068F, 0.9513F, 0.0F, 0.0F,
-    0.0F, 0.9513F, -0.0F, 0.0F, -0.0F, 0.4357F },
 
   // Pooled Parameter (Expression: [1;0.1])
   //  Referenced by:
   //    '<S8>/1-D Lookup Table'
   //    '<S8>/1-D Lookup Table1'
 
-  { 1.0F, 0.1F },
-
-  // Pooled Parameter (Expression: [1000;2000])
-  //  Referenced by:
-  //    '<S8>/1-D Lookup Table'
-  //    '<S8>/1-D Lookup Table1'
-
-  { 1000.0F, 2000.0F }
+  { 1.0F, 0.1F }
 };
 
 //

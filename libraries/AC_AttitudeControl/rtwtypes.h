@@ -5,14 +5,14 @@
 //
 // File: rtwtypes.h
 //
-// Code generated for Simulink model 'ArduCopter_MinnieLoiterController_3_mot_fails'.
+// Code generated for Simulink model 'ArduCopter_MinnieLoiterFtc'.
 //
-// Model version                  : 1.402
+// Model version                  : 1.393
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Thu Jan 20 16:38:28 2022
+// C/C++ source code generated on : Fri Apr  8 14:03:02 2022
 //
 // Target selection: ert.tlc
-// Embedded hardware selection: ARM Compatible->ARM Cortex
+// Embedded hardware selection: ARM Compatible->ARM 7
 // Code generation objectives:
 //    1. Execution efficiency
 //    2. RAM efficiency
@@ -35,7 +35,7 @@
 
 //=======================================================================*
 //  Target hardware information
-//    Device type: ARM Compatible->ARM Cortex
+//    Device type: ARM Compatible->ARM 7
 //    Number of bits:     char:   8    short:   16    int:  32
 //                        long:  32
 //                        native word size:  32
@@ -57,14 +57,14 @@ typedef unsigned short uint16_T;
 typedef int int32_T;
 typedef unsigned int uint32_T;
 typedef float real32_T;
-typedef double real64_T;
+typedef float real64_T;
 
 //===========================================================================*
 //  Generic type definitions: boolean_T, char_T, byte_T, int_T, uint_T,       *
 //                            real_T, time_T, ulong_T.                        *
 // ===========================================================================
-typedef double real_T;
-typedef double time_T;
+typedef float real_T;
+typedef float time_T;
 typedef unsigned char boolean_T;
 typedef int int_T;
 typedef unsigned int uint_T;
