@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'ArduCopter_MinnieLoiterFtc'.
 //
-// Model version                  : 1.393
+// Model version                  : 1.395
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Fri Apr  8 14:03:02 2022
+// C/C++ source code generated on : Fri Apr  8 17:15:03 2022
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM 7

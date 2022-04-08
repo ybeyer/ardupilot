@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'ArduCopter_MinnieLoiterFtc'.
 //
-// Model version                  : 1.393
+// Model version                  : 1.395
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Fri Apr  8 14:03:02 2022
+// C/C++ source code generated on : Fri Apr  8 17:15:03 2022
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM 7
@@ -183,12 +183,9 @@ typedef struct {
   real32_T DiscreteTimeIntegrator_DSTATE_i;// '<S57>/Discrete-Time Integrator'
   real32_T DiscreteTimeIntegrator2_DSTATE;// '<S41>/Discrete-Time Integrator2'
   real32_T DiscreteTimeIntegratory_DSTAT_i;// '<S19>/Discrete-Time Integrator y' 
-  real32_T UnitDelay_DSTATE;           // '<S8>/Unit Delay'
-  real32_T DiscreteTimeIntegrator_DSTATE_e;// '<S8>/Discrete-Time Integrator'
   real32_T DiscreteTimeIntegratory_dt_D_lz;// '<S19>/Discrete-Time Integrator y_dt' 
   real32_T PrevY;                      // '<S8>/Rate Limiter'
   int8_T DiscreteTimeIntegrator_PrevRese;// '<S7>/Discrete-Time Integrator'
-  int8_T DiscreteTimeIntegrator_PrevRe_p;// '<S8>/Discrete-Time Integrator'
   uint8_T DiscreteTimeIntegrator_IC_LOADI;// '<S61>/Discrete-Time Integrator'
   uint8_T DiscreteTimeIntegratory_IC_LOAD;// '<S51>/Discrete-Time Integrator y'
   uint8_T DiscreteTimeIntegratory_IC_LO_p;// '<S58>/Discrete-Time Integrator y'
@@ -265,7 +262,7 @@ typedef struct {
   //    '<S8>/1-D Lookup Table'
   //    '<S8>/1-D Lookup Table1'
 
-  real32_T pooled17[2];
+  real32_T pooled16[2];
 } ConstP;
 
 // External inputs (root inport signals with default storage)
@@ -457,8 +454,6 @@ class MatlabControllerClass {
 //  '<S74>'  : 'ArduCopter_MinnieLoiterFtc/Multicopter FTC Loiter Flight Mode/initial yaw/DCM to quaternions'
 //  '<S75>'  : 'ArduCopter_MinnieLoiterFtc/Multicopter FTC Loiter Flight Mode/initial yaw/Quaternion Reduced'
 //  '<S76>'  : 'ArduCopter_MinnieLoiterFtc/automated stick inputs from workspace/interpHold'
-//  '<S77>'  : 'ArduCopter_MinnieLoiterFtc/kill motors/Compare To Constant'
-//  '<S78>'  : 'ArduCopter_MinnieLoiterFtc/kill motors/Compare To Constant1'
 
 #endif                                 // RTW_HEADER_MatlabController_h_
 

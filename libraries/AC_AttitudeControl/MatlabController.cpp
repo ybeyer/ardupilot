@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'ArduCopter_MinnieLoiterFtc'.
 //
-// Model version                  : 1.393
+// Model version                  : 1.395
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Fri Apr  8 14:03:02 2022
+// C/C++ source code generated on : Fri Apr  8 17:15:03 2022
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM 7
@@ -1613,7 +1613,6 @@ void MatlabControllerClass::step()
   real32_T rtb_nu[3];
   real32_T rtb_Diff[3];
   real32_T rtb_y_b[4];
-  boolean_T rtb_Compare;
   real32_T rtb_n_g_des[3];
   real32_T rtb_n_b_dt[3];
   real32_T rtb_n_b_dt2[3];
@@ -1647,6 +1646,7 @@ void MatlabControllerClass::step()
   real32_T rtb_y_c_idx_0;
   real32_T cmd_V_NED_idx_0;
   boolean_T rtb_LowerRelop1_idx_1;
+  boolean_T rtb_LowerRelop1_idx_0;
   real32_T rtb_Add_i_idx_7;
   real32_T rtb_Add_i_idx_0;
   real_T y;
@@ -1827,11 +1827,11 @@ void MatlabControllerClass::step()
   }
 
   idx = -1;
-  rtb_Compare = varargin_1[0];
+  rtb_LowerRelop1_idx_0 = varargin_1[0];
   for (i = 0; i < 9; i++) {
     rtb_LowerRelop1_idx_1 = varargin_1[i + 1];
-    if ((int32_T)rtb_Compare < (int32_T)rtb_LowerRelop1_idx_1) {
-      rtb_Compare = rtb_LowerRelop1_idx_1;
+    if ((int32_T)rtb_LowerRelop1_idx_0 < (int32_T)rtb_LowerRelop1_idx_1) {
+      rtb_LowerRelop1_idx_0 = rtb_LowerRelop1_idx_1;
       idx = i;
     }
   }
@@ -2093,7 +2093,7 @@ void MatlabControllerClass::step()
   //   DiscreteIntegrator: '<S68>/Discrete-Time Integrator y'
   //   Inport: '<Root>/measure'
 
-  t = rtDW.DiscreteTimeIntegratory_DSTATE[2] - rtU.measure.s_Kg[2];
+  scale = rtDW.DiscreteTimeIntegratory_DSTATE[2] - rtU.measure.s_Kg[2];
 
   // Sum: '<S11>/Diff'
   //
@@ -2217,7 +2217,7 @@ void MatlabControllerClass::step()
     q2_q3;
 
   // RelationalOperator: '<S70>/LowerRelop1'
-  rtb_Compare = (rtb_Add_i_idx_0 > 9.0F);
+  rtb_LowerRelop1_idx_0 = (rtb_Add_i_idx_0 > 9.0F);
 
   // Sum: '<S67>/Add1'
   rtb_Delta_ny[0] = rtb_Add_i_idx_0;
@@ -2259,12 +2259,12 @@ void MatlabControllerClass::step()
   //   RelationalOperator: '<S69>/UpperRelop'
   //   Switch: '<S69>/Switch'
 
-  if (t > 12.2174301F) {
-    t = 12.2174301F;
+  if (scale > 12.2174301F) {
+    scale = 12.2174301F;
   } else {
-    if (t < -12.2174301F) {
+    if (scale < -12.2174301F) {
       // Switch: '<S69>/Switch'
-      t = -12.2174301F;
+      scale = -12.2174301F;
     }
   }
 
@@ -2277,7 +2277,7 @@ void MatlabControllerClass::step()
   //   Sum: '<S67>/Add'
 
   rtb_Add_i_idx_0 = ((rtDW.DiscreteTimeIntegratory_DSTATE[5] - rtU.measure.V_Kg
-                      [2]) * 3.9012F + 3.3528F * t) +
+                      [2]) * 3.9012F + 3.3528F * scale) +
     (rtDW.DiscreteTimeIntegratory_DSTATE[8] - rtb_Diff_l) * 0.7114F;
 
   // RelationalOperator: '<S70>/UpperRelop'
@@ -2291,7 +2291,7 @@ void MatlabControllerClass::step()
   }
 
   // Switch: '<S70>/Switch2'
-  if (rtb_Compare) {
+  if (rtb_LowerRelop1_idx_0) {
     q0_q2 = 9.0F;
   }
 
@@ -2930,100 +2930,65 @@ void MatlabControllerClass::step()
   // Lookup_n-D: '<S8>/1-D Lookup Table1' incorporates:
   //   Inport: '<Root>/cmd'
 
-  q0_q1 = look1_iflf_binlx(rtU.cmd.RC_pwm[7], rtConstP.pooled7,
-    rtConstP.pooled17, 1U);
-
-  // Lookup_n-D: '<S8>/1-D Lookup Table' incorporates:
-  //   Inport: '<Root>/cmd'
-
-  q3_q3 = look1_iflf_binlx(rtU.cmd.RC_pwm[6], rtConstP.pooled7,
-    rtConstP.pooled17, 1U);
-
-  // MinMax: '<S8>/Min'
-  if (q3_q3 >= q0_q1) {
-    q3_q3 = q0_q1;
-  }
-
-  // End of MinMax: '<S8>/Min'
+  q3_q3 = look1_iflf_binlx(rtU.cmd.RC_pwm[7], rtConstP.pooled7,
+    rtConstP.pooled16, 1U);
 
   // Switch: '<S4>/Switch2' incorporates:
   //   RelationalOperator: '<S4>/LowerRelop1'
-  //   Switch: '<S4>/Switch'
 
-  if (rtb_y_b[1] <= q3_q3) {
-    q3_q3 = rtb_y_b[1];
+  if (rtb_y_b[1] > q3_q3) {
+    // Outport: '<Root>/u'
+    rtY.u[0] = q3_q3;
+  } else {
+    // Outport: '<Root>/u' incorporates:
+    //   Switch: '<S4>/Switch'
+
+    rtY.u[0] = rtb_y_b[1];
   }
 
   // End of Switch: '<S4>/Switch2'
 
-  // RelationalOperator: '<S78>/Compare' incorporates:
-  //   Constant: '<S78>/Constant'
-  //   UnitDelay: '<S8>/Unit Delay'
+  // Switch: '<S5>/Switch2' incorporates:
+  //   RelationalOperator: '<S5>/LowerRelop1'
 
-  rtb_Compare = (rtDW.UnitDelay_DSTATE > 0.5F);
-
-  // DiscreteIntegrator: '<S8>/Discrete-Time Integrator'
-  if (rtb_Compare && (rtDW.DiscreteTimeIntegrator_PrevRe_p <= 0)) {
-    rtDW.DiscreteTimeIntegrator_DSTATE_e = 0.0F;
+  if (rtb_Add_i_idx_0 <= q3_q3) {
+    q3_q3 = rtb_Add_i_idx_0;
   }
 
-  // Switch: '<S8>/Switch1' incorporates:
-  //   Constant: '<S77>/Constant'
-  //   Constant: '<S8>/Constant3'
-  //   Constant: '<S8>/Constant4'
-  //   DiscreteIntegrator: '<S8>/Discrete-Time Integrator'
-  //   RelationalOperator: '<S77>/Compare'
+  // End of Switch: '<S5>/Switch2'
 
-  if (rtDW.DiscreteTimeIntegrator_DSTATE_e >= 0.005F) {
-    absxk = 0.1F;
-  } else {
-    absxk = 1.0F;
-  }
+  // Lookup_n-D: '<S8>/1-D Lookup Table' incorporates:
+  //   Inport: '<Root>/cmd'
 
-  // End of Switch: '<S8>/Switch1'
+  scale = look1_iflf_binlx(rtU.cmd.RC_pwm[6], rtConstP.pooled7,
+    rtConstP.pooled16, 1U);
 
   // RateLimiter: '<S8>/Rate Limiter'
-  t = absxk - rtDW.PrevY;
-  if (t > 2.5F) {
-    absxk = rtDW.PrevY + 2.5F;
+  absxk = scale - rtDW.PrevY;
+  if (absxk > 2.5F) {
+    scale = rtDW.PrevY + 2.5F;
   } else {
-    if (t < -0.0005F) {
-      absxk = rtDW.PrevY + -0.0005F;
+    if (absxk < -0.00025F) {
+      scale = rtDW.PrevY + -0.00025F;
     }
   }
 
-  rtDW.PrevY = absxk;
+  rtDW.PrevY = scale;
 
   // End of RateLimiter: '<S8>/Rate Limiter'
 
   // Math: '<S8>/Square'
-  absxk *= absxk;
+  scale *= scale;
 
   // Switch: '<S6>/Switch2' incorporates:
   //   RelationalOperator: '<S6>/LowerRelop1'
   //   Switch: '<S6>/Switch'
 
-  if (rtb_y_b[2] <= absxk) {
-    absxk = rtb_y_b[2];
+  if (rtb_y_b[2] <= scale) {
+    scale = rtb_y_b[2];
   }
 
   // End of Switch: '<S6>/Switch2'
-
-  // Outport: '<Root>/u'
-  rtY.u[0] = q3_q3;
-
-  // Switch: '<S5>/Switch2' incorporates:
-  //   RelationalOperator: '<S5>/LowerRelop1'
-
-  if (rtb_Add_i_idx_0 > q0_q1) {
-    // Outport: '<Root>/u'
-    rtY.u[1] = q0_q1;
-  } else {
-    // Outport: '<Root>/u'
-    rtY.u[1] = rtb_Add_i_idx_0;
-  }
-
-  // End of Switch: '<S5>/Switch2'
 
   // Outport: '<Root>/u' incorporates:
   //   Gain: '<Root>/Gain1'
@@ -3031,8 +2996,9 @@ void MatlabControllerClass::step()
   //   Gain: '<Root>/Gain3'
   //   Gain: '<Root>/Gain4'
 
+  rtY.u[1] = q3_q3;
   rtY.u[2] = rtb_y_b[0];
-  rtY.u[3] = absxk;
+  rtY.u[3] = scale;
   rtY.u[4] = 0.0F;
   rtY.u[5] = 0.0F;
   rtY.u[6] = 0.0F;
@@ -3145,8 +3111,8 @@ void MatlabControllerClass::step()
   //   Gain: '<S58>/2*d//omega'
   //   Sum: '<S58>/Sum3'
 
-  rtb_Diff_l = rtb_n[2] - (0.0319788754F * rtDW.DiscreteTimeIntegratory_dt_DS_i
-    [2] + rtDW.DiscreteTimeIntegratory_DSTAT_m[2]);
+  q0_q1 = rtb_n[2] - (0.0319788754F * rtDW.DiscreteTimeIntegratory_dt_DS_i[2] +
+                      rtDW.DiscreteTimeIntegratory_DSTAT_m[2]);
 
   // Sum: '<S19>/Sum2' incorporates:
   //   DiscreteIntegrator: '<S19>/Discrete-Time Integrator y'
@@ -3370,15 +3336,6 @@ void MatlabControllerClass::step()
   rtDW.DiscreteTimeIntegratory_DSTAT_i += 0.0025F *
     rtDW.DiscreteTimeIntegratory_dt_D_lz;
 
-  // Update for UnitDelay: '<S8>/Unit Delay'
-  rtDW.UnitDelay_DSTATE = q0_q1;
-
-  // Update for DiscreteIntegrator: '<S8>/Discrete-Time Integrator' incorporates:
-  //   Switch: '<S8>/Switch'
-
-  rtDW.DiscreteTimeIntegrator_DSTATE_e += (real32_T)(q0_q1 <= 0.5F) * 0.0025F;
-  rtDW.DiscreteTimeIntegrator_PrevRe_p = (int8_T)rtb_Compare;
-
   // Update for UnitDelay: '<S24>/Unit Delay1'
   rtDW.UnitDelay1_DSTATE[0] = rtb_uDLookupTable2[0];
 
@@ -3497,7 +3454,7 @@ void MatlabControllerClass::step()
   // Update for DiscreteIntegrator: '<S58>/Discrete-Time Integrator y_dt' incorporates:
   //   Gain: '<S58>/omega^2'
 
-  rtDW.DiscreteTimeIntegratory_dt_DS_i[2] += 3911.41284F * rtb_Diff_l * 0.0025F;
+  rtDW.DiscreteTimeIntegratory_dt_DS_i[2] += 3911.41284F * q0_q1 * 0.0025F;
 
   // Update for DiscreteIntegrator: '<S19>/Discrete-Time Integrator y_dt' incorporates:
   //   Gain: '<S19>/omega^2'
@@ -3531,9 +3488,6 @@ void MatlabControllerClass::initialize()
 
   // InitializeConditions for DiscreteIntegrator: '<S19>/Discrete-Time Integrator y' 
   rtDW.DiscreteTimeIntegratory_IC_LO_b = 1U;
-
-  // InitializeConditions for DiscreteIntegrator: '<S8>/Discrete-Time Integrator' 
-  rtDW.DiscreteTimeIntegrator_PrevRe_p = 2;
 }
 
 // Constructor
