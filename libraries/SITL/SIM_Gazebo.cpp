@@ -92,7 +92,7 @@ void Gazebo::recv_fdm(const struct sitl_input &input)
         }
     }
 
-    const double deltat = 0.025;  // in seconds, deactivated adaptive time step
+    const double deltat = pkt.timestamp - last_timestamp;  // in seconds
     if (deltat < 0) {  // don't use old packet
         time_now_us += 1;
         return;
