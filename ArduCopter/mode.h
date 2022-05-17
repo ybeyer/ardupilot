@@ -1421,8 +1421,8 @@ protected:
     void override_cntrl_params();
 
 private:
-    static const int max_num_of_waypoints = 10;
-    static const int matlab_max_num_waypoints = 10;
+    static const int max_num_of_waypoints = 15;
+    static const int matlab_max_num_waypoints = 6;
     int numberOfNavCommands = 0;
     float waypoints[max_num_of_waypoints][4];
 

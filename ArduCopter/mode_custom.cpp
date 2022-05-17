@@ -21,7 +21,7 @@ bool ModeCustom::init(bool ignore_checks)
     Quaternion attitude_vehicle_quat;
     ahrs_.get_quat_body_to_ned(attitude_vehicle_quat);
     yawInit = attitude_vehicle_quat.get_euler_yaw();
-
+    updated_waypoints = true;
     // initialize position to measured value
     Vector3f position_NED;
     if (!ahrs_.get_relative_position_NED_home(position_NED)){
@@ -161,14 +161,14 @@ void ModeCustom::run()
     }
     
     {
-        int i=0,j=0;
+        int i=0,j=1;
         while (j<max_num_of_waypoints&&i<matlab_max_num_waypoints)
         {
-            if (abs(waypoints[j][0]) + abs(waypoints[j][1]) + abs(waypoints[j][2]) <= 0.01f)
+            if (abs(waypoints[j][0]) + abs(waypoints[j][1]) + abs(waypoints[j][2]) >= 0.01f)
             {
-                rtU_.cmd.waypoints[4*i]   = waypoints[j][0];
-                rtU_.cmd.waypoints[4*i+1] = waypoints[j][1];
-                rtU_.cmd.waypoints[4*i+2] = waypoints[j][2];
+                rtU_.cmd.waypoints[4*i]   = waypoints[j][0]*0.01f;
+                rtU_.cmd.waypoints[4*i+1] = waypoints[j][1]*0.01f;
+                rtU_.cmd.waypoints[4*i+2] = waypoints[j][2]*0.01f;
                 rtU_.cmd.waypoints[4*i+3] = waypoints[j][3];
                 i+=1;
                 j+=1;
@@ -179,10 +179,21 @@ void ModeCustom::run()
         
 
         }
+        for (int k = i;k<matlab_max_num_waypoints;k++){
+            rtU_.cmd.waypoints[4*k]   = 0.0f;
+            rtU_.cmd.waypoints[4*k+1] = 0.0f;
+            rtU_.cmd.waypoints[4*k+2] = -5.0f;
+            rtU_.cmd.waypoints[4*k+3] = 0.0f;
+        }
+
+
     numberOfNavCommands = i;
     }
     rtU_.cmd.num_waypoints = numberOfNavCommands;
-    rtU_.cmd.mission_change = updated_waypoints;
+        rtU_.cmd.mission_change = updated_waypoints;
+    if (updated_waypoints){
+            numberOfNavCommands++;
+    }
     updated_waypoints = false;
     // real32_T debug_var = throttle_control;
     // gcs().send_text(MAV_SEVERITY_DEBUG, "debug var %5.3f", (float)debug_var);
