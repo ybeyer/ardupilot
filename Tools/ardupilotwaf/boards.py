@@ -650,7 +650,7 @@ class chibios(Board):
         env.CHIBIOS_BOARD_NAME = 'HAL_BOARD_NAME="%s"' % self.name
         env.CFLAGS += cfg.env.CPU_FLAGS + [
             '-Wlogical-op',
-            '-Wframe-larger-than=1300',
+            '-Wframe-larger-than=2000',
             '-fsingle-precision-constant',
             '-Wno-attributes',
             '-fno-exceptions',
