@@ -1421,11 +1421,14 @@ protected:
     void override_cntrl_params();
 
 private:
-    static const int max_num_of_waypoints = 15;
-    static const int matlab_max_num_waypoints = 6;
+    static const int max_num_of_matlab_waypoints = 6;
+    // Ardupilot contains ghost waypoints
+    // (home position and velocity of previous waypoint),
+    // this is the max size
+    static const int max_num_of_ardupilot_waypoints = 2*max_num_of_matlab_waypoints+1;
     int numberOfNavCommands = 0;
-    float waypoints[max_num_of_waypoints][4];
-
+    float waypoints[max_num_of_ardupilot_waypoints][4];
+    // will be set true in case of mission update through function mission_updated
     bool updated_waypoints = false;
 };
 

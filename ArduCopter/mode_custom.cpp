@@ -159,44 +159,34 @@ void ModeCustom::run()
     for (int i=0;i<16;i++) {
         rtU_.cmd.RC_pwm[i] = g2.rc_channels.channel(i)->get_radio_in();
     }
-    
-    {
-        int i=0,j=1;
-        while (j<max_num_of_waypoints&&i<matlab_max_num_waypoints)
-        {
-            if (abs(waypoints[j][0]) + abs(waypoints[j][1]) + abs(waypoints[j][2]) >= 0.01f)
-            {
-                rtU_.cmd.waypoints[4*i]   = waypoints[j][0]*0.01f;
-                rtU_.cmd.waypoints[4*i+1] = waypoints[j][1]*0.01f;
-                rtU_.cmd.waypoints[4*i+2] = waypoints[j][2]*0.01f;
-                rtU_.cmd.waypoints[4*i+3] = waypoints[j][3];
-                i+=1;
-                j+=1;
-            }else{
-                j+=1;
-        
-            }
-        
 
-        }
-        for (int k = i;k<matlab_max_num_waypoints;k++){
-            rtU_.cmd.waypoints[4*k]   = 0.0f;
-            rtU_.cmd.waypoints[4*k+1] = 0.0f;
-            rtU_.cmd.waypoints[4*k+2] = -5.0f;
-            rtU_.cmd.waypoints[4*k+3] = 0.0f;
-        }
-
-
-    numberOfNavCommands = i;
+    // assign or update waypoints
+    // overwrite all custom controller waypoints with 5m above home position
+    for (int k=0;k<max_num_of_matlab_waypoints;k++){
+        rtU_.cmd.waypoints[4*k]   = 0.0f;
+        rtU_.cmd.waypoints[4*k+1] = 0.0f;
+        rtU_.cmd.waypoints[4*k+2] = -5.0f;
+        rtU_.cmd.waypoints[4*k+3] = 0.0f;
     }
-    rtU_.cmd.num_waypoints = numberOfNavCommands;
-        rtU_.cmd.mission_change = updated_waypoints;
-    if (updated_waypoints){
-            numberOfNavCommands++;
+    int wp_count=0;
+    // start with index j=1 because 1st Ardupilot waypoint is always home position
+    for (int j=1;j<max_num_of_ardupilot_waypoints;j++){
+        // assign only waypoints that are no "ghost waypoints", see declaration of waypoints
+        if (abs(waypoints[j][0]) + abs(waypoints[j][1]) + abs(waypoints[j][2]) >= 0.01f){
+            rtU_.cmd.waypoints[4*wp_count]   = waypoints[j][0]*0.01f; // convert cm to m
+            rtU_.cmd.waypoints[4*wp_count+1] = waypoints[j][1]*0.01f; // convert cm to m
+            rtU_.cmd.waypoints[4*wp_count+2] = waypoints[j][2]*0.01f; // convert cm to m
+            rtU_.cmd.waypoints[4*wp_count+3] = waypoints[j][3]; // target velocity in m/s
+            wp_count++;
+        }
+        if (wp_count>=max_num_of_matlab_waypoints){
+            break;
+        }
     }
+    rtU_.cmd.num_waypoints = wp_count;
+    rtU_.cmd.mission_change = updated_waypoints;
     updated_waypoints = false;
-    // real32_T debug_var = throttle_control;
-    // gcs().send_text(MAV_SEVERITY_DEBUG, "debug var %5.3f", (float)debug_var);
+
 
     rtU_.measure.omega_Kb[0] = angular_velocity_Kb[0];
     rtU_.measure.omega_Kb[1] = angular_velocity_Kb[1];
@@ -267,6 +257,9 @@ void ModeCustom::add_waypoint(uint16_T index,Vector3f location){
 
 void ModeCustom::add_speed(uint16_T index, float V_k){
     if(abs(waypoints[index-1][0] + waypoints[index-1][1] + waypoints[index-1][2]) >= 0.1f){
+        waypoints[index][0] = 0.0f;
+        waypoints[index][1] = 0.0f;
+        waypoints[index][2]     = 0.0f;
         waypoints[index-1][3] = V_k;
     }
 
