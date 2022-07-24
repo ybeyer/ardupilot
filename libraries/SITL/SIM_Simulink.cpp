@@ -18,6 +18,8 @@
 
 #include "SIM_Simulink.h"
 
+#if HAL_SIM_SIMULINK_ENABLED
+
 #include <stdio.h>
 #include <errno.h>
 
@@ -122,9 +124,10 @@ void Simulink::recv_fdm(const struct sitl_input &input)
                            static_cast<float>(pkt.velocity_xyz[1]),
                            static_cast<float>(pkt.velocity_xyz[2]));
 
-    position = Vector3f(static_cast<float>(pkt.position_xyz[0]),
-                        static_cast<float>(pkt.position_xyz[1]),
-                        static_cast<float>(pkt.position_xyz[2]));
+    position = Vector3d(pkt.position_xyz[0],
+                        pkt.position_xyz[1],
+                        pkt.position_xyz[2]);
+    position.xy() += origin.get_distance_NE_double(home);
 
     for (uint8_t i=0; i<6; i++) {
         rangefinder_m[i] = static_cast<float>(pkt.rangefinder_m[i]);
@@ -181,3 +184,5 @@ void Simulink::update(const struct sitl_input &input)
 }
 
 }  // namespace SITL
+
+#endif  // HAL_SIM_SIMULINK_ENABLED
