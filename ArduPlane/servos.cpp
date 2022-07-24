@@ -978,43 +978,29 @@ void Plane::servos_output(void)
         // support twin-engine aircraft
         servos_twin_engine_mix();
 
-<<<<<<< HEAD
-        // cope with tailsitters and bicopters
-        quadplane.tailsitter_output();
-        quadplane.tiltrotor_bicopter();
-
         // run vtail and elevon mixers
-        servo_output_mixers();
+        channel_function_mixer(SRV_Channel::k_aileron, SRV_Channel::k_elevator, SRV_Channel::k_elevon_left, SRV_Channel::k_elevon_right);
+        channel_function_mixer(SRV_Channel::k_rudder,  SRV_Channel::k_elevator, SRV_Channel::k_vtail_right, SRV_Channel::k_vtail_left);
+
+    #if HAL_QUADPLANE_ENABLED
+        // cope with tailsitters and bicopters
+        quadplane.tailsitter.output();
+        quadplane.tiltrotor.bicopter_output();
+    #endif
+
+        // support forced flare option
+        force_flare();
+
+        // implement differential spoilers
+        dspoiler_update();
+
+        //  set control surface servos to neutral
+        landing_neutral_control_surface_servos();
 
         // support MANUAL_RCMASK
         if (g2.manual_rc_mask.get() != 0 && control_mode == &mode_manual) {
-            SRV_Channels::copy_radio_in_out_mask(uint16_t(g2.manual_rc_mask.get()));
+            SRV_Channels::copy_radio_in_out_mask(uint32_t(g2.manual_rc_mask.get()));
         }
-=======
-    // run vtail and elevon mixers
-    channel_function_mixer(SRV_Channel::k_aileron, SRV_Channel::k_elevator, SRV_Channel::k_elevon_left, SRV_Channel::k_elevon_right);
-    channel_function_mixer(SRV_Channel::k_rudder,  SRV_Channel::k_elevator, SRV_Channel::k_vtail_right, SRV_Channel::k_vtail_left);
-
-#if HAL_QUADPLANE_ENABLED
-    // cope with tailsitters and bicopters
-    quadplane.tailsitter.output();
-    quadplane.tiltrotor.bicopter_output();
-#endif
-
-    // support forced flare option
-    force_flare();
-
-    // implement differential spoilers
-    dspoiler_update();
-
-    //  set control surface servos to neutral
-    landing_neutral_control_surface_servos();
-
-    // support MANUAL_RCMASK
-    if (g2.manual_rc_mask.get() != 0 && control_mode == &mode_manual) {
-        SRV_Channels::copy_radio_in_out_mask(uint32_t(g2.manual_rc_mask.get()));
-    }
->>>>>>> master
 
         SRV_Channels::calc_pwm();
 

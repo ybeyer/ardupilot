@@ -5,12 +5,9 @@
 #include <stdint.h>
 #include <AP_Soaring/AP_Soaring.h>
 #include <AP_ADSB/AP_ADSB.h>
-<<<<<<< HEAD
-#include <AP_Common/MatlabController.h>
-=======
 #include <AP_Vehicle/ModeReason.h>
 #include "quadplane.h"
->>>>>>> master
+#include <AP_Common/MatlabController.h>
 
 class AC_PosControl;
 class AC_AttitudeControl_Multi;
@@ -54,13 +51,10 @@ public:
         QACRO         = 23,
 #endif
         THERMAL       = 24,
-<<<<<<< HEAD
-        CUSTOM        = 25, //add mode 
-=======
 #if HAL_QUADPLANE_ENABLED
         LOITER_ALT_QLAND = 25,
 #endif
->>>>>>> master
+        CUSTOM        = 26, //add mode 
     };
 
     // Constructor
@@ -137,9 +131,6 @@ protected:
     // subclasses override this to perform any required cleanup when exiting the mode
     virtual void _exit() { return; }
 
-<<<<<<< HEAD
-    MatlabControllerClass custom_controller;
-=======
 #if HAL_QUADPLANE_ENABLED
     // References for convenience, used by QModes
     AC_PosControl*& pos_control;
@@ -148,7 +139,8 @@ protected:
     QuadPlane& quadplane;
     QuadPlane::PosControlState &poscontrol;
 #endif
->>>>>>> master
+
+    MatlabControllerClass custom_controller;
 };
 
 

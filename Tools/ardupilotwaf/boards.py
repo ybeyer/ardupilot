@@ -863,12 +863,7 @@ class chibios(Board):
             env.CFLAGS += [
             '-Wno-error=double-promotion',
             '-Wno-error=missing-declarations',
-<<<<<<< HEAD
             #'-Wno-error=float-equal',
-            '-Wno-error=undef',
-=======
-            '-Wno-error=float-equal',
->>>>>>> master
             '-Wno-error=cpp',
             ]
 

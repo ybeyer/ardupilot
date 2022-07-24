@@ -35,12 +35,9 @@
 #include <SITL/SIM_Scrimmage.h>
 #include <SITL/SIM_Webots.h>
 #include <SITL/SIM_JSON.h>
-<<<<<<< HEAD
-#include <SITL/SIM_Simulink.h>
-=======
 #include <SITL/SIM_Blimp.h>
 #include <AP_Filesystem/AP_Filesystem.h>
->>>>>>> master
+#include <SITL/SIM_Simulink.h>
 
 #include <signal.h>
 #include <stdio.h>
@@ -177,11 +174,8 @@ static const struct {
     { "scrimmage",          Scrimmage::create },
     { "webots",             Webots::create },
     { "JSON",               JSON::create },
-<<<<<<< HEAD
-    { "simulink",           Simulink::create },
-=======
     { "blimp",              Blimp::create },
->>>>>>> master
+    { "simulink",           Simulink::create },
 };
 
 void SITL_State::_set_signal_handlers(void) const

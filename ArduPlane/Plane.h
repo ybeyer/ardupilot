@@ -163,11 +163,8 @@ public:
     friend class ModeQAutotune;
     friend class ModeTakeoff;
     friend class ModeThermal;
-<<<<<<< HEAD
-    friend class ModeCustom; //added friend class for new mode
-=======
     friend class ModeLoiterAltQLand;
->>>>>>> master
+    friend class ModeCustom; //added friend class for new mode
 
     Plane(void);
 

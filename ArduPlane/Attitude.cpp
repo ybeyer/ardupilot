@@ -538,54 +538,40 @@ void Plane::stabilize()
         }
 #endif
     } else {
-<<<<<<< HEAD
         if (control_mode != &mode_custom) {
-            if (g.stick_mixing == STICK_MIXING_FBW && control_mode != &mode_stabilize) {
+            if (allow_stick_mixing && g.stick_mixing == StickMixing::FBW && control_mode != &mode_stabilize) {
                 stabilize_stick_mixing_fbw();
             }
             stabilize_roll(speed_scaler);
             stabilize_pitch(speed_scaler);
-            if (g.stick_mixing == STICK_MIXING_DIRECT || control_mode == &mode_stabilize) {
+            if (allow_stick_mixing && (g.stick_mixing == StickMixing::DIRECT || control_mode == &mode_stabilize)) {
                 stabilize_stick_mixing_direct();
             }
             stabilize_yaw(speed_scaler);
-=======
-        if (allow_stick_mixing && g.stick_mixing == StickMixing::FBW && control_mode != &mode_stabilize) {
-            stabilize_stick_mixing_fbw();
-        }
-        stabilize_roll(speed_scaler);
-        stabilize_pitch(speed_scaler);
-        if (allow_stick_mixing && (g.stick_mixing == StickMixing::DIRECT || control_mode == &mode_stabilize)) {
-            stabilize_stick_mixing_direct();
->>>>>>> master
         }
     }
 
     /*
       see if we should zero the attitude controller integrators. 
      */
-<<<<<<< HEAD
-    /*
-    if (get_throttle_input() == 0 &&
-=======
-    if (is_zero(get_throttle_input()) &&
->>>>>>> master
-        fabsf(relative_altitude) < 5.0f && 
-        fabsf(barometer.get_climb_rate()) < 0.5f &&
-        ahrs.groundspeed() < 3) {
-        // we are low, with no climb rate, and zero throttle, and very
-        // low ground speed. Zero the attitude controller
-        // integrators. This prevents integrator buildup pre-takeoff.
-        rollController.reset_I();
-        pitchController.reset_I();
-        yawController.reset_I();
+    if (control_mode != &mode_custom) {
+        if (is_zero(get_throttle_input()) &&
+            fabsf(relative_altitude) < 5.0f && 
+            fabsf(barometer.get_climb_rate()) < 0.5f &&
+            ahrs.groundspeed() < 3) {
+            // we are low, with no climb rate, and zero throttle, and very
+            // low ground speed. Zero the attitude controller
+            // integrators. This prevents integrator buildup pre-takeoff.
+            rollController.reset_I();
+            pitchController.reset_I();
+            yawController.reset_I();
 
-        // if moving very slowly also zero the steering integrator
-        if (ahrs.groundspeed() < 1) {
-            steerController.reset_I();            
+            // if moving very slowly also zero the steering integrator
+            if (ahrs.groundspeed() < 1) {
+                steerController.reset_I();            
+            }
         }
     }
-    */
 }
 
 
