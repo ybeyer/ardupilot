@@ -62,6 +62,13 @@ Submarine::Submarine(const char *frame_str) :
         thrusters = vectored_6dof_thrusters;
         n_thrusters = 8;
     }
+    lock_step_scheduled = true;
+}
+
+float Submarine::perpendicular_distance_to_rangefinder_surface() const
+{
+    const float floor_depth = calculate_sea_floor_depth(position);
+    return floor_depth - position.z;
 }
 
 // calculate rotational and linear accelerations
@@ -87,9 +94,8 @@ void Submarine::calculate_forces(const struct sitl_input &input, Vector3f &rot_a
         rot_accel += t.rotational * thrust * frame_property.thruster_mount_radius / frame_property.moment_of_inertia;
     }
 
-    float floor_depth = calculate_sea_floor_depth(position);
-    range = floor_depth - position.z;
     // Limit movement at the sea floor
+    const float floor_depth = calculate_sea_floor_depth(position);
     if (position.z > floor_depth && body_accel.z > -GRAVITY_MSS) {
     	body_accel.z = -GRAVITY_MSS;
     }
@@ -137,7 +143,7 @@ void Submarine::calculate_buoyancy_torque(Vector3f &torque)
  * @param position
  * @return float
  */
-float Submarine::calculate_sea_floor_depth(const Vector3f &/*position*/)
+float Submarine::calculate_sea_floor_depth(const Vector3d &/*position*/) const
 {
     return 50;
 }
@@ -151,7 +157,7 @@ float Submarine::calculate_sea_floor_depth(const Vector3f &/*position*/)
  * $ F_D = rho * v^2 * A * C_D / 2 $
  * rho = water density (kg/m^3), V = velocity (m/s), A = area (m^2), C_D = drag_coefficient
  */
-void Submarine::calculate_drag_force(const Vector3f &velocity, const Vector3f &drag_coefficient, Vector3f &force)
+void Submarine::calculate_drag_force(const Vector3f &velocity, const Vector3f &drag_coefficient, Vector3f &force) const
 {
     /**
      * @brief It's necessary to keep the velocity orientation from the body frame.
@@ -182,7 +188,7 @@ void Submarine::calculate_drag_force(const Vector3f &velocity, const Vector3f &d
  * @param angular_velocity Body frame velocity of fluid
  * @param drag_coefficient Rotational drag coefficient of body
  */
-void Submarine::calculate_angular_drag_torque(const Vector3f &angular_velocity, const Vector3f &drag_coefficient, Vector3f &torque)
+void Submarine::calculate_angular_drag_torque(const Vector3f &angular_velocity, const Vector3f &drag_coefficient, Vector3f &torque) const
 {
      /**
      * @brief It's necessary to keep the velocity orientation from the body frame.
@@ -235,6 +241,7 @@ void Submarine::update(const struct sitl_input &input)
     calculate_forces(input, rot_accel, accel_body);
 
     update_dynamics(rot_accel);
+    update_external_payload(input);
 
     // update lat/lon/altitude
     update_position();

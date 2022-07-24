@@ -13,6 +13,11 @@
 #pragma once
 
 #include <AP_HAL/AP_HAL.h>
+
+#ifndef HAL_MISSION_ENABLED
+#define HAL_MISSION_ENABLED 1
+#endif
+
 #include <GCS_MAVLink/GCS_MAVLink.h>
 #include <AP_Math/AP_Math.h>
 #include <AP_Common/AP_Common.h>
@@ -24,7 +29,13 @@
 #define AP_MISSION_EEPROM_VERSION           0x65AE  // version number stored in first four bytes of eeprom.  increment this by one when eeprom format is changed
 #define AP_MISSION_EEPROM_COMMAND_SIZE      15      // size in bytes of all mission commands
 
+#ifndef AP_MISSION_MAX_NUM_DO_JUMP_COMMANDS
+#if HAL_MEM_CLASS >= HAL_MEM_CLASS_500
+#define AP_MISSION_MAX_NUM_DO_JUMP_COMMANDS 100     // allow up to 100 do-jump commands
+#else
 #define AP_MISSION_MAX_NUM_DO_JUMP_COMMANDS 15      // allow up to 15 do-jump commands
+#endif
+#endif
 
 #define AP_MISSION_JUMP_REPEAT_FOREVER      -1      // when do-jump command's repeat count is -1 this means endless repeat
 
@@ -78,7 +89,7 @@ public:
     struct PACKED Change_Speed_Command {
         uint8_t speed_type;     // 0=airspeed, 1=ground speed
         float target_ms;        // target speed in m/s, -1 means no change
-        float throttle_pct;     // throttle as a percentage (i.e. 0 ~ 100), -1 means no change
+        float throttle_pct;     // throttle as a percentage (i.e. 1 ~ 100), 0 means no change
     };
 
     // set relay command structure
@@ -148,6 +159,12 @@ public:
         uint8_t action;         // action (0 = release, 1 = grab)
     };
 
+    // AUX_FUNCTION command structure
+    struct PACKED AuxFunction {
+        uint16_t function;  // from RC_Channel::AUX_FUNC
+        uint8_t switchpos;  // from RC_Channel::AuxSwitchPos
+    };
+
     // high altitude balloon altitude wait
     struct PACKED Altitude_Wait {
         float altitude; // meters
@@ -198,6 +215,40 @@ public:
         float release_rate;     // release rate in meters/second
     };
 
+    // Scripting command structure
+    struct PACKED scripting_Command {
+        float p1;
+        float p2;
+        float p3;
+    };
+
+    // Scripting NAV command (with verify)
+    struct PACKED nav_script_time_Command {
+        uint8_t command;
+        uint8_t timeout_s;
+        float arg1;
+        float arg2;
+    };
+
+    // Scripting NAV command (with verify)
+    struct PACKED nav_attitude_time_Command {
+        uint16_t time_sec;
+        int16_t roll_deg;
+        int8_t pitch_deg;
+        int16_t yaw_deg;
+        float climb_rate;
+    };
+
+    // MAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW support
+    struct PACKED gimbal_manager_pitchyaw_Command {
+        int8_t pitch_angle_deg;
+        int16_t yaw_angle_deg;
+        int8_t pitch_rate_degs;
+        int8_t yaw_rate_degs;
+        uint8_t flags;
+        uint8_t gimbal_id;
+    };
+
     union Content {
         // jump structure
         Jump_Command jump;
@@ -241,6 +292,9 @@ public:
         // do-gripper
         Gripper_Command gripper;
 
+        // arbitrary aux function
+        AuxFunction auxfunction;
+
         // do-guided-limits
         Guided_Limits_Command guided_limits;
 
@@ -262,6 +316,18 @@ public:
         // do-winch
         Winch_Command winch;
 
+        // do scripting
+        scripting_Command scripting;
+
+        // nav scripting
+        nav_script_time_Command nav_script_time;
+
+        // nav attitude time
+        nav_attitude_time_Command nav_attitude_time;
+
+        // MAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW
+        gimbal_manager_pitchyaw_Command gimbal_manager_pitchyaw;
+
         // location
         Location location{};      // Waypoint location
     };
@@ -273,8 +339,16 @@ public:
         uint16_t p1;                // general purpose parameter 1
         Content content;
 
+        // for items which store in location, we offer a few more bits
+        // of storage:
+        uint8_t type_specific_bits;  // bitmask of set/unset bits
+
         // return a human-readable interpretation of the ID stored in this command
         const char *type() const;
+
+        // comparison operator (relies on all bytes in the structure even if they may not be used)
+        bool operator ==(const Mission_Command &b) const { return (memcmp(this, &b, sizeof(Mission_Command)) == 0); }
+        bool operator !=(const Mission_Command &b) const { return !operator==(b); }
     };
 
 
@@ -289,8 +363,7 @@ public:
         _mission_complete_fn(mission_complete_fn),
         _prev_nav_cmd_id(AP_MISSION_CMD_ID_NONE),
         _prev_nav_cmd_index(AP_MISSION_CMD_INDEX_NONE),
-        _prev_nav_cmd_wp_index(AP_MISSION_CMD_INDEX_NONE),
-        _last_change_time_ms(0)
+        _prev_nav_cmd_wp_index(AP_MISSION_CMD_INDEX_NONE)
     {
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
         if (_singleton != nullptr) {
@@ -305,14 +378,6 @@ public:
         // clear commands
         _nav_cmd.index = AP_MISSION_CMD_INDEX_NONE;
         _do_cmd.index = AP_MISSION_CMD_INDEX_NONE;
-
-        // initialise other internal variables
-        _flags.state = MISSION_STOPPED;
-        _flags.nav_cmd_loaded = false;
-        _flags.do_cmd_loaded = false;
-        _flags.in_landing_sequence = false;
-        _flags.resuming_mission = false;
-        _force_resume = false;
     }
 
     // get singleton instance
@@ -471,6 +536,10 @@ public:
     // set_current_cmd - jumps to command specified by index
     bool set_current_cmd(uint16_t index, bool rewind = false);
 
+    // restart current navigation command.  Used to handle external changes to mission
+    // returns true on success, false if current nav command has been deleted
+    bool restart_current_nav_cmd();
+
     /// load_cmd_from_storage - load command from storage
     ///     true is return if successful
     bool read_cmd_from_storage(uint16_t index, Mission_Command& cmd) const;
@@ -555,9 +624,11 @@ public:
 
     /*
       return true if MIS_OPTIONS is set to allow continue of mission
-      logic after a land. If this is false then after a landing is
-      complete the vehicle should disarm and mission logic should stop
+      logic after a land and the next waypoint is a takeoff. If this
+      is false then after a landing is complete the vehicle should 
+      disarm and mission logic should stop
      */
+    bool continue_after_land_check_for_takeoff(void);
     bool continue_after_land(void) const {
         return (_options.get() & AP_MISSION_MASK_CONTINUE_AFTER_LAND) != 0;
     }
@@ -566,7 +637,7 @@ public:
     static const struct AP_Param::GroupInfo var_info[];
 
     // allow lua to get/set any WP items in any order in a mavlink-ish kinda way.
-    bool get_item(uint16_t index, mavlink_mission_item_int_t& result) ;
+    bool get_item(uint16_t index, mavlink_mission_item_int_t& result) const ;
     bool set_item(uint16_t index, mavlink_mission_item_int_t& source) ;
 
 private:
@@ -578,11 +649,11 @@ private:
 
     struct Mission_Flags {
         mission_state state;
-        uint8_t nav_cmd_loaded    : 1; // true if a "navigation" command has been loaded into _nav_cmd
-        uint8_t do_cmd_loaded     : 1; // true if a "do"/"conditional" command has been loaded into _do_cmd
-        uint8_t do_cmd_all_done   : 1; // true if all "do"/"conditional" commands have been completed (stops unnecessary searching through eeprom for do commands)
-        bool in_landing_sequence  : 1; // true if the mission has jumped to a landing
-        bool resuming_mission     : 1; // true if the mission is resuming and set false once the aircraft attains the interupted WP
+        bool nav_cmd_loaded;         // true if a "navigation" command has been loaded into _nav_cmd
+        bool do_cmd_loaded;          // true if a "do"/"conditional" command has been loaded into _do_cmd
+        bool do_cmd_all_done;        // true if all "do"/"conditional" commands have been completed (stops unnecessary searching through eeprom for do commands)
+        bool in_landing_sequence;   // true if the mission has jumped to a landing
+        bool resuming_mission;      // true if the mission is resuming and set false once the aircraft attains the interrupted WP
     } _flags;
 
     // mission WP resume history
@@ -642,6 +713,9 @@ private:
     // check if command is a landing type command.  Asside the obvious, MAV_CMD_DO_PARACHUTE is considered a type of landing
     bool is_landing_type_cmd(uint16_t id) const;
 
+    // check if command is a takeoff type command.
+    bool is_takeoff_type_cmd(uint16_t id) const;
+
     // approximate the distance travelled to get to a landing.  DO_JUMP commands are observed in look forward.
     bool distance_to_landing(uint16_t index, float &tot_distance,Location current_loc);
 
@@ -654,24 +728,28 @@ private:
     /// sanity checks that the masked fields are not NaN's or infinite
     static MAV_MISSION_RESULT sanity_check_params(const mavlink_mission_item_int_t& packet);
 
-    // parameters
-    AP_Int16                _cmd_total;  // total number of commands in the mission
-    AP_Int8                 _restart;   // controls mission starting point when entering Auto mode (either restart from beginning of mission or resume from last command run)
-    AP_Int16                _options;    // bitmask options for missions, currently for mission clearing on reboot but can be expanded as required
+    /// check if the next nav command is a takeoff, skipping delays
+    bool is_takeoff_next(uint16_t start_index);
 
     // pointer to main program functions
     mission_cmd_fn_t        _cmd_start_fn;  // pointer to function which will be called when a new command is started
     mission_cmd_fn_t        _cmd_verify_fn; // pointer to function which will be called repeatedly to ensure a command is progressing
     mission_complete_fn_t   _mission_complete_fn;   // pointer to function which will be called when mission completes
 
+    // parameters
+    AP_Int16                _cmd_total;  // total number of commands in the mission
+    AP_Int16                _options;    // bitmask options for missions, currently for mission clearing on reboot but can be expanded as required
+    AP_Int8                 _restart;   // controls mission starting point when entering Auto mode (either restart from beginning of mission or resume from last command run)
+
     // internal variables
+    bool                    _force_resume;  // when set true it forces mission to resume irrespective of MIS_RESTART param.
+    uint16_t                _repeat_dist; // Distance to repeat on mission resume (m), can be set with MAV_CMD_DO_SET_RESUME_REPEAT_DIST
     struct Mission_Command  _nav_cmd;   // current "navigation" command.  It's position in the command list is held in _nav_cmd.index
     struct Mission_Command  _do_cmd;    // current "do" command.  It's position in the command list is held in _do_cmd.index
     struct Mission_Command  _resume_cmd;  // virtual wp command that is used to resume mission if the mission needs to be rewound on resume.
     uint16_t                _prev_nav_cmd_id;       // id of the previous "navigation" command. (WAYPOINT, LOITER_TO_ALT, ect etc)
     uint16_t                _prev_nav_cmd_index;    // index of the previous "navigation" command.  Rarely used which is why we don't store the whole command
     uint16_t                _prev_nav_cmd_wp_index; // index of the previous "navigation" command that contains a waypoint.  Rarely used which is why we don't store the whole command
-    bool                    _force_resume;  // when set true it forces mission to resume irrespective of MIS_RESTART param.
     struct Location         _exit_position;  // the position in the mission that the mission was exited
 
     // jump related variables
@@ -683,19 +761,22 @@ private:
     // last time that mission changed
     uint32_t _last_change_time_ms;
 
-    // Distance to repeat on mission resume (m), can be set with MAV_CMD_DO_SET_RESUME_REPEAT_DIST
-    uint16_t _repeat_dist;
 
     // multi-thread support. This is static so it can be used from
     // const functions
     static HAL_Semaphore _rsem;
 
     // mission items common to all vehicles:
+    bool start_command_do_aux_function(const AP_Mission::Mission_Command& cmd);
     bool start_command_do_gripper(const AP_Mission::Mission_Command& cmd);
     bool start_command_do_servorelayevents(const AP_Mission::Mission_Command& cmd);
     bool start_command_camera(const AP_Mission::Mission_Command& cmd);
     bool start_command_parachute(const AP_Mission::Mission_Command& cmd);
     bool command_do_set_repeat_dist(const AP_Mission::Mission_Command& cmd);
+
+    bool start_command_do_sprayer(const AP_Mission::Mission_Command& cmd);
+    bool start_command_do_scripting(const AP_Mission::Mission_Command& cmd);
+    bool start_command_do_gimbal_manager_pitchyaw(const AP_Mission::Mission_Command& cmd);
 };
 
 namespace AP

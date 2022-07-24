@@ -13,6 +13,9 @@
 #include <malloc.h>
 #endif
 #include <AP_RCProtocol/AP_RCProtocol.h>
+#ifdef UBSAN_ENABLED
+#include <sanitizer/asan_interface.h>
+#endif
 
 using namespace HALSITL;
 
@@ -49,6 +52,45 @@ Scheduler::Scheduler(SITL_State *sitlState) :
 {
 }
 
+#ifdef UBSAN_ENABLED
+/*
+  catch ubsan errors and append to a log file
+ */
+extern "C" {
+void __ubsan_get_current_report_data(const char **OutIssueKind,
+                                     const char **OutMessage,
+                                     const char **OutFilename, unsigned *OutLine,
+                                     unsigned *OutCol, char **OutMemoryAddr);
+
+void __ubsan_on_report()
+{
+    static int fd = -1;
+    if (fd == -1) {
+        const char *ubsan_log_path = getenv("UBSAN_LOG_PATH");
+        if (ubsan_log_path == nullptr) {
+            ubsan_log_path = "ubsan.log";
+        }
+        if (ubsan_log_path != nullptr) {
+            fd = open(ubsan_log_path, O_APPEND|O_CREAT|O_WRONLY, 0644);
+        }
+    }
+    if (fd != -1) {
+        const char *OutIssueKind = nullptr;
+        const char *OutMessage = nullptr;
+        const char *OutFilename = nullptr;
+        unsigned OutLine=0;
+        unsigned OutCol=0;
+        char *OutMemoryAddr=nullptr;
+        __ubsan_get_current_report_data(&OutIssueKind, &OutMessage, &OutFilename,
+                                        &OutLine, &OutCol, &OutMemoryAddr);
+        dprintf(fd, "ubsan error: %s:%u:%u %s:%s\n",
+                OutFilename, OutLine, OutCol,
+                OutIssueKind, OutMessage);
+    }
+}
+}
+#endif
+
 void Scheduler::init()
 {
     _main_ctx = pthread_self();
@@ -73,7 +115,7 @@ bool Scheduler::in_main_thread() const
  * time (due to the logic in SITL_State::wait_clock) and thus taking
  * the semaphore never times out - meaning we essentially deadlock.
  */
-bool Scheduler::semaphore_wait_hack_required()
+bool Scheduler::semaphore_wait_hack_required() const
 {
     if (pthread_self() != _main_ctx) {
         // only the main thread ever moves stuff forwards
@@ -143,7 +185,7 @@ void Scheduler::register_timer_failsafe(AP_HAL::Proc failsafe, uint32_t period_u
     _failsafe = failsafe;
 }
 
-void Scheduler::system_initialized() {
+void Scheduler::set_system_initialized() {
     if (_initialized) {
         AP_HAL::panic(
             "PANIC: scheduler system initialized called more than once");
@@ -153,17 +195,21 @@ void Scheduler::system_initialized() {
     // i386 with gcc doesn't work with FE_INVALID
     exceptions |= FE_INVALID;
 #endif
+#if !defined(HAL_BUILD_AP_PERIPH)
     if (_sitlState->_sitl == nullptr || _sitlState->_sitl->float_exception) {
         feenableexcept(exceptions);
     } else {
         feclearexcept(exceptions);
     }
+#else
+    feclearexcept(exceptions);
+#endif
     _initialized = true;
 }
 
 void Scheduler::sitl_end_atomic() {
     if (_nested_atomic_ctr == 0) {
-        hal.uartA->printf("NESTED ATOMIC ERROR\n");
+        hal.serial(0)->printf("NESTED ATOMIC ERROR\n");
     } else {
         _nested_atomic_ctr--;
     }
@@ -231,24 +277,23 @@ void Scheduler::_run_io_procs()
 
     _in_io_proc = false;
 
-    hal.uartA->_timer_tick();
-    hal.uartB->_timer_tick();
-    hal.uartC->_timer_tick();
-    hal.uartD->_timer_tick();
-    hal.uartE->_timer_tick();
-    hal.uartF->_timer_tick();
-    hal.uartG->_timer_tick();
-    hal.uartH->_timer_tick();
+    for (uint8_t i=0; i<hal.num_serial; i++) {
+        hal.serial(i)->_timer_tick();
+    }
     hal.storage->_timer_tick();
 
+#ifndef HAL_BUILD_AP_PERIPH
     // in lieu of a thread-per-bus:
     ((HALSITL::I2CDeviceManager*)(hal.i2c_mgr))->_timer_tick();
+#endif
 
 #if SITL_STACK_CHECKING_ENABLED
     check_thread_stacks();
 #endif
 
+#ifndef HAL_BUILD_AP_PERIPH
     AP::RC().update();
+#endif
 }
 
 /*

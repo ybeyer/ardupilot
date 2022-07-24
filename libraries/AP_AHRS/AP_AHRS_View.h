@@ -21,6 +21,11 @@
  */
 
 #include "AP_AHRS.h"
+#include <AP_Motors/AP_Motors.h>
+
+// fwd declarations to avoid include errors
+class AC_AttitudeControl;
+class AC_PosControl;
 
 class AP_AHRS_View
 {
@@ -29,7 +34,7 @@ public:
     AP_AHRS_View(AP_AHRS &ahrs, enum Rotation rotation, float pitch_trim_deg=0);
 
     // update state
-    void update(bool skip_ins_update=false);
+    void update();
 
     // empty virtual destructor
     virtual ~AP_AHRS_View() {}
@@ -80,8 +85,8 @@ public:
       wrappers around ahrs functions which pass-thru directly. See
       AP_AHRS.h for description of each function
      */
-    bool get_position(struct Location &loc) const WARN_IF_UNUSED {
-        return ahrs.get_position(loc);
+    bool get_location(struct Location &loc) const WARN_IF_UNUSED {
+        return ahrs.get_location(loc);
     }
 
     Vector3f wind_estimate(void) {
@@ -106,10 +111,6 @@ public:
 
     bool get_velocity_NED(Vector3f &vec) const WARN_IF_UNUSED {
         return ahrs.get_velocity_NED(vec);
-    }
-
-    bool get_expected_mag_field_NED(Vector3f &ret) const WARN_IF_UNUSED {
-        return ahrs.get_expected_mag_field_NED(ret);
     }
 
     bool get_relative_position_NED_home(Vector3f &vec) const WARN_IF_UNUSED {
@@ -172,12 +173,30 @@ public:
         return ahrs.get_error_yaw();
     }
 
+    // Logging Functions
+    void Write_AttitudeView(const Vector3f &targets) const;    
+    void Write_Rate( const AP_Motors &motors, const AC_AttitudeControl &attitude_control,
+                        const AC_PosControl &pos_control) const;
+
     float roll;
     float pitch;
     float yaw;
     int32_t roll_sensor;
     int32_t pitch_sensor;
     int32_t yaw_sensor;
+
+
+    // get current rotation
+    // note that this may not be the rotation were actually using, see _pitch_trim_deg
+    enum Rotation get_rotation(void) const {
+        return rotation;
+    }
+
+    // get pitch trim (deg)
+    float get_pitch_trim() const { return _pitch_trim_deg; }
+
+    // Rotate vector from AHRS reference frame to AHRS view refences frame
+    void rotate(Vector3f &vec) const;
 
 private:
     const enum Rotation rotation;

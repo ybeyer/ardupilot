@@ -1,4 +1,9 @@
-#!/usr/bin/env python
+'''
+Test AntennaTracker vehicle in SITL
+
+AP_FLAKE8_CLEAN
+
+'''
 
 from __future__ import print_function
 
@@ -16,13 +21,18 @@ from common import NotAchievedException
 testdir = os.path.dirname(os.path.realpath(__file__))
 SITL_START_LOCATION = mavutil.location(-27.274439, 151.290064, 343, 8.7)
 
+
 class AutoTestTracker(AutoTest):
 
     def log_name(self):
         return "AntennaTracker"
 
+    def default_speedup(self):
+        '''Tracker seems to be race-free'''
+        return 100
+
     def test_filepath(self):
-         return os.path.realpath(__file__)
+        return os.path.realpath(__file__)
 
     def sitl_start_location(self):
         return SITL_START_LOCATION
@@ -74,9 +84,7 @@ class AutoTestTracker(AutoTest):
                     0, # pitch rate
                     0, # yaw rate
                     0) # thrust, 0 to 1, translated to a climb/descent rate
-            m = self.mav.recv_match(type='ATTITUDE', blocking=True, timeout=2)
-            if m is None:
-                raise NotAchievedException("Did not get ATTITUDE")
+            m = self.assert_receive_message('ATTITUDE', timeout=2)
             if now - last_debug > 1:
                 last_debug = now
                 self.progress("yaw=%f desyaw=%f pitch=%f despitch=%f" %
@@ -103,7 +111,7 @@ class AutoTestTracker(AutoTest):
         self.change_mode(0) # "MANUAL"
         for chan in 1, 2:
             for pwm in 1200, 1600, 1367:
-                self.set_rc(chan, pwm);
+                self.set_rc(chan, pwm)
                 self.wait_servo_channel_value(chan, pwm)
 
     def SERVOTEST(self):

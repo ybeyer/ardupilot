@@ -22,7 +22,6 @@
 #include "Scheduler.h"
 #include "hwdef/common/flash.h"
 #include <AP_Filesystem/AP_Filesystem.h>
-#include "sdcard.h"
 #include <stdio.h>
 
 using namespace ChibiOS;
@@ -88,7 +87,7 @@ void Storage::_storage_open(void)
         }
 
         // use microSD based storage
-        if (sdcard_retry()) {
+        if (AP::FS().retry_mount()) {
             log_fd = AP::FS().open(HAL_STORAGE_FILE, O_RDWR|O_CREAT);
             if (log_fd == -1) {
                 ::printf("open failed of " HAL_STORAGE_FILE "\n");
@@ -145,7 +144,7 @@ void Storage::_save_backup(void)
     // We want to do this desperately,
     // So we keep trying this for a second
     uint32_t start_millis = AP_HAL::millis();
-    while(!sdcard_retry() && (AP_HAL::millis() - start_millis) < 1000) {
+    while(!AP::FS().retry_mount() && (AP_HAL::millis() - start_millis) < 1000) {
         hal.scheduler->delay(1);        
     }
 
@@ -347,6 +346,7 @@ void Storage::_flash_load(void)
 bool Storage::_flash_write(uint16_t line)
 {
 #ifdef STORAGE_FLASH_PAGE
+    EXPECT_DELAY_MS(1);
     return _flash.write(line*CH_STORAGE_LINE_SIZE, CH_STORAGE_LINE_SIZE);
 #else
     return false;
@@ -361,6 +361,7 @@ bool Storage::_flash_write_data(uint8_t sector, uint32_t offset, const uint8_t *
 #ifdef STORAGE_FLASH_PAGE
     size_t base_address = hal.flash->getpageaddr(_flash_page+sector);
     for (uint8_t i=0; i<STORAGE_FLASH_RETRIES; i++) {
+        EXPECT_DELAY_MS(1);
         if (hal.flash->write(base_address+offset, data, length)) {
             return true;
         }
@@ -413,13 +414,10 @@ bool Storage::_flash_erase_sector(uint8_t sector)
           thread.  We can't use EXPECT_DELAY_MS() as it checks we are
           in the main thread
          */
-        ChibiOS::Scheduler *sched = (ChibiOS::Scheduler *)hal.scheduler;
-        sched->_expect_delay_ms(1000);
+        EXPECT_DELAY_MS(1000);
         if (hal.flash->erasepage(_flash_page+sector)) {
-            sched->_expect_delay_ms(0);
             return true;
         }
-        sched->_expect_delay_ms(0);
         hal.scheduler->delay(1);
     }
     return false;
@@ -443,6 +441,12 @@ bool Storage::_flash_erase_ok(void)
  */
 bool Storage::healthy(void)
 {
+#ifdef USE_POSIX
+    // SD card storage is really slow
+    if (_initialisedType == StorageBackend::SDCard) {
+        return log_fd != -1 || AP_HAL::millis() - _last_empty_ms < 30000U;
+    }
+#endif
     return ((_initialisedType != StorageBackend::None) &&
             (AP_HAL::millis() - _last_empty_ms < 2000u));
 }
@@ -468,5 +472,19 @@ bool Storage::erase(void)
     return false;
 #endif
 }
+
+/*
+  get storage size and ptr
+ */
+bool Storage::get_storage_ptr(void *&ptr, size_t &size)
+{
+    if (_initialisedType==StorageBackend::None) {
+        return false;
+    }
+    ptr = _buffer;
+    size = sizeof(_buffer);
+    return true;
+}
+
 
 #endif // HAL_USE_EMPTY_STORAGE

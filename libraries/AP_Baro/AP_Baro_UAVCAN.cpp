@@ -1,8 +1,6 @@
-#include <AP_HAL/AP_HAL.h>
-
-#if HAL_ENABLE_LIBUAVCAN_DRIVERS
-
 #include "AP_Baro_UAVCAN.h"
+
+#if AP_BARO_UAVCAN_ENABLED
 
 #include <AP_CANManager/AP_CANManager.h>
 #include <AP_UAVCAN/AP_UAVCAN.h>
@@ -18,7 +16,7 @@ extern const AP_HAL::HAL& hal;
 UC_REGISTRY_BINDER(PressureCb, uavcan::equipment::air_data::StaticPressure);
 UC_REGISTRY_BINDER(TemperatureCb, uavcan::equipment::air_data::StaticTemperature);
 
-AP_Baro_UAVCAN::DetectedModules AP_Baro_UAVCAN::_detected_modules[] = {0};
+AP_Baro_UAVCAN::DetectedModules AP_Baro_UAVCAN::_detected_modules[];
 HAL_Semaphore AP_Baro_UAVCAN::_sem_registry;
 
 /*
@@ -42,7 +40,6 @@ void AP_Baro_UAVCAN::subscribe_msgs(AP_UAVCAN* ap_uavcan)
     const int pressure_listener_res = pressure_listener->start(PressureCb(ap_uavcan, &handle_pressure));
     if (pressure_listener_res < 0) {
         AP_HAL::panic("UAVCAN Baro subscriber start problem\n\r");
-        return;
     }
 
     uavcan::Subscriber<uavcan::equipment::air_data::StaticTemperature, TemperatureCb> *temperature_listener;
@@ -51,7 +48,6 @@ void AP_Baro_UAVCAN::subscribe_msgs(AP_UAVCAN* ap_uavcan)
     const int temperature_listener_res = temperature_listener->start(TemperatureCb(ap_uavcan, &handle_temperature));
     if (temperature_listener_res < 0) {
         AP_HAL::panic("UAVCAN Baro subscriber start problem\n\r");
-        return;
     }
 }
 
@@ -170,7 +166,7 @@ void AP_Baro_UAVCAN::handle_temperature(AP_UAVCAN* ap_uavcan, uint8_t node_id, c
     }
     {
         WITH_SEMAPHORE(driver->_sem_baro);
-        driver->_temperature = cb.msg->static_temperature - C_TO_KELVIN;
+        driver->_temperature = KELVIN_TO_C(cb.msg->static_temperature);
     }
 }
 
@@ -194,5 +190,4 @@ void AP_Baro_UAVCAN::update(void)
     }
 }
 
-#endif // HAL_ENABLE_LIBUAVCAN_DRIVERS
-
+#endif // AP_BARO_UAVCAN_ENABLED

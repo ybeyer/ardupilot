@@ -1,7 +1,8 @@
 #pragma once
-#include <AP_HAL/AP_HAL.h>
+#include <AP_HAL/AP_HAL_Boards.h>
+#include <AP_HAL/Semaphores.h>
 
-#if HAL_MAX_CAN_PROTOCOL_DRIVERS
+#if HAL_ENABLE_LIBUAVCAN_DRIVERS
 #include <uavcan/uavcan.hpp>
 #include <AP_Common/Bitmask.h>
 #include <StorageManager/StorageManager.h>
@@ -37,6 +38,9 @@ class AP_UAVCAN_DNA_Server
     Bitmask<128> occupation_mask;
     Bitmask<128> verified_mask;
     Bitmask<128> node_seen_mask;
+    Bitmask<128> logged;
+
+    uint8_t last_logging_count;
 
     //Error State
     enum ServerState server_state;
@@ -85,6 +89,7 @@ class AP_UAVCAN_DNA_Server
     bool isValidNodeDataAvailable(uint8_t node_id);
 
     HAL_Semaphore sem;
+    AP_UAVCAN *_ap_uavcan;
 
 public:
     AP_UAVCAN_DNA_Server(StorageAccess _storage) : storage(_storage) {}
@@ -115,7 +120,7 @@ public:
     //Callbacks
     void handleAllocation(uint8_t driver_index, uint8_t node_id, const AllocationCb &cb);
     void handleNodeStatus(uint8_t node_id, const NodeStatusCb &cb);
-    void handleNodeInfo(uint8_t node_id, uint8_t unique_id[], char name[]);
+    void handleNodeInfo(uint8_t node_id, uint8_t unique_id[], char name[], uint8_t major, uint8_t minor, uint32_t vcs_commit);
 
     //Run through the list of seen node ids for verification
     void verify_nodes(AP_UAVCAN *ap_uavcan);

@@ -14,6 +14,8 @@
  */
 #include "AP_Baro_BMP388.h"
 
+#if AP_BARO_BMP388_ENABLED
+
 #include <utility>
 
 extern const AP_HAL::HAL &hal;
@@ -75,8 +77,6 @@ bool AP_Baro_BMP388::init()
         return false;
     }
     WITH_SEMAPHORE(dev->get_semaphore());
-
-    has_sample = false;
 
     dev->set_speed(AP_HAL::Device::SPEED_HIGH);
 
@@ -145,12 +145,16 @@ void AP_Baro_BMP388::update(void)
 {
     WITH_SEMAPHORE(_sem);
 
-    if (!has_sample) {
+    if (pressure_count == 0) {
         return;
     }
 
-    _copy_to_frontend(instance, pressure, temperature);
-    has_sample = false;
+    _copy_to_frontend(instance,
+                      pressure_sum/pressure_count,
+                      temperature);
+
+    pressure_sum = 0;
+    pressure_count = 0;
 }
 
 /*
@@ -211,9 +215,9 @@ void AP_Baro_BMP388::update_pressure(uint32_t data)
     float press = partial_out1 + partial_out2 + partial4;
 
     WITH_SEMAPHORE(_sem);
-    
-    pressure = press;
-    has_sample = true;
+
+    pressure_sum += press;
+    pressure_count++;
 }
 
 /*
@@ -236,3 +240,5 @@ bool AP_Baro_BMP388::read_registers(uint8_t reg, uint8_t *data, uint8_t len)
     memcpy(data, &b[2], len);
     return true;
 }
+
+#endif  // AP_BARO_BMP388_ENABLED

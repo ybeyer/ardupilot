@@ -16,9 +16,10 @@
  RTCMv3 parser, used to support moving baseline RTK mode between two
  GPS modules
 */
-
+#pragma once
 #include <stdint.h>
 
+#define RTCM3_MAX_PACKET_LEN 300
 class RTCM3_Parser {
 public:
     // process one byte, return true if packet found
@@ -38,10 +39,9 @@ public:
     
 private:
     const uint8_t RTCMv3_PREAMBLE = 0xD3;
-    const uint32_t POLYCRC24 = 0x1864CFB;
 
     // raw packet, we shouldn't need over 300 bytes for the MB configs we use
-    uint8_t pkt[300];
+    uint8_t pkt[RTCM3_MAX_PACKET_LEN];
 
     // number of bytes in pkt[]
     uint16_t pkt_bytes;
@@ -54,6 +54,5 @@ private:
     
     bool parse(void);
     void resync(void);
-    uint32_t crc24(const uint8_t *bytes, uint16_t len);
 };
 

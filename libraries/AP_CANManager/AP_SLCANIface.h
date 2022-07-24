@@ -50,7 +50,9 @@ class CANIface: public AP_HAL::CANIface
     bool handle_FrameRTRStd(const char* cmd);
     bool handle_FrameRTRExt(const char* cmd);
     bool handle_FrameDataStd(const char* cmd);
-    bool handle_FrameDataExt(const char* cmd);
+    bool handle_FrameDataExt(const char* cmd, bool canfd);
+
+    bool handle_FDFrameDataExt(const char* cmd);
 
     // Parsing bytes received on the serial port
     inline void addByte(const uint8_t byte);
@@ -61,7 +63,6 @@ class CANIface: public AP_HAL::CANIface
     bool initialized_;
 
     char buf_[SLCAN_BUFFER_SIZE + 1]; // buffer to record raw frame nibbles before parsing
-    uint32_t _pending_frame_size = 0; // holds the size of frame to be tx
     int16_t pos_ = 0; // position in the buffer recording nibble frames before parsing
     AP_HAL::UARTDriver* _port; // UART interface port reference to be used for SLCAN iface
 
@@ -79,6 +80,7 @@ class CANIface: public AP_HAL::CANIface
     int8_t _prev_ser_port;
     int8_t _iface_num = -1;
     uint32_t _last_had_activity;
+    uint8_t num_tries;
     AP_HAL::CANIface* _can_iface; // Can interface to be used for interaction by SLCAN interface
     HAL_Semaphore port_sem;
     bool _set_by_sermgr;
@@ -99,20 +101,13 @@ public:
     // Initialisation of SLCAN Passthrough method of operation
     bool init_passthrough(uint8_t i);
 
-    // Set UART port to be used with slcan interface
-    int set_port(AP_HAL::UARTDriver* port);
-
     void reset_params();
-    int8_t get_iface_num() const
-    {
-        return _iface_num;
-    }
 
     // Overriden methods
     bool set_event_handle(AP_HAL::EventHandle* evt_handle) override;
     uint16_t getNumFilters() const override;
     uint32_t getErrorCount() const override;
-    uint32_t get_stats(char* data, uint32_t max_size) override;
+    void get_stats(ExpandingString &) override;
     bool is_busoff() const override;
     bool configureFilters(const CanFilterConfig* filter_configs, uint16_t num_configs) override;
     void flush_tx() override;
@@ -126,6 +121,15 @@ public:
 
     int16_t receive(AP_HAL::CANFrame& out_frame, uint64_t& rx_time,
                     AP_HAL::CANIface::CanIOFlags& out_flags) override;
+
+protected:
+    int8_t get_iface_num() const override {
+        return _iface_num;
+    }
+
+    bool add_to_rx_queue(const AP_HAL::CANIface::CanRxItem &frm) override {
+        return rx_queue_.push(frm);
+    }
 };
 
 }

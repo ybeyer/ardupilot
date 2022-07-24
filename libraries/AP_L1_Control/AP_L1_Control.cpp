@@ -36,7 +36,7 @@ const AP_Param::GroupInfo AP_L1_Control::var_info[] = {
     // @Units: deg
     // @Range: 0 89
     // @User: Advanced
-    AP_GROUPINFO_FRAME("LIM_BANK",   3, AP_L1_Control, _loiter_bank_limit, 0.0f, AP_PARAM_FRAME_PLANE),
+    AP_GROUPINFO("LIM_BANK",   3, AP_L1_Control, _loiter_bank_limit, 0.0f),
 
     AP_GROUPEND
 };
@@ -53,7 +53,7 @@ const AP_Param::GroupInfo AP_L1_Control::var_info[] = {
 /*
   Wrap AHRS yaw if in reverse - radians
  */
-float AP_L1_Control::get_yaw()
+float AP_L1_Control::get_yaw() const
 {
     if (_reverse) {
         return wrap_PI(M_PI + _ahrs.yaw);
@@ -79,7 +79,7 @@ int32_t AP_L1_Control::get_yaw_sensor() const
 int32_t AP_L1_Control::nav_roll_cd(void) const
 {
     float ret;
-    ret = cosf(_ahrs.pitch)*degrees(atanf(_latAccDem * 0.101972f) * 100.0f); // 0.101972 = 1/9.81
+    ret = cosf(_ahrs.pitch)*degrees(atanf(_latAccDem * (1.0f/GRAVITY_MSS)) * 100.0f);
     ret = constrain_float(ret, -9000, 9000);
     return ret;
 }
@@ -141,11 +141,9 @@ float AP_L1_Control::loiter_radius(const float radius) const
     float sanitized_bank_limit = constrain_float(_loiter_bank_limit, 0.0f, 89.0f);
     float lateral_accel_sea_level = tanf(radians(sanitized_bank_limit)) * GRAVITY_MSS;
 
-    float nominal_velocity_sea_level;
-    if(_spdHgtControl == nullptr) {
-        nominal_velocity_sea_level = 0.0f;
-    } else {
-        nominal_velocity_sea_level =  _spdHgtControl->get_target_airspeed();
+    float nominal_velocity_sea_level = 0.0f;
+    if(_tecs != nullptr) {
+        nominal_velocity_sea_level =  _tecs->get_target_airspeed();
     }
 
     float eas2tas_sq = sq(_ahrs.get_EAS2TAS());
@@ -205,9 +203,13 @@ void AP_L1_Control::update_waypoint(const struct Location &prev_WP, const struct
 
     uint32_t now = AP_HAL::micros();
     float dt = (now - _last_update_waypoint_us) * 1.0e-6f;
+    if (dt > 1) {
+        // controller hasn't been called for an extended period of
+        // time.  Reinitialise it.
+        _L1_xtrack_i = 0.0f;
+    }
     if (dt > 0.1) {
         dt = 0.1;
-        _L1_xtrack_i = 0.0f;
     }
     _last_update_waypoint_us = now;
 
@@ -215,7 +217,7 @@ void AP_L1_Control::update_waypoint(const struct Location &prev_WP, const struct
     float K_L1 = 4.0f * _L1_damping * _L1_damping;
 
     // Get current position and velocity
-    if (_ahrs.get_position(_current_loc) == false) {
+    if (_ahrs.get_location(_current_loc) == false) {
         // if no GPS loc available, maintain last nav/target_bearing
         _data_is_stale = true;
         return;
@@ -311,7 +313,7 @@ void AP_L1_Control::update_waypoint(const struct Location &prev_WP, const struct
         Nu1 += _L1_xtrack_i;
 
         Nu = Nu1 + Nu2;
-        _nav_bearing = atan2f(AB.y, AB.x) + Nu1; // bearing (radians) from AC to L1 point
+        _nav_bearing = wrap_PI(atan2f(AB.y, AB.x) + Nu1);   // bearing (radians) from AC to L1 point
     }
 
     _prevent_indecision(Nu);
@@ -347,7 +349,7 @@ void AP_L1_Control::update_loiter(const struct Location &center_WP, float radius
     float K_L1 = 4.0f * _L1_damping * _L1_damping;
 
     //Get current position and velocity
-    if (_ahrs.get_position(_current_loc) == false) {
+    if (_ahrs.get_location(_current_loc) == false) {
         // if no GPS loc available, maintain last nav/target_bearing
         _data_is_stale = true;
         return;

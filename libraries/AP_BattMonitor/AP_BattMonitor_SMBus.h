@@ -34,12 +34,14 @@ public:
     AP_BattMonitor_SMBus(AP_BattMonitor &mon,
                     AP_BattMonitor::BattMonitor_State &mon_state,
                     AP_BattMonitor_Params &params,
-                    AP_HAL::OwnPtr<AP_HAL::I2CDevice> dev);
+                    uint8_t i2c_bus);
 
     // virtual destructor to reduce compiler warnings
     virtual ~AP_BattMonitor_SMBus() {}
 
     bool has_cell_voltages() const override { return _has_cell_voltages; }
+
+    bool has_temperature() const override { return _has_temperature; }
 
     // all smart batteries are expected to provide current
     bool has_current() const override { return true; }
@@ -52,29 +54,28 @@ public:
 
     virtual void init(void) override;
 
+    static const struct AP_Param::GroupInfo var_info[];
+
 protected:
 
     void read(void) override;
 
     // reads the pack full charge capacity
-    // returns true if the read was successful, or if we already knew the pack capacity
-    bool read_full_charge_capacity(void);
+    void read_full_charge_capacity(void);
 
     // reads the remaining capacity
-    // returns true if the read was successful, which is only considered to be the
-    // we know the full charge capacity
-    bool read_remaining_capacity(void);
+    // which will only be read if we know the full charge capacity (accounting for battery degradation)
+    void read_remaining_capacity(void);
 
     // return a scaler that should be multiplied by the battery's reported capacity numbers to arrive at the actual capacity in mAh
     virtual uint16_t get_capacity_scaler() const { return 1; }
 
     // reads the temperature word from the battery
-    // returns true if the read was successful
-    bool read_temp(void);
+    virtual void read_temp(void);
 
     // reads the serial number if it's not already known
-    // returns true if the read was successful, or the number was already known
-    bool read_serial_number(void);
+    // returns if the serial number was already known
+    void read_serial_number(void);
 
     // reads the battery's cycle count
     void read_cycle_count();
@@ -95,8 +96,14 @@ protected:
     bool _has_cell_voltages;        // smbus backends flag this as true once they have received a valid cell voltage report
     uint16_t _cycle_count = 0;      // number of cycles the battery has experienced. An amount of discharge approximately equal to the value of DesignCapacity.
     bool _has_cycle_count;          // true if cycle count has been retrieved from the battery
+    bool _has_temperature;
 
     virtual void timer(void) = 0;   // timer function to read from the battery
 
     AP_HAL::Device::PeriodicHandle timer_handle;
+
+    // Parameters
+    AP_Int8  _bus;          // I2C bus number
+    AP_Int8  _address;      // I2C address
+
 };

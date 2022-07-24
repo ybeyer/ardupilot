@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <AP_Math/AP_Math.h>
 
+extern const AP_HAL::HAL& hal;
+
 using namespace SITL;
 
 // table of user settable parameters
@@ -81,9 +83,9 @@ void Gripper_EPM::update_from_demand()
     }
 
     if (should_report()) {
-        ::fprintf(stderr, "demand=%f\n", demand);
-        printf("Field strength: %f%%\n", field_strength);
-        printf("Field strength: %f Tesla\n", tesla());
+        hal.console->printf("demand=%f\n", demand);
+        hal.console->printf("Field strength: %f%%\n", field_strength);
+        hal.console->printf("Field strength: %f Tesla\n", tesla());
         last_report_us = now;
         reported_field_strength = field_strength;
     }
@@ -101,7 +103,7 @@ void Gripper_EPM::update(const struct sitl_input &input)
 }
 
 
-bool Gripper_EPM::should_report()
+bool Gripper_EPM::should_report() const
 {
     if (AP_HAL::micros64() - last_report_us < report_interval) {
         return false;
@@ -114,7 +116,7 @@ bool Gripper_EPM::should_report()
     return false;
 }
 
-float Gripper_EPM::tesla()
+float Gripper_EPM::tesla() const
 {
     // https://en.wikipedia.org/wiki/Orders_of_magnitude_(magnetic_field)
     // 200N lifting capacity ~= 2.5T

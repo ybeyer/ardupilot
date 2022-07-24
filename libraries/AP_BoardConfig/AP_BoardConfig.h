@@ -30,14 +30,21 @@
 #define HAL_WATCHDOG_ENABLED_DEFAULT false
 #endif
 
+#if HAL_HAVE_IMU_HEATER
+#ifndef HAL_IMUHEAT_P_DEFAULT
+#define HAL_IMUHEAT_P_DEFAULT 200
+#endif
+#ifndef HAL_IMUHEAT_I_DEFAULT
+#define HAL_IMUHEAT_I_DEFAULT 0.3
+#endif
+#endif
+
+
 extern "C" typedef int (*main_fn_t)(int argc, char **);
 
 class AP_BoardConfig {
 public:
-    AP_BoardConfig() {
-        _singleton = this;
-        AP_Param::setup_object_defaults(this, var_info);
-    };
+    AP_BoardConfig();
 
     /* Do not allow copies */
     AP_BoardConfig(const AP_BoardConfig &other) = delete;
@@ -54,11 +61,14 @@ public:
     static const struct AP_Param::GroupInfo var_info[];
 
     // notify user of a fatal startup error related to available sensors. 
-    static void config_error(const char *reason, ...);
+    static void config_error(const char *reason, ...) FMT_PRINTF(1, 2) NORETURN;
+
+    // notify user of a non-fatal startup error related to allocation failures.
+    static void allocation_error(const char *reason, ...) FMT_PRINTF(1, 2) NORETURN;
 
     // permit other libraries (in particular, GCS_MAVLink) to detect
     // that we're never going to boot properly:
-    static bool in_config_error(void) { return _in_sensor_config_error; }
+    static bool in_config_error(void) { return _in_error_loop; }
 
     // valid types for BRD_TYPE: these values need to be in sync with the
     // values from the param description
@@ -85,12 +95,14 @@ public:
         VRX_BOARD_UBRAIN52 = 35,
         VRX_BOARD_CORE10   = 36,
         VRX_BOARD_BRAIN54  = 38,
-        PX4_BOARD_OLDDRIVERS = 100,
         PX4_BOARD_FMUV6    = 39,
+        FMUV6_BOARD_HOLYBRO_6X = 40,
+        FMUV6_BOARD_CUAV_6X = 41,
+        PX4_BOARD_OLDDRIVERS = 100,
     };
 
     // set default value for BRD_SAFETY_MASK
-    void set_default_safety_ignore_mask(uint16_t mask);
+    void set_default_safety_ignore_mask(uint32_t mask);
 
     static enum px4_board_type get_board_type(void) {
 #if AP_FEATURE_BOARD_DETECT
@@ -111,16 +123,11 @@ public:
 #endif
     }
 
-    // get number of PWM outputs enabled on FMU
-    static uint8_t get_pwm_count(void) {
-        return _singleton?_singleton->pwm_count.get():8;
-    }
-
     // get alternative config selection
     uint8_t get_alt_config(void) {
         return uint8_t(_alt_config.get());
     }
-    
+
     enum board_safety_button_option {
         BOARD_SAFETY_OPTION_BUTTON_ACTIVE_SAFETY_OFF= (1 << 0),
         BOARD_SAFETY_OPTION_BUTTON_ACTIVE_SAFETY_ON=  (1 << 1),
@@ -129,14 +136,14 @@ public:
     };
 
     // return safety button options. Bits are in enum board_safety_button_option
-    uint16_t get_safety_button_options(void) {
+    uint16_t get_safety_button_options(void) const {
         return uint16_t(state.safety_option.get());
     }
 
     // return the value of BRD_SAFETY_MASK
     uint16_t get_safety_mask(void) const {
 #if AP_FEATURE_BOARD_DETECT || defined(AP_FEATURE_BRD_PWM_COUNT_PARAM)
-        return uint16_t(state.ignore_safety_channels.get());
+        return uint32_t(state.ignore_safety_channels.get());
 #else
         return 0;
 #endif
@@ -164,34 +171,72 @@ public:
 
     enum board_options {
         BOARD_OPTION_WATCHDOG = (1 << 0),
+        DISABLE_FTP = (1<<1),
+        ALLOW_SET_INTERNAL_PARM = (1<<2),
+        BOARD_OPTION_DEBUG_ENABLE = (1<<3),
+        UNLOCK_FLASH = (1<<4),
+        WRITE_PROTECT_FLASH = (1<<5),
+        WRITE_PROTECT_BOOTLOADER = (1<<6),
     };
+
+    // return true if ftp is disabled
+    static bool ftp_disabled(void) {
+        return _singleton?(_singleton->_options & DISABLE_FTP)!=0:1;
+    }
 
     // return true if watchdog enabled
     static bool watchdog_enabled(void) {
         return _singleton?(_singleton->_options & BOARD_OPTION_WATCHDOG)!=0:HAL_WATCHDOG_ENABLED_DEFAULT;
     }
 
+    // return true if flash should be unlocked
+    static bool unlock_flash(void) {
+        return _singleton && (_singleton->_options & UNLOCK_FLASH) != 0;
+    }
+
+    // return true if flash should be write protected
+    static bool protect_flash(void) {
+        return _singleton && (_singleton->_options & WRITE_PROTECT_FLASH) != 0;
+    }
+
+    // return true if bootloader should be write protected
+    static bool protect_bootloader(void) {
+        return _singleton && (_singleton->_options & WRITE_PROTECT_BOOTLOADER) != 0;
+    }
+
+    // return true if we allow setting of internal parameters (for developers)
+    static bool allow_set_internal_parameters(void) {
+        return _singleton?(_singleton->_options & ALLOW_SET_INTERNAL_PARM)!=0:false;
+    }
+    
     // handle press of safety button. Return true if safety state
     // should be toggled
     bool safety_button_handle_pressed(uint8_t press_count);
 
 #if HAL_HAVE_IMU_HEATER
     void set_imu_temp(float current_temp_c);
+
+    // heater duty cycle is as a percentage (0 to 100)
+    float get_heater_duty_cycle(void) const {
+        return heater.output;
+    }
+
+    // getters for current temperature and min arming temperature, return false if heater disabled
+    bool get_board_heater_temperature(float &temperature) const;
+    bool get_board_heater_arming_temperature(int8_t &temperature) const;
 #endif
 
 private:
     static AP_BoardConfig *_singleton;
     
-    AP_Int16 vehicleSerialNumber;
-    AP_Int8 pwm_count;
+    AP_Int32 vehicleSerialNumber;
 
     struct {
         AP_Int8 safety_enable;
         AP_Int16 safety_option;
         AP_Int32 ignore_safety_channels;
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
-        AP_Int8 ser1_rtscts;
-        AP_Int8 ser2_rtscts;
+        AP_Int8 ser_rtscts[6];
         AP_Int8 sbus_out_rate;
 #endif
         AP_Int8 board_type;
@@ -206,27 +251,34 @@ private:
     bool spi_check_register_inv2(const char *devname, uint8_t regnum, uint8_t value, uint8_t read_flag = 0x80);
     void validate_board_type(void);
     void board_autodetect(void);
+    void detect_fmuv6_variant(void);
     bool check_ms5611(const char* devname);
 
 #endif // AP_FEATURE_BOARD_DETECT
 
     void board_init_safety(void);
+    void board_init_debug(void);
 
     void board_setup_uart(void);
     void board_setup_sbus(void);
     void board_setup(void);
 
-    static bool _in_sensor_config_error;
+    // common method to throw errors
+    static void throw_error(const char *err_str, const char *fmt, va_list arg) NORETURN;
+
+    static bool _in_error_loop;
 
 #if HAL_HAVE_IMU_HEATER
     struct {
+        AC_PI pi_controller;
         AP_Int8 imu_target_temperature;
         uint32_t last_update_ms;
-        AC_PI pi_controller{200, 0.3, 70};
         uint16_t count;
         float sum;
         float output;
         uint32_t last_log_ms;
+        float temperature;
+        AP_Int8 imu_arming_temperature_margin_low;
     } heater;
 #endif
 
@@ -246,9 +298,7 @@ private:
     AP_Float _vservo_min;
 #endif
 
-#ifdef HAL_GPIO_PWM_VOLT_PIN
     AP_Int8 _pwm_volt_sel;
-#endif
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
     AP_Int8 _sdcard_slowdown;

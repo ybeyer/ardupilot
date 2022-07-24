@@ -18,6 +18,8 @@
 
 #include "SIM_PS_RPLidarA2.h"
 
+#if HAL_SIM_PS_RPLIDARA2_ENABLED
+
 #include <GCS_MAVLink/GCS.h>
 #include <stdio.h>
 #include <errno.h>
@@ -161,7 +163,7 @@ void PS_RPLidarA2::update_output_scan(const Location &location)
 
 
         const float MAX_RANGE = 16.0f;
-        float distance = measure_distance_at_angle(location, current_degrees_bf);
+        float distance = measure_distance_at_angle_bf(location, current_degrees_bf);
         // ::fprintf(stderr, "SIM: %f=%fm\n", current_degrees_bf, distance);
         if (distance > MAX_RANGE) {
             // sensor returns zero for out-of-range
@@ -229,3 +231,5 @@ void PS_RPLidarA2::send_response_descriptor(uint32_t data_response_length, SendM
         abort();
     }
 }
+
+#endif  // HAL_SIM_PS_RPLIDARA2_ENABLED

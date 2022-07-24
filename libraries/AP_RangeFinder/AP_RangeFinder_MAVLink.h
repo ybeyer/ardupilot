@@ -3,6 +3,12 @@
 #include "AP_RangeFinder.h"
 #include "AP_RangeFinder_Backend.h"
 
+#ifndef AP_RANGEFINDER_MAVLINK_ENABLED
+#define AP_RANGEFINDER_MAVLINK_ENABLED AP_RANGEFINDER_BACKEND_DEFAULT_ENABLED
+#endif
+
+#if AP_RANGEFINDER_MAVLINK_ENABLED
+
 // Data timeout
 #define AP_RANGEFINDER_MAVLINK_TIMEOUT_MS 500
 
@@ -10,17 +16,22 @@ class AP_RangeFinder_MAVLink : public AP_RangeFinder_Backend
 {
 
 public:
-    // constructor
-    AP_RangeFinder_MAVLink(RangeFinder::RangeFinder_State &_state, AP_RangeFinder_Params &_params);
 
-    // static detection function
-    static bool detect();
+    // constructor
+    using AP_RangeFinder_Backend::AP_RangeFinder_Backend;
+
+    // Assume that if the user set the RANGEFINDER_TYPE parameter to MAVLink,
+    // there is an attached MAVLink rangefinder
+    static bool detect() { return true; }
 
     // update state
     void update(void) override;
 
     // Get update from mavlink
     void handle_msg(const mavlink_message_t &msg) override;
+
+    int16_t max_distance_cm() const override;
+    int16_t min_distance_cm() const override;
 
 protected:
 
@@ -29,7 +40,11 @@ protected:
     }
 
 private:
+
+    // stored data from packet:
     uint16_t distance_cm;
+    uint16_t _max_distance_cm;
+    uint16_t _min_distance_cm;
 
     // start a reading
     static bool start_reading(void);
@@ -37,3 +52,5 @@ private:
 
     MAV_DISTANCE_SENSOR sensor_type = MAV_DISTANCE_SENSOR_UNKNOWN;
 };
+
+#endif

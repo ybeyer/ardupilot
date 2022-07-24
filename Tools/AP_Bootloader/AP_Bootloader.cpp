@@ -32,12 +32,20 @@
 #include "bl_protocol.h"
 #include "can.h"
 #include <stdio.h>
+#if EXT_FLASH_SIZE_MB
+#include <AP_FlashIface/AP_FlashIface_JEDEC.h>
+#endif
 
 extern "C" {
     int main(void);
 }
 
-struct boardinfo board_info;
+struct boardinfo board_info = {
+    .board_type = APJ_BOARD_ID,
+    .board_rev = 0,
+    .fw_size = (BOARD_FLASH_SIZE - (FLASH_BOOTLOADER_LOAD_KB + FLASH_RESERVE_END_KB + APP_START_OFFSET_KB))*1024,
+    .extf_size = (EXT_FLASH_SIZE_MB * 1024 * 1024) - (EXT_FLASH_RESERVE_START_KB + EXT_FLASH_RESERVE_END_KB) * 1024
+};
 
 #ifndef HAL_BOOTLOADER_TIMEOUT
 #define HAL_BOOTLOADER_TIMEOUT 5000
@@ -47,11 +55,12 @@ struct boardinfo board_info;
 #define HAL_STAY_IN_BOOTLOADER_VALUE 0
 #endif
 
+#if EXT_FLASH_SIZE_MB
+AP_FlashIface_JEDEC ext_flash;
+#endif
+
 int main(void)
 {
-    board_info.board_type = APJ_BOARD_ID;
-    board_info.board_rev = 0;
-    board_info.fw_size = (BOARD_FLASH_SIZE - (FLASH_BOOTLOADER_LOAD_KB + FLASH_RESERVE_END_KB + APP_START_OFFSET_KB))*1024;
     if (BOARD_FLASH_SIZE > 1024 && check_limit_flash_1M()) {
         board_info.fw_size = (1024 - (FLASH_BOOTLOADER_LOAD_KB + APP_START_OFFSET_KB))*1024;
     }
@@ -65,6 +74,10 @@ int main(void)
     mapr &= ~AFIO_MAPR_SWJ_CFG;
     mapr |= AFIO_MAPR_SWJ_CFG_JTAGDISABLE;
     AFIO->MAPR = mapr | AFIO_MAPR_CAN_REMAP_REMAP2 | AFIO_MAPR_SPI3_REMAP;
+#endif
+
+#ifdef HAL_FLASH_PROTECTION
+    stm32_flash_unprotect_flash();
 #endif
 
 #ifndef NO_FASTBOOT
@@ -85,16 +98,23 @@ int main(void)
         timeout = 10000;
         can_set_node_id(m & 0xFF);
     }
-    can_check_update();
+    if (can_check_update()) {
+        // trying to update firmware, stay in bootloader
+        try_boot = false;
+        timeout = 0;
+    }
     if (!can_check_firmware()) {
         // bad firmware CRC, don't try and boot
         timeout = 0;
         try_boot = false;
-    } else if (timeout != 0) {
+    }
+#ifndef BOOTLOADER_DEV_LIST
+    else if (timeout != 0) {
         // fast boot for good firmware
         try_boot = true;
         timeout = 1000;
     }
+#endif
     if (was_watchdog && m != RTC_BOOT_FWOK) {
         // we've had a watchdog within 30s of booting main CAN
         // firmware. We will stay in bootloader to allow the user to
@@ -104,7 +124,15 @@ int main(void)
         timeout = 0;
     }
 #endif
-    
+#if defined(HAL_GPIO_PIN_VBUS) && defined(HAL_ENABLE_VBUS_CHECK)
+#if HAL_USE_SERIAL_USB == TRUE
+    else if (palReadLine(HAL_GPIO_PIN_VBUS) == 0)  {
+        try_boot = true;
+        timeout = 0;
+    }
+#endif
+#endif
+
     // if we fail to boot properly we want to pause in bootloader to give
     // a chance to load new app code
     set_fast_reboot(RTC_BOOT_OFF);
@@ -129,6 +157,15 @@ int main(void)
     can_start();
 #endif
     flash_init();
+
+
+#if EXT_FLASH_SIZE_MB
+    while (!ext_flash.init()) {
+        // keep trying until we get it working
+        // there's no future without it
+        chThdSleep(chTimeMS2I(20));
+    }
+#endif
 
 #if defined(BOOTLOADER_DEV_LIST)
     while (true) {

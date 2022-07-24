@@ -14,6 +14,14 @@
  */
 #pragma once
 
+#include <AP_HAL/AP_HAL_Boards.h>
+
+#ifndef AP_AIRSPEED_MS4525_ENABLED
+#define AP_AIRSPEED_MS4525_ENABLED AP_AIRSPEED_BACKEND_DEFAULT_ENABLED
+#endif
+
+#if AP_AIRSPEED_MS4525_ENABLED
+
 /*
   backend driver for airspeed from I2C
  */
@@ -58,4 +66,8 @@ private:
     uint32_t _last_sample_time_ms;
     uint32_t _measurement_started_ms;
     AP_HAL::OwnPtr<AP_HAL::I2CDevice> _dev;
+
+    bool probe(uint8_t bus, uint8_t address);
 };
+
+#endif  // AP_AIRSPEED_MS4525_ENABLED

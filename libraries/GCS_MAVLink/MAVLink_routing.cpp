@@ -97,13 +97,14 @@ bool MAVLink_routing::check_and_forward(mavlink_channel_t in_channel, const mavl
         return true;
     }
 
+    // learn new routes including private channels
+    // so that find_mav_type works for all channels
+    learn_route(in_channel, msg);
+
     // don't ever forward data from a private channel
     if ((GCS_MAVLINK::is_private(in_channel))) {
         return true;
     }
-
-    // learn new routes
-    learn_route(in_channel, msg);
 
     if (msg.msgid == MAVLINK_MSG_ID_RADIO ||
         msg.msgid == MAVLINK_MSG_ID_RADIO_STATUS) {
@@ -177,7 +178,8 @@ bool MAVLink_routing::check_and_forward(mavlink_channel_t in_channel, const mavl
         }
     }
 
-    if (!forwarded && match_system) {
+    if ((!forwarded && match_system) ||
+        broadcast_system) {
         process_locally = true;
     }
 
@@ -266,9 +268,20 @@ bool MAVLink_routing::find_by_mavtype(uint8_t mavtype, uint8_t &sysid, uint8_t &
 void MAVLink_routing::learn_route(mavlink_channel_t in_channel, const mavlink_message_t &msg)
 {
     uint8_t i;
-    if (msg.sysid == 0 ||
-        (msg.sysid == mavlink_system.sysid &&
-         msg.compid == mavlink_system.compid)) {
+    if (msg.sysid == 0) {
+        // don't learn routes to the broadcast system
+        return;
+    }
+    if (msg.sysid == mavlink_system.sysid &&
+        msg.compid == mavlink_system.compid) {
+        // don't learn routes to ourself.  We know where we are.
+        return;
+    }
+    if (msg.sysid == mavlink_system.sysid &&
+        msg.compid == MAV_COMP_ID_ALL) {
+        // don't learn routes to the broadcast component ID for our
+        // own system id.  We should still broadcast these, but we
+        // should also process them locally.
         return;
     }
     for (i=0; i<num_routes; i++) {

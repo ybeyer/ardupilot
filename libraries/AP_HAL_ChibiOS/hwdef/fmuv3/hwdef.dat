@@ -112,7 +112,6 @@ FLASH_SIZE_KB 2048
 
 # USB setup
 USB_STRING_MANUFACTURER "ArduPilot"
-USB_STRING_PRODUCT "%BOARD%"
 
 # Now define the order that I2C buses are presented in the hal.i2c API
 # in ArduPilot. For historical reasons inherited from HAL_PX4 the
@@ -338,12 +337,6 @@ PE9  TIM1_CH1 TIM1 PWM(4) GPIO(53)
 PD13 TIM4_CH2 TIM4 PWM(5) GPIO(54)
 PD14 TIM4_CH3 TIM4 PWM(6) GPIO(55)
 
-define BOARD_PWM_COUNT_DEFAULT 4
-
-# Relays default to use GPIO pins 54 and 55.
-define RELAY1_PIN_DEFAULT 54
-define RELAY2_PIN_DEFAULT 55
-
 # This is the invensense data-ready pin. We don't use it in the
 # default driver.
 PD15 MPU_DRDY INPUT
@@ -475,3 +468,7 @@ DMA_PRIORITY USART6* SPI*
 # is "ROMFS ROMFS-filename source-filename". Paths are relative to the
 # ardupilot root.
 ROMFS io_firmware.bin Tools/IO_Firmware/iofirmware_lowpolh.bin
+
+# for users running fmuv3 on their Solo:
+define HAL_OREO_LED_ENABLED (BOARD_FLASH_SIZE > 1024)
+define HAL_SOLO_GIMBAL_ENABLED (HAL_MOUNT_ENABLED && BOARD_FLASH_SIZE > 1024)

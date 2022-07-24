@@ -5,10 +5,13 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
 #include <stdio.h>
+#include <AP_RTC/AP_RTC.h>
 
 #if HAVE_FILESYSTEM_SUPPORT && CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
 
+#include <ff.h>
 #include <AP_HAL_ChibiOS/sdcard.h>
+#include <GCS_MAVLink/GCS.h>
 
 #if 0
 #define debug(fmt, args ...)  do {printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); } while(0)
@@ -62,7 +65,7 @@ static int new_file_descriptor(const char *pathname)
         if (isatty_(i)) {
             continue;
         }
-        if ( file_table[i] == NULL) {
+        if (file_table[i] == NULL) {
             stream = (FAT_FILE *) calloc(sizeof(FAT_FILE),1);
             if (stream == NULL) {
                 errno = ENOMEM;
@@ -121,7 +124,7 @@ static int free_file_descriptor(int fileno)
 
     // checks if fileno out of bounds
     stream = fileno_to_stream(fileno);
-    if (stream == NULL) {
+    if (stream == nullptr) {
         return -1;
     }
 
@@ -144,14 +147,14 @@ static FIL *fileno_to_fatfs(int fileno)
     FAT_FILE *stream;
     FIL *fh;
 
-    if (isatty_( fileno )) {
+    if (isatty_(fileno)) {
         errno = EBADF;
         return nullptr;
     }
 
     // checks if fileno out of bounds
     stream = fileno_to_stream(fileno);
-    if ( stream == NULL ) {
+    if (stream == nullptr) {
         return nullptr;
     }
 
@@ -163,9 +166,9 @@ static FIL *fileno_to_fatfs(int fileno)
     return fh;
 }
 
-static int fatfs_to_errno( FRESULT Result )
+static int fatfs_to_errno(FRESULT Result)
 {
-    switch ( Result ) {
+    switch (Result) {
     case FR_OK:              /* FatFS (0) Succeeded */
         return 0;          /* POSIX OK */
     case FR_DISK_ERR:        /* FatFS (1) A hard error occurred in the low level disk I/O layer */
@@ -276,7 +279,7 @@ static bool remount_file_system(void)
     return true;
 }
 
-int AP_Filesystem_FATFS::open(const char *pathname, int flags)
+int AP_Filesystem_FATFS::open(const char *pathname, int flags, bool allow_absolute_path)
 {
     int fileno;
     int fatfs_modes;
@@ -284,6 +287,7 @@ int AP_Filesystem_FATFS::open(const char *pathname, int flags)
     FIL *fh;
     int res;
 
+    FS_CHECK_ALLOWED(-1);
     WITH_SEMAPHORE(sem);
 
     CHECK_REMOUNT();
@@ -311,14 +315,14 @@ int AP_Filesystem_FATFS::open(const char *pathname, int flags)
 
     // checks if fileno out of bounds
     stream = fileno_to_stream(fileno);
-    if (stream == NULL) {
+    if (stream == nullptr) {
         free_file_descriptor(fileno);
         return -1;
     }
 
     // fileno_to_fatfs checks for fileno out of bounds
     fh = fileno_to_fatfs(fileno);
-    if (fh == NULL) {
+    if (fh == nullptr) {
         free_file_descriptor(fileno);
         errno = EBADF;
         return -1;
@@ -358,19 +362,20 @@ int AP_Filesystem_FATFS::close(int fileno)
     FIL *fh;
     int res;
 
+    FS_CHECK_ALLOWED(-1);
     WITH_SEMAPHORE(sem);
 
     errno = 0;
 
     // checks if fileno out of bounds
     stream = fileno_to_stream(fileno);
-    if (stream == NULL) {
+    if (stream == nullptr) {
         return -1;
     }
 
     // fileno_to_fatfs checks for fileno out of bounds
     fh = fileno_to_fatfs(fileno);
-    if (fh == NULL) {
+    if (fh == nullptr) {
         return -1;
     }
     res = f_close(fh);
@@ -388,6 +393,7 @@ int32_t AP_Filesystem_FATFS::read(int fd, void *buf, uint32_t count)
     int res;
     FIL *fh;
 
+    FS_CHECK_ALLOWED(-1);
     WITH_SEMAPHORE(sem);
 
     CHECK_REMOUNT();
@@ -400,7 +406,7 @@ int32_t AP_Filesystem_FATFS::read(int fd, void *buf, uint32_t count)
 
     // fileno_to_fatfs checks for fd out of bounds
     fh = fileno_to_fatfs(fd);
-    if ( fh == NULL ) {
+    if (fh == nullptr) {
         errno = EBADF;
         return -1;
     }
@@ -438,13 +444,14 @@ int32_t AP_Filesystem_FATFS::write(int fd, const void *buf, uint32_t count)
     FIL *fh;
     errno = 0;
 
+    FS_CHECK_ALLOWED(-1);
     WITH_SEMAPHORE(sem);
 
     CHECK_REMOUNT();
 
     // fileno_to_fatfs checks for fd out of bounds
     fh = fileno_to_fatfs(fd);
-    if ( fh == NULL ) {
+    if (fh == nullptr) {
         errno = EBADF;
         return -1;
     }
@@ -485,19 +492,20 @@ int AP_Filesystem_FATFS::fsync(int fileno)
     FIL *fh;
     int res;
 
+    FS_CHECK_ALLOWED(-1);
     WITH_SEMAPHORE(sem);
 
     errno = 0;
 
     // checks if fileno out of bounds
     stream = fileno_to_stream(fileno);
-    if (stream == NULL) {
+    if (stream == nullptr) {
         return -1;
     }
 
     // fileno_to_fatfs checks for fileno out of bounds
     fh = fileno_to_fatfs(fileno);
-    if (fh == NULL) {
+    if (fh == nullptr) {
         return -1;
     }
     res = f_sync(fh);
@@ -514,11 +522,12 @@ off_t AP_Filesystem_FATFS::lseek(int fileno, off_t position, int whence)
     FIL *fh;
     errno = 0;
 
+    FS_CHECK_ALLOWED(-1);
     WITH_SEMAPHORE(sem);
 
     // fileno_to_fatfs checks for fd out of bounds
     fh = fileno_to_fatfs(fileno);
-    if (fh == NULL) {
+    if (fh == nullptr) {
         errno = EMFILE;
         return -1;
     }
@@ -540,48 +549,6 @@ off_t AP_Filesystem_FATFS::lseek(int fileno, off_t position, int whence)
     return fh->fptr;
 }
 
-/*
-  mktime replacement from Samba
- */
-static time_t replace_mktime(const struct tm *t)
-{
-    time_t  epoch = 0;
-    int n;
-    int mon [] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }, y, m, i;
-    const unsigned MINUTE = 60;
-    const unsigned HOUR = 60*MINUTE;
-    const unsigned DAY = 24*HOUR;
-    const unsigned YEAR = 365*DAY;
-
-    if (t->tm_year < 70) {
-        return (time_t)-1;
-    }
-
-    n = t->tm_year + 1900 - 1;
-    epoch = (t->tm_year - 70) * YEAR +
-            ((n / 4 - n / 100 + n / 400) - (1969 / 4 - 1969 / 100 + 1969 / 400)) * DAY;
-
-    y = t->tm_year + 1900;
-    m = 0;
-
-    for (i = 0; i < t->tm_mon; i++) {
-        epoch += mon [m] * DAY;
-        if (m == 1 && y % 4 == 0 && (y % 100 != 0 || y % 400 == 0)) {
-            epoch += DAY;
-        }
-
-        if (++m > 11) {
-            m = 0;
-            y++;
-        }
-    }
-
-    epoch += (t->tm_mday - 1) * DAY;
-    epoch += t->tm_hour * HOUR + t->tm_min * MINUTE + t->tm_sec;
-
-    return epoch;
-}
-
 static time_t fat_time_to_unix(uint16_t date, uint16_t time)
 {
     struct tm tp;
@@ -595,7 +562,7 @@ static time_t fat_time_to_unix(uint16_t date, uint16_t time)
     tp.tm_mday = (date & 0x1f);
     tp.tm_mon = ((date >> 5) & 0x0f) - 1;
     tp.tm_year = ((date >> 9) & 0x7f) + 80;
-    unix = replace_mktime( &tp );
+    unix = AP::rtc().mktime(&tp);
     return unix;
 }
 
@@ -606,6 +573,7 @@ int AP_Filesystem_FATFS::stat(const char *name, struct stat *buf)
     time_t epoch;
     uint16_t mode;
 
+    FS_CHECK_ALLOWED(-1);
     WITH_SEMAPHORE(sem);
 
     CHECK_REMOUNT();
@@ -644,7 +612,7 @@ int AP_Filesystem_FATFS::stat(const char *name, struct stat *buf)
 
     // We only handle read only case
     mode = (FATFS_R | FATFS_X);
-    if ( !(info.fattrib & AM_RDO)) {
+    if (!(info.fattrib & AM_RDO)) {
         mode |= (FATFS_W);    // enable write if NOT read only
     }
 
@@ -669,6 +637,7 @@ int AP_Filesystem_FATFS::stat(const char *name, struct stat *buf)
 
 int AP_Filesystem_FATFS::unlink(const char *pathname)
 {
+    FS_CHECK_ALLOWED(-1);
     WITH_SEMAPHORE(sem);
 
     errno = 0;
@@ -682,6 +651,7 @@ int AP_Filesystem_FATFS::unlink(const char *pathname)
 
 int AP_Filesystem_FATFS::mkdir(const char *pathname)
 {
+    FS_CHECK_ALLOWED(-1);
     WITH_SEMAPHORE(sem);
 
     errno = 0;
@@ -705,6 +675,7 @@ struct DIR_Wrapper {
 
 void *AP_Filesystem_FATFS::opendir(const char *pathdir)
 {
+    FS_CHECK_ALLOWED(nullptr);
     WITH_SEMAPHORE(sem);
 
     CHECK_REMOUNT_NULL();
@@ -732,6 +703,7 @@ void *AP_Filesystem_FATFS::opendir(const char *pathdir)
 
 struct dirent *AP_Filesystem_FATFS::readdir(void *dirp_void)
 {
+    FS_CHECK_ALLOWED(nullptr);
     WITH_SEMAPHORE(sem);
     DIR *dirp = (DIR *)dirp_void;
 
@@ -764,6 +736,7 @@ struct dirent *AP_Filesystem_FATFS::readdir(void *dirp_void)
 int AP_Filesystem_FATFS::closedir(void *dirp_void)
 {
     DIR *dirp = (DIR *)dirp_void;
+    FS_CHECK_ALLOWED(-1);
     WITH_SEMAPHORE(sem);
 
     struct DIR_Wrapper *d = (struct DIR_Wrapper *)dirp;
@@ -784,6 +757,7 @@ int AP_Filesystem_FATFS::closedir(void *dirp_void)
 // return free disk space in bytes
 int64_t AP_Filesystem_FATFS::disk_free(const char *path)
 {
+    FS_CHECK_ALLOWED(-1);
     WITH_SEMAPHORE(sem);
 
     FATFS *fs;
@@ -805,6 +779,7 @@ int64_t AP_Filesystem_FATFS::disk_free(const char *path)
 // return total disk space in bytes
 int64_t AP_Filesystem_FATFS::disk_space(const char *path)
 {
+    FS_CHECK_ALLOWED(-1);
     WITH_SEMAPHORE(sem);
 
     CHECK_REMOUNT();
@@ -853,9 +828,75 @@ bool AP_Filesystem_FATFS::set_mtime(const char *filename, const uint32_t mtime_s
     fno.fdate = fdate;
     fno.ftime = ftime;
 
+    FS_CHECK_ALLOWED(false);
     WITH_SEMAPHORE(sem);
 
     return f_utime(filename, (FILINFO *)&fno) == FR_OK;
+}
+
+/*
+  retry mount of filesystem if needed
+*/
+bool AP_Filesystem_FATFS::retry_mount(void)
+{
+    FS_CHECK_ALLOWED(false);
+    WITH_SEMAPHORE(sem);
+    return sdcard_retry();
+}
+
+/*
+  unmount filesystem for reboot
+*/
+void AP_Filesystem_FATFS::unmount(void)
+{
+    WITH_SEMAPHORE(sem);
+    return sdcard_stop();
+}
+
+/*
+  format sdcard
+*/
+bool AP_Filesystem_FATFS::format(void)
+{
+#if FF_USE_MKFS
+    WITH_SEMAPHORE(sem);
+    hal.scheduler->register_io_process(FUNCTOR_BIND_MEMBER(&AP_Filesystem_FATFS::format_handler, void));
+    // the format is handled asyncronously, we inform user of success
+    // via a text message
+    format_pending = true;
+    return true;
+#else
+    return false;
+#endif
+}
+
+/*
+  format sdcard
+*/
+void AP_Filesystem_FATFS::format_handler(void)
+{
+#if FF_USE_MKFS
+    if (!format_pending) {
+        return;
+    }
+    WITH_SEMAPHORE(sem);
+    format_pending = false;
+    GCS_SEND_TEXT(MAV_SEVERITY_NOTICE, "Formatting SDCard");
+    uint8_t *buf = (uint8_t *)hal.util->malloc_type(FF_MAX_SS, AP_HAL::Util::MEM_DMA_SAFE);
+    if (buf == nullptr) {
+        return;
+    }
+    // format first disk
+    auto ret = f_mkfs("0:", 0, buf, FF_MAX_SS);
+    hal.util->free_type(buf, FF_MAX_SS, AP_HAL::Util::MEM_DMA_SAFE);
+    if (ret == FR_OK) {
+        GCS_SEND_TEXT(MAV_SEVERITY_NOTICE, "Format: OK");
+    } else {
+        GCS_SEND_TEXT(MAV_SEVERITY_NOTICE, "Format: Failed (%d)", int(ret));
+    }
+    sdcard_stop();
+    sdcard_retry();
+#endif
 }
 
 /*

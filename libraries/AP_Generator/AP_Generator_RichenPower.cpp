@@ -15,29 +15,15 @@
 
 #include "AP_Generator_RichenPower.h"
 
-#if GENERATOR_ENABLED
+#if AP_GENERATOR_RICHENPOWER_ENABLED
 
-#include <AP_HAL/AP_HAL.h>
 #include <AP_Logger/AP_Logger.h>
 #include <AP_SerialManager/AP_SerialManager.h>
-#include <GCS_MAVLink/GCS.h>
 #include <AP_Vehicle/AP_Vehicle.h>
 
 #include <AP_HAL/utility/sparse-endian.h>
 
 extern const AP_HAL::HAL& hal;
-
-// Generator constructor; only one generator is curently permitted
-AP_Generator_RichenPower::AP_Generator_RichenPower()
-{
-    if (_singleton) {
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-        AP_HAL::panic("Too many richenpower generators");
-#endif
-        return;
-    }
-    _singleton = this;
-}
 
 // init method; configure communications with the generator
 void AP_Generator_RichenPower::init()
@@ -49,8 +35,12 @@ void AP_Generator_RichenPower::init()
         const uint32_t baud = serial_manager.find_baudrate(AP_SerialManager::SerialProtocol_Generator, 0);
         uart->begin(baud, 256, 256);
     }
-}
 
+    // Tell frontend what measurements are available for this generator
+    _frontend._has_current = true;
+    _frontend._has_consumed_energy = false;
+    _frontend._has_fuel_remaining = false;
+}
 
 // find a RichenPower message in the buffer, starting at
 // initial_offset.  If dound, that message (or partial message) will
@@ -139,8 +129,8 @@ bool AP_Generator_RichenPower::get_reading()
     last_reading.seconds_until_maintenance = be16toh(u.packet.seconds_until_maintenance_high) * 65536 + be16toh(u.packet.seconds_until_maintenance_low);
     last_reading.errors = be16toh(u.packet.errors);
     last_reading.rpm = be16toh(u.packet.rpm);
-    last_reading.output_voltage = be16toh(u.packet.output_voltage) / 100.0f;
-    last_reading.output_current = be16toh(u.packet.output_current) / 100.0f;
+    last_reading.output_voltage = be16toh(u.packet.output_voltage) * 0.01f;
+    last_reading.output_current = be16toh(u.packet.output_current) * 0.01f;
     last_reading.mode = (Mode)u.packet.mode;
 
     last_reading_ms = AP_HAL::millis();
@@ -204,6 +194,25 @@ constexpr float AP_Generator_RichenPower::heat_required_for_run()
 }
 
 
+void AP_Generator_RichenPower::check_maintenance_required()
+{
+    // don't bother the user while flying:
+    if (hal.util->get_soft_armed()) {
+        return;
+    }
+
+    if (!AP::generator()->option_set(AP_Generator::Option::INHIBIT_MAINTENANCE_WARNINGS)) {
+        const uint32_t now = AP_HAL::millis();
+
+        if (last_reading.errors & (1U<<uint16_t(Errors::MaintenanceRequired))) {
+            if (now - last_maintenance_warning_ms > 60000) {
+                gcs().send_text(MAV_SEVERITY_NOTICE, "Generator: requires maintenance");
+                last_maintenance_warning_ms = now;
+            }
+        }
+    }
+}
+
 /*
   update the state of the sensor
 */
@@ -215,11 +224,14 @@ void AP_Generator_RichenPower::update(void)
 
     if (last_reading_ms != 0) {
         update_runstate();
+        check_maintenance_required();
     }
 
     (void)get_reading();
 
     update_heat();
+
+    update_frontend_readings();
 
     Log_Write();
 }
@@ -306,7 +318,7 @@ void AP_Generator_RichenPower::Log_Write()
     }
     last_logged_reading_ms = last_reading_ms;
 
-    AP::logger().Write(
+    AP::logger().WriteStreaming(
         "GEN",
         "TimeUS,runTime,maintTime,errors,rpm,ovolt,ocurr,mode",
         "s-------",
@@ -340,66 +352,62 @@ bool AP_Generator_RichenPower::pre_arm_check(char *failmsg, uint8_t failmsg_len)
     const uint32_t now = AP_HAL::millis();
 
     if (now - last_reading_ms > 2000) { // we expect @1Hz
-        snprintf(failmsg, failmsg_len, "no messages in %ums", unsigned(now - last_reading_ms));
+        hal.util->snprintf(failmsg, failmsg_len, "no messages in %ums", unsigned(now - last_reading_ms));
         return false;
     }
-    if (last_reading.seconds_until_maintenance == 0) {
-        snprintf(failmsg, failmsg_len, "requires maintenance");
-    }
     if (SRV_Channels::get_channel_for(SRV_Channel::k_generator_control) == nullptr) {
-        snprintf(failmsg, failmsg_len, "need a servo output channel");
+        hal.util->snprintf(failmsg, failmsg_len, "need a servo output channel");
         return false;
     }
 
-    if (last_reading.errors) {
+    uint16_t errors = last_reading.errors;
+
+    // requiring maintenance isn't something that should stop
+    // people flying - they have work to do.  But we definitely
+    // complain about it - a lot.
+    errors &= ~(1U << uint16_t(Errors::MaintenanceRequired));
+
+    if (errors) {
+
         for (uint16_t i=0; i<16; i++) {
-            if (last_reading.errors & (1U << (uint16_t)i)) {
+            if (errors & (1U << i)) {
                 if (i < (uint16_t)Errors::LAST) {
-                    snprintf(failmsg, failmsg_len, "error: %s", error_strings[i]);
+                    hal.util->snprintf(failmsg, failmsg_len, "error: %s", error_strings[i]);
                 } else {
-                    snprintf(failmsg, failmsg_len, "unknown error: 1U<<%u", i);
+                    hal.util->snprintf(failmsg, failmsg_len, "unknown error: 1U<<%u", i);
                 }
             }
         }
         return false;
     }
     if (pilot_desired_runstate != RunState::RUN) {
-        snprintf(failmsg, failmsg_len, "requested state is not RUN");
+        hal.util->snprintf(failmsg, failmsg_len, "requested state is not RUN");
         return false;
     }
     if (commanded_runstate != RunState::RUN) {
-        snprintf(failmsg, failmsg_len, "Generator warming up (%.0f%%)", (heat *100 / heat_required_for_run()));
+        hal.util->snprintf(failmsg, failmsg_len, "Generator warming up (%.0f%%)", (heat *100 / heat_required_for_run()));
         return false;
     }
     if (last_reading.mode != Mode::RUN &&
         last_reading.mode != Mode::CHARGE &&
         last_reading.mode != Mode::BALANCE) {
-        snprintf(failmsg, failmsg_len, "not running");
+        hal.util->snprintf(failmsg, failmsg_len, "not running");
         return false;
     }
 
     return true;
 }
 
-// voltage returns the last voltage read from the generator telemetry
-bool AP_Generator_RichenPower::voltage(float &v) const
+// Update front end with voltage, current, and rpm values
+void AP_Generator_RichenPower::update_frontend_readings(void)
 {
-    if (last_reading_ms == 0) {
-        return false;
-    }
-    v = last_reading.output_voltage;
-    return true;
+    _voltage = last_reading.output_voltage;
+    _current = last_reading.output_current;
+    _rpm = last_reading.rpm;
+
+    update_frontend();
 }
 
-// current returns the last current read from the generator telemetry
-bool AP_Generator_RichenPower::current(float &curr) const
-{
-    if (last_reading_ms == 0) {
-        return false;
-    }
-    curr = last_reading.output_current;
-    return true;
-}
 
 // healthy returns true if the generator is not present, or it is
 // present, providing telemetry and not indicating an errors.
@@ -486,22 +494,22 @@ void AP_Generator_RichenPower::send_generator_status(const GCS_MAVLINK &channel)
         );
 }
 
-/*
- * Get the AP_Generator singleton
- */
-AP_Generator_RichenPower *AP_Generator_RichenPower::_singleton;
-AP_Generator_RichenPower *AP_Generator_RichenPower::get_singleton()
+// methods to control the generator state:
+bool AP_Generator_RichenPower::stop() 
 {
-    return _singleton;
+    set_pilot_desired_runstate(RunState::STOP); 
+    return true;
 }
 
-namespace AP {
-
-AP_Generator_RichenPower *generator()
+bool AP_Generator_RichenPower::idle()
 {
-    return AP_Generator_RichenPower::get_singleton();
+    set_pilot_desired_runstate(RunState::IDLE);
+    return true;
 }
 
-};
-
-#endif
+bool AP_Generator_RichenPower::run()
+{
+    set_pilot_desired_runstate(RunState::RUN);
+    return true;
+}
+#endif  // AP_GENERATOR_RICHENPOWER_ENABLED

@@ -74,7 +74,7 @@ void Tracker::update_pitch_position_servo()
     // PITCH2SRV_IMAX   4000.000000
 
     // calculate new servo position
-    int32_t new_servo_out = SRV_Channels::get_output_scaled(SRV_Channel::k_tracker_pitch) + g.pidPitch2Srv.update_error(nav_status.angle_error_pitch);
+    float new_servo_out = SRV_Channels::get_output_scaled(SRV_Channel::k_tracker_pitch) + g.pidPitch2Srv.update_error(nav_status.angle_error_pitch);
 
     // position limit pitch servo
     if (new_servo_out <= pitch_min_cd) {
@@ -101,7 +101,7 @@ void Tracker::update_pitch_position_servo()
    update the pitch (elevation) servo. The aim is to drive the boards ahrs pitch to the
    requested pitch, so the board (and therefore the antenna) will be pointing at the target
  */
-void Tracker::update_pitch_onoff_servo(float pitch)
+void Tracker::update_pitch_onoff_servo(float pitch) const
 {
     int32_t pitch_min_cd = g.pitch_min*100;
     int32_t pitch_max_cd = g.pitch_max*100;
@@ -166,7 +166,7 @@ void Tracker::update_yaw_position_servo()
     // (in fact, any alignment is permissible), and that the alignment may change (possibly rapidly) over time
     // (as when the antenna is mounted on a moving, turning vehicle)
     //
-    // With my antenna mount, large pwm output drives the antenna anticlockise, so need:
+    // With my antenna mount, large pwm output drives the antenna anticlockwise, so need:
     // param set RC1_REV -1
     // to reverse the servo. Yours may be different
     //
@@ -217,7 +217,7 @@ void Tracker::update_yaw_position_servo()
    yaw to the requested yaw, so the board (and therefore the antenna)
    will be pointing at the target
  */
-void Tracker::update_yaw_onoff_servo(float yaw)
+void Tracker::update_yaw_onoff_servo(float yaw) const
 {
     float acceptable_error = g.onoff_yaw_rate * g.onoff_yaw_mintime;
     if (fabsf(nav_status.angle_error_yaw * 0.01f) < acceptable_error) {

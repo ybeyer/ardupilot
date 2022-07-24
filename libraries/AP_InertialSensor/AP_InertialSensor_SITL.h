@@ -1,14 +1,16 @@
 #pragma once
 
-#include <SITL/SITL.h>
-
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
 #include "AP_InertialSensor.h"
+
+#if AP_SIM_INS_ENABLED
+
 #include "AP_InertialSensor_Backend.h"
 
 // simulated sensor rates in Hz. This matches a pixhawk1
 const uint16_t INS_SITL_SENSOR_A[] = { 1000, 1000 };
 const uint16_t INS_SITL_SENSOR_B[] = { 760, 800 };
+
+#include <SITL/SITL.h>
 
 class AP_InertialSensor_SITL : public AP_InertialSensor_Backend
 {
@@ -28,8 +30,9 @@ private:
     float gyro_drift(void);
     void generate_accel();
     void generate_gyro();
+    float get_temperature(void);
 
-    SITL::SITL *sitl;
+    SITL::SIM *sitl;
 
     const uint16_t gyro_sample_hz;
     const uint16_t accel_sample_hz;
@@ -42,7 +45,8 @@ private:
     float accel_time;
     float gyro_motor_phase[12];
     float accel_motor_phase[12];
+    uint32_t temp_start_ms;
 
     static uint8_t bus_id;
 };
-#endif // CONFIG_HAL_BOARD
+#endif // AP_SIM_INS_ENABLED

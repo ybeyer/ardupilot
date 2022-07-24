@@ -2,8 +2,10 @@
 /// @brief	Photo or video camera manager, with EEPROM-backed storage of constants.
 #pragma once
 
+#include <AP_Common/Location.h>
+#include <AP_Logger/LogStructure.h>
 #include <AP_Param/AP_Param.h>
-#include <GCS_MAVLink/GCS.h>
+#include <GCS_MAVLink/GCS_MAVLink.h>
 
 #define AP_CAMERA_TRIGGER_DEFAULT_DURATION  10      // default duration servo or relay is held open in 10ths of a second (i.e. 10 = 1 second)
 
@@ -17,9 +19,8 @@
 class AP_Camera {
 
 public:
-    AP_Camera(uint32_t _log_camera_bit, const struct Location &_loc)
+    AP_Camera(uint32_t _log_camera_bit)
         : log_camera_bit(_log_camera_bit)
-        , current_loc(_loc)
     {
         AP_Param::setup_object_defaults(this, var_info);
         _singleton = this;
@@ -38,7 +39,7 @@ public:
     // MAVLink methods
     void            handle_message(mavlink_channel_t chan,
                                    const mavlink_message_t &msg);
-    void            send_feedback(mavlink_channel_t chan);
+    void            send_feedback(mavlink_channel_t chan) const;
 
     // Command processing
     void            configure(float shooting_mode, float shutter_speed, float aperture, float ISO, float exposure_type, float cmd_id, float engine_cutoff_time);
@@ -116,15 +117,29 @@ private:
 
     uint32_t        _camera_trigger_count;
     uint32_t        _camera_trigger_logged;
-    uint32_t        _feedback_timestamp_us;
+    uint32_t        _feedback_trigger_timestamp_us;
+    struct {
+        uint64_t        timestamp_us;
+        Location        location; // place where most recent image was taken
+        int32_t         roll_sensor;
+        int32_t         pitch_sensor;
+        int32_t         yaw_sensor;
+        uint32_t        camera_trigger_logged;  // ID sequence number
+    } feedback;
+    void prep_mavlink_msg_camera_feedback(uint64_t timestamp_us);
+
     bool            _timer_installed;
     bool            _isr_installed;
     uint8_t         _last_pin_state;
 
     void log_picture();
 
+    // Logging Function
+    void Write_Camera(uint64_t timestamp_us=0);
+    void Write_Trigger(void);
+    void Write_CameraInfo(enum LogMessages msg, uint64_t timestamp_us=0);
+
     uint32_t log_camera_bit;
-    const struct Location &current_loc;
 
     // update camera trigger - 50Hz
     void update_trigger();

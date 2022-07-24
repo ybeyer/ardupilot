@@ -21,40 +21,75 @@ RELEASE_TYPES = ["beta", "latest", "stable", "stable-*", "dirty"]
 # mapping for board names to brand name and manufacturer
 brand_map = {
     'Pixhawk4' : ('Pixhawk 4', 'Holybro'),
+    'Pixhawk4-bdshot' : ('Pixhawk 4', 'Holybro'),
     'Pix32v5' :  ('Pix32 v5', 'Holybro'),
     'Durandal' : ('Durandal', 'Holybro'),
+    'Durandal-bdshot' : ('Durandal', 'Holybro'),
     'PH4-mini' : ('Pixhawk 4 Mini', 'Holybro'),
     'KakuteF4' : ('KakuteF4', 'Holybro'),
     'KakuteF7' : ('KakuteF7', 'Holybro'),
     'KakuteF7Mini' : ('KakuteF7Mini', 'Holybro'),
+    'KakuteF4Mini' : ('KakuteF4Mini', 'Holybro'),
+    'KakuteH7Mini' : ('KakuteH7Mini', 'Holybro'),
+    'KakuteH7' : ('KakuteH7', 'Holybro'),
+    'KakuteH7-bdshot' : ('KakuteH7', 'Holybro'),
     'CubeBlack' : ('CubeBlack', 'Hex/ProfiCNC'),
     'CubeYellow' : ('CubeYellow', 'Hex/ProfiCNC'),
     'CubeOrange' : ('CubeOrange', 'Hex/ProfiCNC'),
+    'CubeOrange-bdshot' : ('CubeOrange', 'Hex/ProfiCNC'),
     'CubePurple' : ('CubePurple', 'Hex/ProfiCNC'),
     'CubeSolo' : ('CubeSolo', '3DR'),
     'CubeGreen-solo' : ('CubeGreen Solo', 'Hex/ProfiCNC'),
     'CUAVv5' : ('CUAVv5', 'CUAV'),
+    'CUAVv5-bdshot' : ('CUAVv5', 'CUAV'),
     'CUAVv5Nano' : ('CUAVv5 Nano', 'CUAV'),
+    'CUAVv5Nano-bdshot' : ('CUAVv5 Nano', 'CUAV'),
     'CUAV-Nora' : ('CUAV Nora', 'CUAV'),
     'CUAV-X7' : ('CUAV X7', 'CUAV'),
+    'CUAV-X7-bdshot' : ('CUAV X7', 'CUAV'),
     'DrotekP3Pro' : ('Pixhawk 3 Pro', 'Drotek'),
+    'MambaF405v2' : ('Diatone Mamba F405 MK2', 'Diatone'),
     'MatekF405' : ('Matek F405', 'Matek'),
+    'MatekF405-bdshot' : ('Matek F405', 'Matek'),
     'MatekF405-STD' : ('Matek F405 STD', 'Matek'),
     'MatekF405-Wing' : ('Matek F405 Wing', 'Matek'),
+    'MatekF765-SE' : ('Matek F765 SE', 'Matek'),
+    'MatekH743' : ('Matek H743', 'Matek'),
+    'MatekH743-bdshot' : ('Matek H743', 'Matek'),
     'mini-pix' : ('MiniPix', 'Radiolink'),
     'Pixhawk1' : ('Pixhawk1', 'mRobotics'),
     'Pixracer' : ('PixRacer', 'mRobotics'),
+    'Pixracer-bdshot' : ('PixRacer', 'mRobotics'),
     'mRoX21' : ('mRo X2.1', 'mRobotics'),
     'mRoX21-777' : ('mRo X2.1-777', 'mRobotics'),
+    'mRoPixracerPro' : ('mRo PixracerPro', 'mRobotics'),
+    'mRoPixracerPro-bdshot' : ('mRo PixracerPro', 'mRobotics'),
+    'mRoControlZeroOEMH7' : ('mRo ControlZero OEM H7', 'mRobotics'),
     'mRoNexus' : ('mRo Nexus', 'mRobotics'),
     'TBS-Colibri-F7' : ('Colibri F7', 'TBS'),
     'sparky2' : ('Sparky2', 'TauLabs'),
     'mindpx-v2' : ('MindPX V2', 'AirMind'),
     'OMNIBUSF7V2' : ('Omnibus F7 V2', 'Airbot'),
     'omnibusf4pro' : ('Omnibus F4 Pro', 'Airbot'),
+    'omnibusf4pro-bdshot' : ('Omnibus F4 Pro', 'Airbot'),
     'omnibusf4v6' : ('Omnibus F4 V6', 'Airbot'),
     'OmnibusNanoV6' : ('Omnibus Nano V6', 'Airbot'),
+    'OmnibusNanoV6-bdshot' : ('Omnibus Nano V6', 'Airbot'),
     'speedybeef4' : ('SpeedyBee F4', 'SpeedyBee'),
+    'QioTekZealotF427' : ('ZealotF427', 'QioTek'),
+    'BeastH7' : ('Beast H7 55A AIO', 'iFlight'),
+    'BeastH7v2' : ('Beast H7 v2 55A AIO', 'iFlight'),
+    'BeastF7' : ('Beast F7 45A AIO', 'iFlight'),
+    'BeastF7v2' : ('Beast F7 v2 55A AIO', 'iFlight'),
+    'MambaF405US-I2C' : ('Diatone Mamba Basic F405 MK3/MK3.5', 'Diatone'),
+    'MambaF405-2022' : ('Diatone Mamba Basic F405 MK4', 'Diatone'),
+    'MambaH743v4' : ('Diatone Mamba H743 MK4', 'Diatone'),
+    "FlywooF745" : ('Flywoo Goku GN 745 AIO', 'Flywoo'),
+    "FlywooF745Nano" : ('Flywoo Goku Hex F745', 'Flywoo'),
+    "modalai_fc-v1" : ('ModalAI FlightCore v1', 'ModalAI'),
+    'Pixhawk5X' : ('Pixhawk 5X', 'Holybro'),
+    "AIRLink" : ("Sky-Drones Technologies", "AIRLink"),
+    "SPRacingH7" : ("Seriously Pro Racing", "H7 Extreme"),
 }
 
 class Firmware():
@@ -71,6 +106,7 @@ class Firmware():
         self.atts["vehicletype"] = vehicletype
         self.atts["filepath"] = filepath
         self.atts["git_sha"] = git_sha
+        self.atts["firmware-version-str"] = ""
         self.atts["frame"] = frame
         self.atts["release-type"] = None
         self.atts["firmware-version"] = None
@@ -100,6 +136,7 @@ class ManifestGenerator():
             "tri": "TRICOPTER",
             "octa": "OCTOROTOR",
             "octa-quad": "ARDUPILOT_OCTAQUAD",
+            "deca": "DECAROTOR",
             "heli": "HELICOPTER",
             "Plane": "FIXED_WING",
             "AntennaTracker": "ANTENNA_TRACKER",
@@ -138,6 +175,17 @@ class ManifestGenerator():
                 "filepath (%s) does not contain a git sha" % (filepath,))
         return m.group("sha")
 
+    def fwversion_from_git_version(self, filepath):
+        '''parses get-version.txt (as emitted by build_binaries.py, returns
+        git sha from it'''
+        content = open(filepath).read()
+        sha_regex = re.compile("APMVERSION: \S+\s+(\S+)")
+        m = sha_regex.search(content)
+        if m is None:
+            raise Exception(
+                "filepath (%s) does not contain an APMVERSION" % (filepath,))
+        return m.group(1)
+    
     def add_USB_IDs_PX4(self, firmware):
         '''add USB IDs to a .px4 firmware'''
         url = firmware['url']
@@ -234,8 +282,9 @@ class ManifestGenerator():
             (brand_name, manufacturer) = brand_map[platform]
             firmware['brand_name'] = brand_name
             firmware['manufacturer'] = manufacturer
+
         # copy over some extra information if available
-        extra_tags = [ 'image_size' ]
+        extra_tags = [ 'image_size', 'brand_name', 'manufacturer' ]
         for tag in extra_tags:
             if tag in apj_json:
                 firmware[tag] = apj_json[tag]
@@ -293,6 +342,11 @@ class ManifestGenerator():
                 git_sha = self.git_sha_from_git_version(git_version_txt)
             except Exception as ex:
                 print("Failed to parse %s" % git_version_txt, ex, file=sys.stderr)
+                continue
+            try:
+                fwversion_str = self.fwversion_from_git_version(git_version_txt)
+            except Exception as ex:
+                print("Failed to parse APMVERSION %s" % git_version_txt, ex, file=sys.stderr)
                 continue
 
             # we require a firmware-version.txt. These files have been added to
@@ -374,6 +428,7 @@ class ManifestGenerator():
                 firmware["platform"] = file_platform
                 firmware["vehicletype"] = vehicletype
                 firmware["git_sha"] = git_sha
+                firmware["firmware-version-str"] = fwversion_str
                 firmware["frame"] = frame
                 firmware["timestamp"] = os.path.getctime(firmware["filepath"])
                 firmware["format"] = firmware_format
@@ -453,6 +508,7 @@ class ManifestGenerator():
                 "url": url,
                 "mav-type": self.frame_map(firmware["frame"]),
                 "mav-firmware-version-type": version_type,
+                "mav-firmware-version-str": firmware["firmware-version-str"],
                 "latest": firmware["latest"],
                 "format": firmware["format"],
             })

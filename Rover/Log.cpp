@@ -10,17 +10,13 @@ void Rover::Log_Write_Attitude()
     float desired_pitch_cd = degrees(g2.attitude_control.get_desired_pitch()) * 100.0f;
     const Vector3f targets(0.0f, desired_pitch_cd, 0.0f);
 
-    logger.Write_Attitude(targets);
+    ahrs.Write_Attitude(targets);
 
-#if AP_AHRS_NAVEKF_AVAILABLE
-    AP::ahrs_navekf().Log_Write();
-    logger.Write_AHRS2();
-#endif
-    logger.Write_POS();
+    AP::ahrs().Log_Write();
 
     // log steering rate controller
     logger.Write_PID(LOG_PIDS_MSG, g2.attitude_control.get_steering_rate_pid().get_pid_info());
-    logger.Write_PID(LOG_PIDA_MSG, g2.attitude_control.get_throttle_speed_pid().get_pid_info());
+    logger.Write_PID(LOG_PIDA_MSG, g2.attitude_control.get_throttle_speed_pid_info());
 
     // log pitch control for balance bots
     if (is_balancebot()) {
@@ -31,45 +27,59 @@ void Rover::Log_Write_Attitude()
     if (rover.g2.sailboat.sail_enabled()) {
         logger.Write_PID(LOG_PIDR_MSG, g2.attitude_control.get_sailboat_heel_pid().get_pid_info());
     }
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-    sitl.Log_Write_SIMSTATE();
-#endif
 }
 
 // Write a range finder depth message
 void Rover::Log_Write_Depth()
 {
-    // only log depth on boats with working downward facing range finders
-    if (!rover.is_boat() || !rangefinder.has_data_orient(ROTATION_PITCH_270)) {
+    // only log depth on boats
+    if (!rover.is_boat() || !rangefinder.has_orientation(ROTATION_PITCH_270)) {
         return;
     }
 
     // get position
     Location loc;
-    if (!ahrs.get_position(loc)) {
-        return;
+    IGNORE_RETURN(ahrs.get_location(loc));
+
+    for (uint8_t i=0; i<rangefinder.num_sensors(); i++) {
+        const AP_RangeFinder_Backend *s = rangefinder.get_backend(i);
+        
+        if (s == nullptr || s->orientation() != ROTATION_PITCH_270 || !s->has_data()) {
+            continue;
+        }
+
+        // check if new sensor reading has arrived
+        const uint32_t reading_ms = s->last_reading_ms();
+        if (reading_ms == rangefinder_last_reading_ms[i]) {
+            continue;
+        }
+        rangefinder_last_reading_ms[i] = reading_ms;
+
+        float temp_C;
+        if (!s->get_temp(temp_C)) {
+            temp_C = 0.0f;
+        }
+
+        // @LoggerMessage: DPTH
+        // @Description: Depth messages on boats with downwards facing range finder
+        // @Field: TimeUS: Time since system startup
+        // @Field: Inst: Instance
+        // @Field: Lat: Latitude 
+        // @Field: Lng: Longitude   
+        // @Field: Depth: Depth as detected by the sensor
+        // @Field: Temp: Temperature
+
+        logger.Write("DPTH", "TimeUS,Inst,Lat,Lng,Depth,Temp",
+                            "s#DUmO", "F-GG00", "QBLLff",
+                            AP_HAL::micros64(),
+                            i,
+                            loc.lat,
+                            loc.lng,
+                            (double)(s->distance()),
+                            temp_C);
     }
-
-    // check if new sensor reading has arrived
-    uint32_t reading_ms = rangefinder.last_reading_ms(ROTATION_PITCH_270);
-    if (reading_ms == rangefinder_last_reading_ms) {
-        return;
-    }
-    rangefinder_last_reading_ms = reading_ms;
-
-// @LoggerMessage: DPTH
-// @Description: Depth messages on boats with downwards facing range finder
-// @Field: TimeUS: Time since system startup
-// @Field: Lat: Latitude 
-// @Field: Lng: Longitude   
-// @Field: Depth: Depth as detected by the sensor
-
-    logger.Write("DPTH", "TimeUS,Lat,Lng,Depth",
-                        "sDUm", "FGG0", "QLLf",
-                        AP_HAL::micros64(),
-                        loc.lat,
-                        loc.lng,
-                        (double)(rangefinder.distance_cm_orient(ROTATION_PITCH_270) * 0.01f));
+    // send water depth and temp to ground station
+    gcs().send_message(MSG_WATER_DEPTH);
 }
 
 // guided mode logging
@@ -134,38 +144,31 @@ void Rover::Log_Write_Sail()
         return;
     }
 
-    // get wind direction
-    float wind_dir_abs = logger.quiet_nanf();
-    float wind_dir_rel = logger.quiet_nanf();
-    float wind_speed_true = logger.quiet_nanf();
-    float wind_speed_apparent = logger.quiet_nanf();
+    float wind_dir_tack = logger.quiet_nanf();
+    uint8_t current_tack = 0;
     if (rover.g2.windvane.enabled()) {
-        wind_dir_abs = degrees(g2.windvane.get_true_wind_direction_rad());
-        wind_dir_rel = degrees(g2.windvane.get_apparent_wind_direction_rad());
-        wind_speed_true = g2.windvane.get_true_wind_speed();
-        wind_speed_apparent = g2.windvane.get_apparent_wind_speed();
+        wind_dir_tack = degrees(g2.windvane.get_tack_threshold_wind_dir_rad());
+        current_tack = uint8_t(g2.windvane.get_current_tack());
     }
 
 // @LoggerMessage: SAIL
 // @Description: Sailboat information
 // @Field: TimeUS: Time since system startup
-// @Field: WndDrTru: True wind direction
-// @Field: WndDrApp: Apparent wind direction, in body-frame
-// @Field: WndSpdTru: True wind speed
-// @Field: WndSpdApp: Apparent wind Speed
-// @Field: MainOut: Normalized mainsail output 
+// @Field: Tack: Current tack, 0 = port, 1 = starboard
+// @Field: TackThr: Apparent wind angle used for tack threshold
+// @Field: MainOut: Normalized mainsail output
 // @Field: WingOut: Normalized wingsail output
+// @Field: MastRotOut: Normalized direct-rotation mast output
 // @Field: VMG: Velocity made good (speed at which vehicle is making progress directly towards destination)
 
-    logger.Write("SAIL", "TimeUS,WndDrTru,WndDrApp,WndSpdTru,WndSpdApp,MainOut,WingOut,VMG",
-                        "shhnn%%n", "F0000000", "Qfffffff",
+    logger.Write("SAIL", "TimeUS,Tack,TackThr,MainOut,WingOut,MastRotOut,VMG",
+                        "s-d%%%n", "F000000", "QBfffff",
                         AP_HAL::micros64(),
-                        (double)wind_dir_abs,
-                        (double)wind_dir_rel,
-                        (double)wind_speed_true,
-                        (double)wind_speed_apparent,
+                        current_tack,
+                        (double)wind_dir_tack,
                         (double)g2.motors.get_mainsail(),
                         (double)g2.motors.get_wingsail(),
+                        (double)g2.motors.get_mast_rotation(),
                         (double)g2.sailboat.get_VMG());
 }
 
@@ -179,24 +182,6 @@ struct PACKED log_Steering {
     float desired_turn_rate;
     float turn_rate;
 };
-
-struct PACKED log_Startup {
-    LOG_PACKET_HEADER;
-    uint64_t time_us;
-    uint8_t startup_type;
-    uint16_t command_total;
-};
-
-void Rover::Log_Write_Startup(uint8_t type)
-{
-    struct log_Startup pkt = {
-        LOG_PACKET_HEADER_INIT(LOG_STARTUP_MSG),
-        time_us         : AP_HAL::micros64(),
-        startup_type    : type,
-        command_total   : mode_auto.mission.num_commands()
-    };
-    logger.WriteBlock(&pkt, sizeof(pkt));
-}
 
 // Write a steering packet
 void Rover::Log_Write_Steering()
@@ -223,7 +208,7 @@ struct PACKED log_Throttle {
     float throttle_out;
     float desired_speed;
     float speed;
-    float accel_y;
+    float accel_x;
 };
 
 // Write a throttle control packet
@@ -239,7 +224,7 @@ void Rover::Log_Write_Throttle()
         throttle_out    : g2.motors.get_throttle(),
         desired_speed   : g2.attitude_control.get_desired_speed(),
         speed           : speed,
-        accel_y         : accel.y
+        accel_x         : accel.x
     };
     logger.WriteBlock(&pkt, sizeof(pkt));
 }
@@ -256,7 +241,6 @@ void Rover::Log_Write_RC(void)
 void Rover::Log_Write_Vehicle_Startup_Messages()
 {
     // only 200(?) bytes are guaranteed by AP_Logger
-    Log_Write_Startup(TYPE_GROUNDSTART_MSG);
     logger.Write_Mode(control_mode->mode_number(), control_mode_reason);
     ahrs.Log_Write_Home_And_Origin();
     gps.Write_AP_Logger_Log_Startup_messages();
@@ -269,15 +253,6 @@ void Rover::Log_Write_Vehicle_Startup_Messages()
 const LogStructure Rover::log_structure[] = {
     LOG_COMMON_STRUCTURES,
 
-// @LoggerMessage: STRT
-// @Description: Startup messages
-// @Field: TimeUS: Time since system startup
-// @Field: SType: Type of startup
-// @Field: CTot: Total number of commands in the mission
-
-    { LOG_STARTUP_MSG, sizeof(log_Startup),
-      "STRT", "QBH",        "TimeUS,SType,CTot", "s--", "F--" },
-
 // @LoggerMessage: THR
 // @Description: Throttle related messages
 // @Field: TimeUS: Time since system startup
@@ -285,10 +260,10 @@ const LogStructure Rover::log_structure[] = {
 // @Field: ThrOut: Throttle Output 
 // @Field: DesSpeed: Desired speed 
 // @Field: Speed: Actual speed
-// @Field: AccY: Vehicle's acceleration in Y-Axis
+// @Field: AccX: Acceleration
 
     { LOG_THR_MSG, sizeof(log_Throttle),
-      "THR", "Qhffff", "TimeUS,ThrIn,ThrOut,DesSpeed,Speed,AccY", "s--nno", "F--000" },
+      "THR", "Qhffff", "TimeUS,ThrIn,ThrOut,DesSpeed,Speed,AccX", "s--nno", "F--000" },
 
 // @LoggerMessage: NTUN
 // @Description: Navigation Tuning information - e.g. vehicle destination
@@ -301,7 +276,7 @@ const LogStructure Rover::log_structure[] = {
 // @Field: XTrack: the vehicle's current distance from the current travel segment
 
     { LOG_NTUN_MSG, sizeof(log_Nav_Tuning),
-      "NTUN", "QfffHf", "TimeUS,WpDist,WpBrg,DesYaw,Yaw,XTrack", "smhhdm", "F000B0" },
+      "NTUN", "QfffHf", "TimeUS,WpDist,WpBrg,DesYaw,Yaw,XTrack", "smhhhm", "F000B0" },
     
 // @LoggerMessage: STER
 // @Description: Steering related messages
@@ -316,7 +291,7 @@ const LogStructure Rover::log_structure[] = {
     { LOG_STEERING_MSG, sizeof(log_Steering),
       "STER", "Qhfffff",   "TimeUS,SteerIn,SteerOut,DesLatAcc,LatAcc,DesTurnRate,TurnRate", "s--ookk", "F--0000" },
 
-// @LoggerMessage: GUID
+// @LoggerMessage: GUIP
 // @Description: Guided mode target information
 // @Field: TimeUS: Time since system startup
 // @Field: Type: Type of guided mode
@@ -328,7 +303,7 @@ const LogStructure Rover::log_structure[] = {
 // @Field: vZ: Target velocity, Z-Axis
     
     { LOG_GUIDEDTARGET_MSG, sizeof(log_GuidedTarget),
-      "GUID",  "QBffffff",    "TimeUS,Type,pX,pY,pZ,vX,vY,vZ", "s-mmmnnn", "F-000000" },
+      "GUIP",  "QBffffff",    "TimeUS,Type,pX,pY,pZ,vX,vY,vZ", "s-mmmnnn", "F-000000" },
 };
 
 void Rover::log_init(void)
@@ -344,7 +319,6 @@ void Rover::Log_Write_Depth() {}
 void Rover::Log_Write_GuidedTarget(uint8_t target_type, const Vector3f& pos_target, const Vector3f& vel_target) {}
 void Rover::Log_Write_Nav_Tuning() {}
 void Rover::Log_Write_Sail() {}
-void Rover::Log_Write_Startup(uint8_t type) {}
 void Rover::Log_Write_Throttle() {}
 void Rover::Log_Write_RC(void) {}
 void Rover::Log_Write_Steering() {}

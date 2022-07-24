@@ -10,6 +10,7 @@ void Plane::Log_Write_Attitude(void)
     targets.y = nav_pitch_cd;
     targets.z = 0; //Plane does not have the concept of navyaw. This is a placeholder.
 
+#if HAL_QUADPLANE_ENABLED
     if (quadplane.show_vtol_view()) {
         // we need the attitude targets from the AC_AttitudeControl controller, as they
         // account for the acceleration limits.
@@ -18,59 +19,51 @@ void Plane::Log_Write_Attitude(void)
         // Get them from the quaternion instead:
         quadplane.attitude_control->get_attitude_target_quat().to_euler(targets.x, targets.y, targets.z);
         targets *= degrees(100.0f);
-        logger.Write_AttitudeView(*quadplane.ahrs_view, targets);
-    } else {
-        logger.Write_Attitude(targets);
+        quadplane.ahrs_view->Write_AttitudeView(targets);
+    } else
+#endif
+            {
+        ahrs.Write_Attitude(targets);
     }
-    if (quadplane.in_vtol_mode() || quadplane.in_assisted_flight()) {
+
+#if HAL_QUADPLANE_ENABLED
+    if (AP_HAL::millis() - quadplane.last_att_control_ms < 100) {
         // log quadplane PIDs separately from fixed wing PIDs
         logger.Write_PID(LOG_PIQR_MSG, quadplane.attitude_control->get_rate_roll_pid().get_pid_info());
         logger.Write_PID(LOG_PIQP_MSG, quadplane.attitude_control->get_rate_pitch_pid().get_pid_info());
         logger.Write_PID(LOG_PIQY_MSG, quadplane.attitude_control->get_rate_yaw_pid().get_pid_info());
         logger.Write_PID(LOG_PIQA_MSG, quadplane.pos_control->get_accel_z_pid().get_pid_info() );
     }
+    if (quadplane.in_vtol_mode() && quadplane.pos_control->is_active_xy()) {
+        logger.Write_PID(LOG_PIDN_MSG, quadplane.pos_control->get_vel_xy_pid().get_pid_info_x());
+        logger.Write_PID(LOG_PIDE_MSG, quadplane.pos_control->get_vel_xy_pid().get_pid_info_y());
+    }
+#endif
 
     logger.Write_PID(LOG_PIDR_MSG, rollController.get_pid_info());
     logger.Write_PID(LOG_PIDP_MSG, pitchController.get_pid_info());
     logger.Write_PID(LOG_PIDY_MSG, yawController.get_pid_info());
     logger.Write_PID(LOG_PIDS_MSG, steerController.get_pid_info());
 
-#if AP_AHRS_NAVEKF_AVAILABLE
-    AP::ahrs_navekf().Log_Write();
-    logger.Write_AHRS2();
-#endif
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-    sitl.Log_Write_SIMSTATE();
-#endif
-    logger.Write_POS();
+    AP::ahrs().Log_Write();
 }
 
 // do fast logging for plane
 void Plane::Log_Write_Fast(void)
 {
-    if (should_log(MASK_LOG_ATTITUDE_FAST)) {
+    if (!should_log(MASK_LOG_ATTITUDE_FULLRATE)) {
+        uint32_t now = AP_HAL::millis();
+        if (now - last_log_fast_ms < 40) {
+            // default to 25Hz
+            return;
+        }
+        last_log_fast_ms = now;
+    }
+    if (should_log(MASK_LOG_ATTITUDE_FAST | MASK_LOG_ATTITUDE_FULLRATE)) {
         Log_Write_Attitude();
     }
 }
 
-
-struct PACKED log_Startup {
-    LOG_PACKET_HEADER;
-    uint64_t time_us;
-    uint8_t startup_type;
-    uint16_t command_total;
-};
-
-void Plane::Log_Write_Startup(uint8_t type)
-{
-    struct log_Startup pkt = {
-        LOG_PACKET_HEADER_INIT(LOG_STARTUP_MSG),
-        time_us         : AP_HAL::micros64(),
-        startup_type    : type,
-        command_total   : mission.num_commands()
-    };
-    logger.WriteCriticalBlock(&pkt, sizeof(pkt));
-}
 
 struct PACKED log_Control_Tuning {
     LOG_PACKET_HEADER;
@@ -79,11 +72,13 @@ struct PACKED log_Control_Tuning {
     int16_t roll;
     int16_t nav_pitch_cd;
     int16_t pitch;
-    int16_t throttle_out;
-    int16_t rudder_out;
-    int16_t throttle_dem;
+    float throttle_out;
+    float rudder_out;
+    float throttle_dem;
     float airspeed_estimate;
     float synthetic_airspeed;
+    float EAS2TAS;
+    int32_t groundspeed_undershoot;
 };
 
 // Write a control tuning packet. Total length : 22 bytes
@@ -104,11 +99,13 @@ void Plane::Log_Write_Control_Tuning()
         roll            : (int16_t)ahrs.roll_sensor,
         nav_pitch_cd    : (int16_t)nav_pitch_cd,
         pitch           : (int16_t)ahrs.pitch_sensor,
-        throttle_out    : (int16_t)SRV_Channels::get_output_scaled(SRV_Channel::k_throttle),
-        rudder_out      : (int16_t)SRV_Channels::get_output_scaled(SRV_Channel::k_rudder),
-        throttle_dem    : (int16_t)SpdHgt_Controller->get_throttle_demand(),
+        throttle_out    : SRV_Channels::get_output_scaled(SRV_Channel::k_throttle),
+        rudder_out      : SRV_Channels::get_output_scaled(SRV_Channel::k_rudder),
+        throttle_dem    : TECS_controller.get_throttle_demand(),
         airspeed_estimate : est_airspeed,
-        synthetic_airspeed : synthetic_airspeed
+        synthetic_airspeed : synthetic_airspeed,
+        EAS2TAS            : ahrs.get_EAS2TAS(),
+        groundspeed_undershoot  : groundspeed_undershoot,
     };
     logger.WriteBlock(&pkt, sizeof(pkt));
 }
@@ -215,11 +212,11 @@ void Plane::Log_Write_Status()
 struct PACKED log_AETR {
     LOG_PACKET_HEADER;
     uint64_t time_us;
-    int16_t aileron;
-    int16_t elevator;
-    int16_t throttle;
-    int16_t rudder;
-    int16_t flap;
+    float aileron;
+    float elevator;
+    float throttle;
+    float rudder;
+    float flap;
     float speed_scaler;
 };
 
@@ -232,7 +229,7 @@ void Plane::Log_Write_AETR()
         ,elevator : SRV_Channels::get_output_scaled(SRV_Channel::k_elevator)
         ,throttle : SRV_Channels::get_output_scaled(SRV_Channel::k_throttle)
         ,rudder   : SRV_Channels::get_output_scaled(SRV_Channel::k_rudder)
-        ,flap     : SRV_Channels::get_output_scaled(SRV_Channel::k_flap_auto)
+        ,flap     : SRV_Channels::get_slew_limited_output_scaled(SRV_Channel::k_flap_auto)
         ,speed_scaler : get_speed_scaler(),
         };
 
@@ -290,8 +287,6 @@ struct PACKED log_CMDI {
 // units and "Format characters" for field type information
 const struct LogStructure Plane::log_structure[] = {
     LOG_COMMON_STRUCTURES,
-    { LOG_STARTUP_MSG, sizeof(log_Startup),         
-      "STRT", "QBH",         "TimeUS,SType,CTot", "s--", "F--" },
 
 // @LoggerMessage: CTUN
 // @Description: Control Tuning information
@@ -300,18 +295,19 @@ const struct LogStructure Plane::log_structure[] = {
 // @Field: Roll: achieved roll
 // @Field: NavPitch: desired pitch
 // @Field: Pitch: achieved pitch
-// @Field: ThrOut: scaled output throttle
+// @Field: ThO: scaled output throttle
 // @Field: RdrOut: scaled output rudder
-// @Field: ThrDem: demanded speed-height-controller throttle
-// @Field: Aspd: airspeed estimate (or measurement if airspeed sensor healthy and ARSPD_USE>0)
+// @Field: ThD: demanded speed-height-controller throttle
+// @Field: As: airspeed estimate (or measurement if airspeed sensor healthy and ARSPD_USE>0)
 // @Field: SAs: synthetic airspeed measurement derived from non-airspeed sensors, NaN if not available
+// @Field: E2T: equivalent to true airspeed ratio
+// @Field: GU: groundspeed undershoot when flying with minimum groundspeed
 
     { LOG_CTUN_MSG, sizeof(log_Control_Tuning),     
-      "CTUN", "Qcccchhhff",    "TimeUS,NavRoll,Roll,NavPitch,Pitch,ThrOut,RdrOut,ThrDem,Aspd,SAs", "sdddd---nn", "FBBBB---00" },
+      "CTUN", "Qccccffffffi",    "TimeUS,NavRoll,Roll,NavPitch,Pitch,ThO,RdrOut,ThD,As,SAs,E2T,GU", "sdddd---nn-n", "FBBBB---00-B" , true },
 
 // @LoggerMessage: NTUN
 // @Description: Navigation Tuning information - e.g. vehicle destination
-// @URL: http://ardupilot.org/rover/docs/navigation.html
 // @Field: TimeUS: Time since system startup
 // @Field: Dist: distance to the current navigation waypoint
 // @Field: TBrg: bearing to the current navigation waypoint
@@ -320,25 +316,32 @@ const struct LogStructure Plane::log_structure[] = {
 // @Field: XT: the vehicle's current distance from the current travel segment
 // @Field: XTi: integration of the vehicle's crosstrack error
 // @Field: AspdE: difference between vehicle's airspeed and desired airspeed
-// @Field: AspdE: difference between vehicle's airspeed and desired airspeed
 // @Field: TLat: target latitude
 // @Field: TLng: target longitude
 // @Field: TAlt: target altitude
 // @Field: TAspd: target airspeed
     { LOG_NTUN_MSG, sizeof(log_Nav_Tuning),         
-      "NTUN", "QfcccfffLLii",  "TimeUS,Dist,TBrg,NavBrg,AltErr,XT,XTi,AspdE,TLat,TLng,TAlt,TAspd", "smddmmmnDUmn", "F0BBB0B0GGBB" },
+      "NTUN", "QfcccfffLLii",  "TimeUS,Dist,TBrg,NavBrg,AltErr,XT,XTi,AspdE,TLat,TLng,TAlt,TAspd", "smddmmmnDUmn", "F0BBB0B0GGBB" , true },
 
 // @LoggerMessage: ATRP
-// @Description: Pitch/Roll AutoTune messages for Plane 
+// @Description: Plane AutoTune
+// @Vehicles: Plane
 // @Field: TimeUS: Time since system startup
-// @Field: Type: Type of autotune (0 = Roll/ 1 = Pitch)
-// @Field: State: AutoTune state
-// @Field: Servo: Normalised control surface output (between -4500 to 4500)
-// @Field: Demanded: Desired Pitch/Roll rate
-// @Field: Achieved: Achieved Pitch/Roll rate
-// @Field: P: Proportional part of PID
+// @Field: Axis: tuning axis
+// @Field: State: tuning state
+// @Field: Sur: control surface deflection
+// @Field: PSlew: P slew rate
+// @Field: DSlew: D slew rate
+// @Field: FF0: FF value single sample
+// @Field: FF: FF value
+// @Field: P: P value
+// @Field: I: I value
+// @Field: D: D value
+// @Field: Action: action taken
+// @Field: RMAX: Rate maximum
+// @Field: TAU: time constant
     { LOG_ATRP_MSG, sizeof(AP_AutoTune::log_ATRP),
-      "ATRP", "QBBcfff",  "TimeUS,Type,State,Servo,Demanded,Achieved,P", "s---dd-", "F---00-" },
+      "ATRP", "QBBffffffffBff", "TimeUS,Axis,State,Sur,PSlew,DSlew,FF0,FF,P,I,D,Action,RMAX,TAU", "s#-dkk------ks", "F--00000000-00" , true },
 
 // @LoggerMessage: STAT
 // @Description: Current status of the aircraft
@@ -352,7 +355,7 @@ const struct LogStructure Plane::log_structure[] = {
 // @Field: Stage: Current stage of the flight
 // @Field: Hit: True if impact is detected
     { LOG_STATUS_MSG, sizeof(log_Status),
-      "STAT", "QBfBBBBBB",  "TimeUS,isFlying,isFlyProb,Armed,Safety,Crash,Still,Stage,Hit", "s--------", "F--------" },
+      "STAT", "QBfBBBBBB",  "TimeUS,isFlying,isFlyProb,Armed,Safety,Crash,Still,Stage,Hit", "s--------", "F--------" , true },
 
 // @LoggerMessage: QTUN
 // @Description: QuadPlane vertical tuning message
@@ -368,17 +371,12 @@ const struct LogStructure Plane::log_structure[] = {
 // @Field: CRt: climb rate
 // @Field: TMix: transition throttle mix value
 // @Field: Sscl: speed scalar for tailsitter control surfaces
-// @Field: Trans: Transistion state
+// @Field: Trn: Transistion state
+// @Field: Ast: Q assist active state
+#if HAL_QUADPLANE_ENABLED
     { LOG_QTUN_MSG, sizeof(QuadPlane::log_QControl_Tuning),
-      "QTUN", "QffffffeccffB", "TimeUS,ThI,ABst,ThO,ThH,DAlt,Alt,BAlt,DCRt,CRt,TMix,Sscl,Trans", "s----mmmnn---", "F----00000-0-" },
-
-// @LoggerMessage: AOA
-// @Description: Angle of attack and Side Slip Angle values
-// @Field: TimeUS: Time since system startup
-// @Field: AOA: Angle of Attack calculated from airspeed, wind vector,velocity vector 
-// @Field: SSA: Side Slip Angle calculated from airspeed, wind vector,velocity vector
-    { LOG_AOA_SSA_MSG, sizeof(log_AOA_SSA),
-      "AOA", "Qff", "TimeUS,AOA,SSA", "sdd", "F00" },
+      "QTUN", "QffffffeccffBB", "TimeUS,ThI,ABst,ThO,ThH,DAlt,Alt,BAlt,DCRt,CRt,TMix,Sscl,Trn,Ast", "s----mmmnn----", "F----00000-0--" , true },
+#endif
 
 // @LoggerMessage: PIQR,PIQP,PIQY,PIQA
 // @Description: QuadPlane Proportional/Integral/Derivative gain values for Roll/Pitch/Yaw/Z
@@ -391,14 +389,16 @@ const struct LogStructure Plane::log_structure[] = {
 // @Field: D: derivative part of PID
 // @Field: FF: controller feed-forward portion of response
 // @Field: Dmod: scaler applied to D gain to reduce limit cycling
+// @Field: SRate: slew rate
+// @Field: Limit: 1 if I term is limited due to output saturation
     { LOG_PIQR_MSG, sizeof(log_PID),
-      "PIQR", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS },
+      "PIQR", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS , true },
     { LOG_PIQP_MSG, sizeof(log_PID),
-      "PIQP", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS },
+      "PIQP", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS , true },
     { LOG_PIQY_MSG, sizeof(log_PID),
-      "PIQY", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS },
+      "PIQY", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS , true },
     { LOG_PIQA_MSG, sizeof(log_PID),
-      "PIQA", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS },
+      "PIQA", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS , true },
 
 // @LoggerMessage: PIDG
 // @Description: Plane Proportional/Integral/Derivative gain values for Heading when using COMMAND_INT control.
@@ -411,8 +411,10 @@ const struct LogStructure Plane::log_structure[] = {
 // @Field: D: derivative part of PID
 // @Field: FF: controller feed-forward portion of response
 // @Field: Dmod: scaler applied to D gain to reduce limit cycling
+// @Field: SRate: slew rate
+// @Field: Limit: 1 if I term is limited due to output saturation
     { LOG_PIDG_MSG, sizeof(log_PID),
-      "PIDG", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS },
+      "PIDG", PID_FMT,  PID_LABELS, PID_UNITS, PID_MULTS , true },
 
 // @LoggerMessage: AETR
 // @Description: Normalised pre-mixer control surface outputs
@@ -424,7 +426,7 @@ const struct LogStructure Plane::log_structure[] = {
 // @Field: Flap: Pre-mixer value for flaps output (between -4500 to 4500)
 // @Field: SS: Surface movement / airspeed scaling value
     { LOG_AETR_MSG, sizeof(log_AETR),
-      "AETR", "Qhhhhhf",  "TimeUS,Ail,Elev,Thr,Rudd,Flap,SS", "s------", "F------" },
+      "AETR", "Qffffff",  "TimeUS,Ail,Elev,Thr,Rudd,Flap,SS", "s------", "F------" , true },
 
 // @LoggerMessage: OFG
 // @Description: OFfboard-Guided - an advanced version of GUIDED for companion computers that includes rate/s.  
@@ -437,7 +439,7 @@ const struct LogStructure Plane::log_structure[] = {
 // @Field: Hdg:  target heading
 // @Field: HdgA: target heading lim
     { LOG_OFG_MSG, sizeof(log_OFG_Guided),     
-      "OFG", "QffffBff",    "TimeUS,Arsp,ArspA,Alt,AltA,AltF,Hdg,HdgA", "s-------", "F-------" }, 
+      "OFG", "QffffBff",    "TimeUS,Arsp,ArspA,Alt,AltA,AltF,Hdg,HdgA", "s-------", "F-------" , true }, 
 
 // @LoggerMessage: CMDI
 // @Description: Generic CommandInt message logger(CMDI) 
@@ -507,7 +509,13 @@ void Plane::Log_Write_MavCmdI(const mavlink_command_int_t &mav_cmd)
 void Plane::Log_Write_Vehicle_Startup_Messages()
 {
     // only 200(?) bytes are guaranteed by AP_Logger
-    Log_Write_Startup(TYPE_GROUNDSTART_MSG);
+#if HAL_QUADPLANE_ENABLED
+    if (quadplane.initialised) {
+        char frame_and_type_string[30];
+        quadplane.motors->get_frame_and_type_string(frame_and_type_string, ARRAY_SIZE(frame_and_type_string));
+        logger.Write_MessageF("QuadPlane %s", frame_and_type_string);
+    }
+#endif
     logger.Write_Mode(control_mode->mode_number(), control_mode_reason);
     ahrs.Log_Write_Home_And_Origin();
     gps.Write_AP_Logger_Log_Startup_messages();
@@ -525,14 +533,12 @@ void Plane::log_init(void)
 
 void Plane::Log_Write_Attitude(void) {}
 void Plane::Log_Write_Fast(void) {}
-void Plane::Log_Write_Performance() {}
-void Plane::Log_Write_Startup(uint8_t type) {}
 void Plane::Log_Write_Control_Tuning() {}
 void Plane::Log_Write_OFG_Guided() {}
 void Plane::Log_Write_Nav_Tuning() {}
 void Plane::Log_Write_Status() {}
 void Plane::Log_Write_Guided(void) {}
-
+void Plane::Log_Write_MavCmdI(const mavlink_command_int_t &packet) {}
 void Plane::Log_Write_RC(void) {}
 void Plane::Log_Write_Vehicle_Startup_Messages() {}
 

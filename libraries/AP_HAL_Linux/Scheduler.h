@@ -36,7 +36,8 @@ public:
 
     void     register_timer_failsafe(AP_HAL::Proc, uint32_t period_us) override;
 
-    void     system_initialized() override;
+    void     set_system_initialized() override;
+    bool     is_system_initialized() override { return _initialized; };
 
     void     reboot(bool hold_in_bootloader) override;
 
@@ -53,6 +54,12 @@ public:
      */
     bool thread_create(AP_HAL::MemberProc, const char *name, uint32_t stack_size, priority_base base, int8_t priority) override;
     
+    /*
+      set cpu affinity mask to be applied on initialization - setting it
+      later has no effect.
+     */
+    void set_cpu_affinity(const cpu_set_t &cpu_affinity) { _cpu_affinity = cpu_affinity; }
+
 private:
     class SchedulerThread : public PeriodicThread {
     public:
@@ -69,6 +76,8 @@ private:
 
     void     init_realtime();
 
+    void     init_cpu_affinity();
+
     void _wait_all_threads();
 
     void     _debug_stack();
@@ -84,6 +93,10 @@ private:
 
     AP_HAL::MemberProc _io_proc[LINUX_SCHEDULER_MAX_IO_PROCS];
     uint8_t _num_io_procs;
+
+    // calculates an integer to be used as the priority for a
+    // newly-created thread
+    uint8_t calculate_thread_priority(priority_base base, int8_t priority) const;
 
     SchedulerThread _timer_thread{FUNCTOR_BIND_MEMBER(&Scheduler::_timer_task, void), *this};
     SchedulerThread _io_thread{FUNCTOR_BIND_MEMBER(&Scheduler::_io_task, void), *this};
@@ -103,6 +116,7 @@ private:
     pthread_t _main_ctx;
 
     Semaphore _io_semaphore;
+    cpu_set_t _cpu_affinity;
 };
 
 }

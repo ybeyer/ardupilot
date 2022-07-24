@@ -10,6 +10,8 @@
 #include "lua/src/lauxlib.h"
 #include "lua/src/lualib.h"
 
+#include <AP_Logger/LogStructure.h>
+
 #if !defined(LUA_MAXINPUT)
 #define LUA_MAXINPUT    256
 #endif
@@ -44,7 +46,7 @@ static int msghandler(lua_State *L) {
 ** Interface to 'lua_pcall', which sets appropriate message function
 ** and C-signal handler. Used to run all chunks.
 */
-int lua_scripts::docall(lua_State *L, int narg, int nres) {
+int lua_scripts::docall(lua_State *L, int narg, int nres) const {
     int status;
     int base = lua_gettop(L) - narg;  /* function index */
     lua_rawgeti(L, LUA_REGISTRYINDEX, sandbox_ref);

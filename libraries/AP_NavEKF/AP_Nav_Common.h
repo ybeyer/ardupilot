@@ -17,6 +17,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <AP_Math/AP_Math.h>
 
 union nav_filter_status {
     struct {
@@ -37,6 +38,8 @@ union nav_filter_status {
         bool gps_glitching      : 1; // 14 - true if GPS glitching is affecting navigation accuracy
         bool gps_quality_good   : 1; // 15 - true if we can use GPS for navigation
         bool initalized         : 1; // 16 - true if the EKF has ever been healthy
+        bool rejecting_airspeed : 1; // 17 - true if we are rejecting airspeed data
+        bool dead_reckoning     : 1; // 18 - true if we are dead reckoning (e.g. no position or velocity source)
     } flags;
     uint32_t value;
 };
@@ -76,6 +79,5 @@ struct ekf_timing {
     float delVelDT_max;
     float delVelDT_min;
 };
-void Log_EKF_Timing(const char *name, const uint8_t core, uint64_t time_us, const struct ekf_timing &timing);
 
 #define N_MODELS_EKFGSF 5U

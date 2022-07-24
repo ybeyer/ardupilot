@@ -55,6 +55,10 @@ private:
         TUNING_AZ_I =                         22,
         TUNING_AZ_D  =                        23,
 
+        TUNING_RATE_PITCH_FF =         24,
+        TUNING_RATE_ROLL_FF =         25,
+        TUNING_RATE_YAW_FF =         26,
+
         // fixed wing tuning
         TUNING_FIXED_WING_BASE =              50,
         TUNING_RLL_P =                        50,
@@ -79,13 +83,15 @@ private:
         TUNING_SET_ANG_ROLL_PITCH =          5,
         TUNING_SET_VXY =                     6,
         TUNING_SET_AZ =                      7,
+        TUNING_SET_RATE_PITCHDP =            8,
+        TUNING_SET_RATE_ROLLDP =             9,
+        TUNING_SET_RATE_YAWDP =             10,
     };
 
     AP_Float *get_param_pointer(uint8_t parm) override;
     void save_value(uint8_t parm) override;
     void reload_value(uint8_t parm) override;
     void set_value(uint8_t parm, float value) override;
-    float controller_error(uint8_t parm) override;
 
     // tuning set arrays
     static const uint8_t tuning_set_rate_roll_pitch[];
@@ -95,6 +101,9 @@ private:
     static const uint8_t tuning_set_ang_roll_pitch[];
     static const uint8_t tuning_set_vxy[];
     static const uint8_t tuning_set_az[];
+    static const uint8_t tuning_set_rate_pitchDP[];
+    static const uint8_t tuning_set_rate_rollDP[];
+    static const uint8_t tuning_set_rate_yawDP[];
 
     // mask of what params have been set
     uint64_t have_set;

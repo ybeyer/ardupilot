@@ -18,6 +18,12 @@
 
 #include "AP_ROMFS.h"
 #include "tinf.h"
+#include <AP_Math/crc.h>
+
+#include <AP_Common/AP_Common.h>
+#include <AP_HAL/AP_HAL_Boards.h>
+
+#include <string.h>
 
 #ifdef HAL_HAVE_AP_ROMFS_EMBEDDED_H
 #include <ap_romfs_embedded.h>
@@ -28,11 +34,12 @@ const AP_ROMFS::embedded_file AP_ROMFS::files[] = {};
 /*
   find an embedded file
 */
-const uint8_t *AP_ROMFS::find_file(const char *name, uint32_t &size)
+const uint8_t *AP_ROMFS::find_file(const char *name, uint32_t &size, uint32_t &crc)
 {
     for (uint16_t i=0; i<ARRAY_SIZE(files); i++) {
         if (strcmp(name, files[i].filename) == 0) {
             size = files[i].size;
+            crc = files[i].crc;
             return files[i].contents;
         }
     }
@@ -48,7 +55,8 @@ const uint8_t *AP_ROMFS::find_file(const char *name, uint32_t &size)
 const uint8_t *AP_ROMFS::find_decompress(const char *name, uint32_t &size)
 {
     uint32_t compressed_size = 0;
-    const uint8_t *compressed_data = find_file(name, compressed_size);
+    uint32_t crc;
+    const uint8_t *compressed_data = find_file(name, compressed_size, crc);
     if (!compressed_data) {
         return nullptr;
     }
@@ -101,6 +109,11 @@ const uint8_t *AP_ROMFS::find_decompress(const char *name, uint32_t &size)
         return nullptr;
     }
 
+    if (crc32_small(0, decompressed_data, decompressed_size) != crc) {
+        ::free(decompressed_data);
+        return nullptr;
+    }
+    
     size = decompressed_size;
     return decompressed_data;
 #endif

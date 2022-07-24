@@ -15,15 +15,15 @@
 
 #pragma once
 
-
-
 #include <AP_Common/AP_Common.h>
 #include <AP_Param/AP_Param.h>
-#include <GCS_MAVLink/GCS.h>
+#include <GCS_MAVLink/GCS_MAVLink.h>
 
-#define EFI_ENABLED !HAL_MINIMIZE_FEATURES
+#ifndef HAL_EFI_ENABLED
+#define HAL_EFI_ENABLED !HAL_MINIMIZE_FEATURES && BOARD_FLASH_SIZE > 1024
+#endif
 
-#if EFI_ENABLED
+#if HAL_EFI_ENABLED
 #include "AP_EFI_Backend.h"
 #include "AP_EFI_State.h"
 
@@ -60,17 +60,29 @@ public:
     uint32_t get_rpm() const { return state.engine_speed_rpm; }
 
     // returns enabled state of EFI
-    bool enabled() const { return type != EFI_COMMUNICATION_TYPE_NONE; }
+    bool enabled() const { return type != Type::NONE; }
 
     bool is_healthy() const;
+
+    // return timestamp of last update
+    uint32_t get_last_update_ms(void) const {
+        return state.last_updated_ms;
+    }
+
+    // get a copy of state structure
+    void get_state(EFI_State &state);
 
     // Parameter info
     static const struct AP_Param::GroupInfo var_info[];
 
     // Backend driver types
-    enum EFI_Communication_Type {
-        EFI_COMMUNICATION_TYPE_NONE      = 0,
-        EFI_COMMUNICATION_TYPE_SERIAL_MS = 1
+    enum class Type : uint8_t {
+        NONE       = 0,
+        MegaSquirt = 1,
+        NWPMU     = 2,
+        Lutan     = 3,
+        // LOWEHEISER = 4,
+        DroneCAN = 5,
     };
 
     static AP_EFI *get_singleton(void) {
@@ -90,11 +102,14 @@ protected:
 
 private:
     // Front End Parameters
-    AP_Int8 type;
+    AP_Enum<Type> type;
 
     // Tracking backends
     AP_EFI_Backend *backend;
     static AP_EFI *singleton;
+
+    // Semaphore for access to shared frontend data
+    HAL_Semaphore sem;
 
     // write to log
     void log_status();
@@ -104,4 +119,4 @@ namespace AP {
     AP_EFI *EFI();
 };
 
-#endif // EFI_ENABLED
+#endif // HAL_EFI_ENABLED

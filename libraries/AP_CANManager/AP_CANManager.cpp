@@ -20,14 +20,14 @@
 #include <AP_Common/AP_Common.h>
 #include "AP_CANManager.h"
 
-#if HAL_MAX_CAN_PROTOCOL_DRIVERS
+#if HAL_CANMANAGER_ENABLED
 
 #include <AP_Vehicle/AP_Vehicle.h>
 #include <AP_UAVCAN/AP_UAVCAN.h>
 #include <AP_KDECAN/AP_KDECAN.h>
-#include <AP_ToshibaCAN/AP_ToshibaCAN.h>
 #include <AP_SerialManager/AP_SerialManager.h>
 #include <AP_PiccoloCAN/AP_PiccoloCAN.h>
+#include <AP_EFI/AP_EFI_NWPMU.h>
 #include "AP_CANTester.h"
 #include <GCS_MAVLink/GCS_MAVLink.h>
 #if CONFIG_HAL_BOARD == HAL_BOARD_LINUX
@@ -35,8 +35,12 @@
 #elif CONFIG_HAL_BOARD == HAL_BOARD_SITL
 #include <AP_HAL_SITL/CANSocketIface.h>
 #elif CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
+#include <hal.h>
 #include <AP_HAL_ChibiOS/CANIface.h>
 #endif
+
+#include <AP_Common/ExpandingString.h>
+#include <AP_Common/sorting.h>
 
 #define LOG_TAG "CANMGR"
 #define LOG_BUFFER_SIZE 1024
@@ -110,6 +114,8 @@ AP_CANManager::AP_CANManager()
 
 void AP_CANManager::init()
 {
+    WITH_SEMAPHORE(_sem);
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     if (AP::sitl() != nullptr) {
         if (AP::sitl()->speedup > 1) {
@@ -130,6 +136,7 @@ void AP_CANManager::init()
     //Reset all SLCAN related params that needs resetting at boot
     _slcan_interface.reset_params();
 
+    Driver_Type drv_type[HAL_MAX_CAN_PROTOCOL_DRIVERS] = {};
     // loop through interfaces and allocate and initialise Iface,
     // Also allocate Driver objects, and add interfaces to them
     for (uint8_t i = 0; i < HAL_NUM_CAN_IFACES; i++) {
@@ -147,24 +154,28 @@ void AP_CANManager::init()
         }
 
         // Initialise the interface we just allocated
-        if (hal.can[i] != nullptr) {
-            if (!hal.can[i]->init(_interfaces[i]._bitrate, AP_HAL::CANIface::NormalMode)) {
-                log_text(AP_CANManager::LOG_ERROR, LOG_TAG, "Failed to initialise CAN Interface %d", i+1);
-                continue;
-            }
-        } else {
+        if (hal.can[i] == nullptr) {
             continue;
         }
         AP_HAL::CANIface* iface = hal.can[i];
+
+        // Find the driver type that we need to allocate and register this interface with
+        drv_type[drv_num] = (Driver_Type) _drv_param[drv_num]._driver_type.get();
+        bool can_initialised = false;
         // Check if this interface need hooking up to slcan passthrough
         // instead of a driver
         if (_slcan_interface.init_passthrough(i)) {
             // we have slcan bridge setup pass that on as can iface
+            can_initialised = hal.can[i]->init(_interfaces[i]._bitrate, _interfaces[i]._fdbitrate*1000000, AP_HAL::CANIface::NormalMode);
             iface = &_slcan_interface;
+        } else {
+            can_initialised = hal.can[i]->init(_interfaces[i]._bitrate, _interfaces[i]._fdbitrate*1000000, AP_HAL::CANIface::NormalMode);
         }
 
-        // Find the driver type that we need to allocate and register this interface with
-        Driver_Type drv_type = _driver_type_cache[drv_num] = (Driver_Type) _drv_param[drv_num]._driver_type.get();
+        if (!can_initialised) {
+            log_text(AP_CANManager::LOG_ERROR, LOG_TAG, "Failed to initialise CAN Interface %d", i+1);
+            continue;
+        }
 
         log_text(AP_CANManager::LOG_INFO, LOG_TAG, "CAN Interface %d initialized well", i + 1);
 
@@ -175,59 +186,51 @@ void AP_CANManager::init()
             continue;
         }
 
-        _num_drivers++;
-        if (_num_drivers > HAL_MAX_CAN_PROTOCOL_DRIVERS) {
+        if (_num_drivers >= HAL_MAX_CAN_PROTOCOL_DRIVERS) {
             // We are exceeding number of drivers,
             // this can't be happening time to panic
             AP_BoardConfig::config_error("Max number of CAN Drivers exceeded\n\r");
         }
 
         // Allocate the set type of Driver
-        if (drv_type == Driver_Type_UAVCAN) {
+        if (drv_type[drv_num] == Driver_Type_UAVCAN) {
             _drivers[drv_num] = _drv_param[drv_num]._uavcan = new AP_UAVCAN;
 
             if (_drivers[drv_num] == nullptr) {
-                AP_BoardConfig::config_error("Failed to allocate uavcan %d\n\r", i + 1);
+                AP_BoardConfig::allocation_error("uavcan %d", i + 1);
                 continue;
             }
 
             AP_Param::load_object_from_eeprom((AP_UAVCAN*)_drivers[drv_num], AP_UAVCAN::var_info);
-        } else if (drv_type == Driver_Type_KDECAN) {
-#if (APM_BUILD_TYPE(APM_BUILD_ArduCopter) || APM_BUILD_TYPE(APM_BUILD_ArduPlane) || APM_BUILD_TYPE(APM_BUILD_ArduSub))
+        } else if (drv_type[drv_num] == Driver_Type_KDECAN) {
+#if (APM_BUILD_COPTER_OR_HELI || APM_BUILD_TYPE(APM_BUILD_ArduPlane) || APM_BUILD_TYPE(APM_BUILD_ArduSub))
             // To be replaced with macro saying if KDECAN library is included
             _drivers[drv_num] = _drv_param[drv_num]._kdecan = new AP_KDECAN;
 
             if (_drivers[drv_num] == nullptr) {
-                AP_BoardConfig::config_error("Failed to allocate KDECAN %d\n\r", drv_num + 1);
+                AP_BoardConfig::allocation_error("KDECAN %d", drv_num + 1);
                 continue;
             }
 
             AP_Param::load_object_from_eeprom((AP_KDECAN*)_drivers[drv_num], AP_KDECAN::var_info);
 #endif
-        } else if (drv_type == Driver_Type_ToshibaCAN) {
-            _drivers[drv_num] = new AP_ToshibaCAN;
-
-            if (_drivers[drv_num] == nullptr) {
-                AP_BoardConfig::config_error("Failed to allocate ToshibaCAN %d\n\r", drv_num + 1);
-                continue;
-            }
-        } else if (drv_type == Driver_Type_PiccoloCAN) {
+        } else if (drv_type[drv_num] == Driver_Type_PiccoloCAN) {
 #if HAL_PICCOLO_CAN_ENABLE
             _drivers[drv_num] = _drv_param[drv_num]._piccolocan = new AP_PiccoloCAN;
 
             if (_drivers[drv_num] == nullptr) {
-                AP_BoardConfig::config_error("Failed to allocate PiccoloCAN %d\n\r", drv_num + 1);
+                AP_BoardConfig::allocation_error("PiccoloCAN %d", drv_num + 1);
                 continue;
             }
 
             AP_Param::load_object_from_eeprom((AP_PiccoloCAN*)_drivers[drv_num], AP_PiccoloCAN::var_info);
 #endif
-        } else if (drv_type == Driver_Type_CANTester) {
-#if HAL_NUM_CAN_IFACES > 1 && !HAL_MINIMIZE_FEATURES
+        } else if (drv_type[drv_num] == Driver_Type_CANTester) {
+#if HAL_NUM_CAN_IFACES > 1 && !HAL_MINIMIZE_FEATURES && HAL_ENABLE_CANTESTER
             _drivers[drv_num] = _drv_param[drv_num]._testcan = new CANTester;
 
             if (_drivers[drv_num] == nullptr) {
-                AP_BoardConfig::config_error("Failed to allocate CANTester %d\n\r", drv_num + 1);
+                AP_BoardConfig::allocation_error("CANTester %d", drv_num + 1);
                 continue;
             }
             AP_Param::load_object_from_eeprom((CANTester*)_drivers[drv_num], CANTester::var_info);
@@ -235,6 +238,8 @@ void AP_CANManager::init()
         } else {
             continue;
         }
+
+        _num_drivers++;
 
         // Hook this interface to the selected Driver Type
         _drivers[drv_num]->add_interface(iface);
@@ -247,14 +252,74 @@ void AP_CANManager::init()
         if (_drivers[drv_num] == nullptr) {
             continue;
         }
-        if ((_slcan_interface.get_iface_num() >= HAL_NUM_CAN_IFACES ||
-            _slcan_interface.get_iface_num() < 0) ||
-            (_interfaces[_slcan_interface.get_iface_num()]._driver_number != drv_num + 1)) {
-            _drivers[drv_num]->init(drv_num, true);
-        } else {
-            _drivers[drv_num]->init(drv_num, false);
+        bool enable_filter = false;
+        for (uint8_t i = 0; i < HAL_NUM_CAN_IFACES; i++) {
+            if (_interfaces[i]._driver_number == (drv_num+1) &&
+                hal.can[i] != nullptr &&
+                hal.can[i]->get_operating_mode() == AP_HAL::CANIface::FilteredMode) {
+                // Don't worry we don't enable Filters for Normal Ifaces under the driver
+                // this is just to ensure we enable them for the ones we already decided on
+                enable_filter = true;
+                break;
+            }
         }
+
+        _drivers[drv_num]->init(drv_num, enable_filter);
+        // Finally initialise driver type, this will be used
+        // to find and reference protocol drivers
+        _driver_type_cache[drv_num] = drv_type[drv_num];
     }
+}
+
+/*
+  register a new CAN driver
+ */
+bool AP_CANManager::register_driver(Driver_Type dtype, AP_CANDriver *driver)
+{
+    WITH_SEMAPHORE(_sem);
+
+    for (uint8_t i = 0; i < HAL_NUM_CAN_IFACES; i++) {
+        uint8_t drv_num = _interfaces[i]._driver_number;
+        if (drv_num == 0 || drv_num > HAL_MAX_CAN_PROTOCOL_DRIVERS) {
+            continue;
+        }
+        // from 1 based to 0 based
+        drv_num--;
+
+        if (dtype != (Driver_Type)_drv_param[drv_num]._driver_type.get()) {
+            continue;
+        }
+        if (_drivers[drv_num] != nullptr) {
+            continue;
+        }
+        if (_num_drivers >= HAL_MAX_CAN_PROTOCOL_DRIVERS) {
+            continue;
+        }
+
+        if (hal.can[i] == nullptr) {
+            // if this interface is not allocated allocate it here,
+            // also pass the index of the CANBus
+            const_cast <AP_HAL::HAL&> (hal).can[i] = new HAL_CANIface(i);
+        }
+
+        // Initialise the interface we just allocated
+        if (hal.can[i] == nullptr) {
+            continue;
+        }
+        AP_HAL::CANIface* iface = hal.can[i];
+
+        _drivers[drv_num] = driver;
+        _drivers[drv_num]->add_interface(iface);
+        log_text(AP_CANManager::LOG_INFO, LOG_TAG, "Adding Interface %d to Driver %d", i + 1, drv_num + 1);
+
+        _drivers[drv_num]->init(drv_num, false);
+        _driver_type_cache[drv_num] = dtype;
+
+        _num_drivers++;
+
+        return true;
+    }
+    return false;
 }
 
 // Method used by CAN related library methods to report status and debug info
@@ -301,16 +366,221 @@ void AP_CANManager::log_text(AP_CANManager::LogLevel loglevel, const char *tag, 
 }
 
 // log retrieve method used by file sys method to report can log
-uint32_t AP_CANManager::log_retrieve(char* data, uint32_t max_size) const
+void AP_CANManager::log_retrieve(ExpandingString &str) const
 {
     if (_log_buf == nullptr) {
         gcs().send_text(MAV_SEVERITY_ERROR, "Log buffer not available");
-        return 0;
+        return;
     }
-    uint32_t read_len = MIN(max_size, _log_pos);
-    memcpy(data, _log_buf, read_len);
-    return read_len;
+    str.append(_log_buf, _log_pos);
 }
+
+#if HAL_GCS_ENABLED
+/*
+  handle MAV_CMD_CAN_FORWARD mavlink long command
+ */
+bool AP_CANManager::handle_can_forward(mavlink_channel_t chan, const mavlink_command_long_t &packet, const mavlink_message_t &msg)
+{
+    WITH_SEMAPHORE(can_forward.sem);
+    const int8_t bus = int8_t(packet.param1)-1;
+    if (bus == -1) {
+        for (auto can_iface : hal.can) {
+            if (can_iface) {
+                can_iface->register_frame_callback(nullptr);
+            }
+        }
+        return true;
+    }
+    if (bus >= HAL_NUM_CAN_IFACES || hal.can[bus] == nullptr) {
+        return false;
+    }
+    if (!hal.can[bus]->register_frame_callback(
+            FUNCTOR_BIND_MEMBER(&AP_CANManager::can_frame_callback, void, uint8_t, const AP_HAL::CANFrame &))) {
+        return false;
+    }
+    can_forward.last_callback_enable_ms = AP_HAL::millis();
+    can_forward.chan = chan;
+    can_forward.system_id = msg.sysid;
+    can_forward.component_id = msg.compid;
+
+    // remove registration on other buses, allowing for bus change in the GUI tool
+    for (uint8_t i=0; i<HAL_NUM_CAN_IFACES; i++) {
+        if (i != bus && hal.can[i] != nullptr) {
+            hal.can[i]->register_frame_callback(nullptr);
+        }
+    }
+
+    return true;
+}
+
+/*
+  handle a CAN_FRAME packet
+ */
+void AP_CANManager::handle_can_frame(const mavlink_message_t &msg) const
+{
+    const uint16_t timeout_us = 2000;
+    switch (msg.msgid) {
+    case MAVLINK_MSG_ID_CAN_FRAME: {
+        mavlink_can_frame_t p;
+        mavlink_msg_can_frame_decode(&msg, &p);
+        if (p.bus >= HAL_NUM_CAN_IFACES || hal.can[p.bus] == nullptr) {
+            return;
+        }
+        AP_HAL::CANFrame frame{p.id, p.data, p.len};
+        hal.can[p.bus]->send(frame, AP_HAL::native_micros64() + timeout_us, AP_HAL::CANIface::IsMAVCAN);
+        break;
+    }
+    case MAVLINK_MSG_ID_CANFD_FRAME: {
+        mavlink_canfd_frame_t p;
+        mavlink_msg_canfd_frame_decode(&msg, &p);
+        if (p.bus >= HAL_NUM_CAN_IFACES || hal.can[p.bus] == nullptr) {
+            return;
+        }
+        AP_HAL::CANFrame frame{p.id, p.data, p.len, true};
+        hal.can[p.bus]->send(frame, AP_HAL::native_micros64() + timeout_us, AP_HAL::CANIface::IsMAVCAN);
+        break;
+    }
+    }
+}
+
+/*
+  handle a CAN_FILTER_MODIFY packet
+ */
+void AP_CANManager::handle_can_filter_modify(const mavlink_message_t &msg)
+{
+    mavlink_can_filter_modify_t p;
+    mavlink_msg_can_filter_modify_decode(&msg, &p);
+    const int8_t bus = int8_t(p.bus)-1;
+    if (bus >= HAL_NUM_CAN_IFACES || hal.can[bus] == nullptr) {
+        return;
+    }
+    if (p.num_ids > ARRAY_SIZE(p.ids)) {
+        return;
+    }
+    uint16_t *new_ids = nullptr;
+    uint16_t num_new_ids = 0;
+    WITH_SEMAPHORE(can_forward.sem);
+
+    // sort the list, so we can bisection search and the array
+    // operations below are efficient
+    insertion_sort_uint16(p.ids, p.num_ids);
+    
+    switch (p.operation) {
+    case CAN_FILTER_REPLACE: {
+        if (p.num_ids == 0) {
+            can_forward.num_filter_ids = 0;
+            delete[] can_forward.filter_ids;
+            can_forward.filter_ids = nullptr;
+            return;
+        }
+        if (p.num_ids == can_forward.num_filter_ids &&
+            memcmp(p.ids, can_forward.filter_ids, p.num_ids*sizeof(uint16_t)) == 0) {
+            // common case of replacing with identical list
+            return;
+        }
+        new_ids = new uint16_t[p.num_ids];
+        if (new_ids != nullptr) {
+            num_new_ids = p.num_ids;
+            memcpy((void*)new_ids, (const void *)p.ids, p.num_ids*sizeof(uint16_t));
+        }
+        break;
+    }
+    case CAN_FILTER_ADD: {
+        if (common_list_uint16(can_forward.filter_ids, can_forward.num_filter_ids,
+                               p.ids, p.num_ids) == p.num_ids) {
+            // nothing changing
+            return;
+        }
+        new_ids = new uint16_t[can_forward.num_filter_ids+p.num_ids];
+        if (new_ids == nullptr) {
+            return;
+        }
+        if (can_forward.num_filter_ids != 0) {
+            memcpy(new_ids, can_forward.filter_ids, can_forward.num_filter_ids*sizeof(uint16_t));
+        }
+        memcpy(&new_ids[can_forward.num_filter_ids], p.ids, p.num_ids*sizeof(uint16_t));
+        insertion_sort_uint16(new_ids, can_forward.num_filter_ids+p.num_ids);
+        num_new_ids = remove_duplicates_uint16(new_ids, can_forward.num_filter_ids+p.num_ids);
+        break;
+    }
+    case CAN_FILTER_REMOVE: {
+        if (common_list_uint16(can_forward.filter_ids, can_forward.num_filter_ids,
+                               p.ids, p.num_ids) == 0) {
+            // nothing changing
+            return;
+        }
+        can_forward.num_filter_ids = remove_list_uint16(can_forward.filter_ids, can_forward.num_filter_ids,
+                                                        p.ids, p.num_ids);
+        if (can_forward.num_filter_ids == 0) {
+            delete[] can_forward.filter_ids;
+            can_forward.filter_ids = nullptr;
+        }
+        break;
+    }
+    }
+    if (new_ids != nullptr) {
+        // handle common case of no change
+        if (num_new_ids == can_forward.num_filter_ids &&
+            memcmp(new_ids, can_forward.filter_ids, num_new_ids*sizeof(uint16_t)) == 0) {
+            delete[] new_ids;
+        } else {
+            // put the new list in place
+            delete[] can_forward.filter_ids;
+            can_forward.filter_ids = new_ids;
+            can_forward.num_filter_ids = num_new_ids;
+        }
+    }
+}
+
+/*
+  handler for CAN frames from the registered callback, sending frames
+  out as CAN_FRAME or CANFD_FRAME messages
+ */
+void AP_CANManager::can_frame_callback(uint8_t bus, const AP_HAL::CANFrame &frame)
+{
+    WITH_SEMAPHORE(can_forward.sem);
+    if (can_forward.frame_counter++ == 100) {
+        // check every 100 frames for disabling CAN_FRAME send
+        // we stop sending after 5s if the client stops
+        // sending MAV_CMD_CAN_FORWARD requests
+        if (AP_HAL::millis() - can_forward.last_callback_enable_ms > 5000) {
+            hal.can[bus]->register_frame_callback(nullptr);
+            return;
+        }
+        can_forward.frame_counter = 0;
+    }
+    WITH_SEMAPHORE(comm_chan_lock(can_forward.chan));
+    if (can_forward.filter_ids != nullptr) {
+        // work out ID of this frame
+        uint16_t id = 0;
+        if ((frame.id&0xff) != 0) {
+            // not anonymous
+            if (frame.id & 0x80) {
+                // service message
+                id = uint8_t(frame.id>>16);
+            } else {
+                // message frame
+                id = uint16_t(frame.id>>8);
+            }
+        }
+        if (!bisect_search_uint16(can_forward.filter_ids, can_forward.num_filter_ids, id)) {
+            return;
+        }
+    }
+    const uint8_t data_len = AP_HAL::CANFrame::dlcToDataLength(frame.dlc);
+    if (frame.isCanFDFrame()) {
+        if (HAVE_PAYLOAD_SPACE(can_forward.chan, CANFD_FRAME)) {
+            mavlink_msg_canfd_frame_send(can_forward.chan, can_forward.system_id, can_forward.component_id,
+                                         bus, data_len, frame.id, const_cast<uint8_t*>(frame.data));
+        }
+    } else {
+        if (HAVE_PAYLOAD_SPACE(can_forward.chan, CAN_FRAME)) {
+            mavlink_msg_can_frame_send(can_forward.chan, can_forward.system_id, can_forward.component_id,
+                                       bus, data_len, frame.id, const_cast<uint8_t*>(frame.data));
+        }
+    }
+}
+#endif // HAL_GCS_ENABLED
 
 AP_CANManager& AP::can()
 {

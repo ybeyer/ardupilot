@@ -15,7 +15,7 @@ from math import acos, atan2, cos, pi, sqrt
 
 import pexpect
 
-from . rotmat import Matrix3, Vector3
+from pymavlink.rotmat import Vector3, Matrix3
 
 if (sys.version_info[0] >= 3):
     ENCODING = 'ascii'
@@ -57,9 +57,12 @@ def topdir():
     d = os.path.dirname(d)
     return d
 
+def relcurdir(path):
+    """Return a path relative to current dir"""
+    return os.path.relpath(path, os.getcwd())
 
 def reltopdir(path):
-    """Return a path relative to topdir()."""
+    """Returns the normalized ABSOLUTE path for 'path', where path is a path relative to topdir"""
     return os.path.normpath(os.path.join(topdir(), path))
 
 
@@ -96,12 +99,28 @@ def relwaf():
     return "./modules/waf/waf-light"
 
 
-def waf_configure(board, j=None, debug=False, math_check_indexes=False, extra_args=[]):
+def waf_configure(board, j=None, debug=False, math_check_indexes=False, coverage=False, ekf_single=False, postype_single=False, sitl_32bit=False, extra_args=[], extra_hwdef=None, ubsan=False, ubsan_abort=False, extra_defines={}):
     cmd_configure = [relwaf(), "configure", "--board", board]
     if debug:
         cmd_configure.append('--debug')
+    if coverage:
+        cmd_configure.append('--coverage')
     if math_check_indexes:
         cmd_configure.append('--enable-math-check-indexes')
+    if ekf_single:
+        cmd_configure.append('--ekf-single')
+    if postype_single:
+        cmd_configure.append('--postype-single')
+    if sitl_32bit:
+        cmd_configure.append('--sitl-32bit')
+    if ubsan:
+        cmd_configure.append('--ubsan')
+    if ubsan_abort:
+        cmd_configure.append('--ubsan-abort')
+    if extra_hwdef is not None:
+        cmd_configure.extend(['--extra-hwdef', extra_hwdef])
+    for nv in extra_defines.items():
+        cmd_configure.extend(['--define', "%s=%s" % nv])
     if j is not None:
         cmd_configure.extend(['-j', str(j)])
     pieces = [shlex.split(x) for x in extra_args]
@@ -114,8 +133,29 @@ def waf_clean():
     run_cmd([relwaf(), "clean"], directory=topdir(), checkfail=True)
 
 
-def build_SITL(build_target, j=None, debug=False, board='sitl', clean=True, configure=True, math_check_indexes=False, extra_configure_args=[]):
-    """Build desktop SITL."""
+def waf_build(target=None):
+    cmd = [relwaf(), "build"]
+    if target is not None:
+        cmd.append(target)
+    run_cmd(cmd, directory=topdir(), checkfail=True)
+
+def build_SITL(
+        build_target,
+        board='sitl',
+        clean=True,
+        configure=True,
+        coverage=False,
+        debug=False,
+        ekf_single=False,
+        extra_configure_args=[],
+        extra_defines={},
+        j=None,
+        math_check_indexes=False,
+        postype_single=False,
+        sitl_32bit=False,
+        ubsan=False,
+        ubsan_abort=False,
+):
 
     # first configure
     if configure:
@@ -123,6 +163,13 @@ def build_SITL(build_target, j=None, debug=False, board='sitl', clean=True, conf
                       j=j,
                       debug=debug,
                       math_check_indexes=math_check_indexes,
+                      ekf_single=ekf_single,
+                      postype_single=postype_single,
+                      coverage=coverage,
+                      sitl_32bit=sitl_32bit,
+                      ubsan=ubsan,
+                      ubsan_abort=ubsan_abort,
+                      extra_defines=extra_defines,
                       extra_args=extra_configure_args)
 
     # then clean
@@ -137,9 +184,22 @@ def build_SITL(build_target, j=None, debug=False, board='sitl', clean=True, conf
     return True
 
 
-def build_examples(board, j=None, debug=False, clean=False):
+def build_examples(board, j=None, debug=False, clean=False, configure=True, math_check_indexes=False, coverage=False,
+                   ekf_single=False, postype_single=False, sitl_32bit=False, ubsan=False, ubsan_abort=False,
+                   extra_configure_args=[]):
     # first configure
-    waf_configure(board, j=j, debug=debug)
+    if configure:
+        waf_configure(board,
+                      j=j,
+                      debug=debug,
+                      math_check_indexes=math_check_indexes,
+                      ekf_single=ekf_single,
+                      postype_single=postype_single,
+                      coverage=coverage,
+                      sitl_32bit=sitl_32bit,
+                      ubsan=ubsan,
+                      ubsan_abort=ubsan_abort,
+                      extra_args=extra_configure_args)
 
     # then clean
     if clean:
@@ -150,9 +210,35 @@ def build_examples(board, j=None, debug=False, clean=False):
     run_cmd(cmd_make, directory=topdir(), checkfail=True, show=True)
     return True
 
-def build_tests(board, j=None, debug=False, clean=False):
+def build_replay(board, j=None, debug=False, clean=False):
     # first configure
     waf_configure(board, j=j, debug=debug)
+
+    # then clean
+    if clean:
+        waf_clean()
+
+    # then build
+    cmd_make = [relwaf(), "replay"]
+    run_cmd(cmd_make, directory=topdir(), checkfail=True, show=True)
+    return True
+
+def build_tests(board, j=None, debug=False, clean=False, configure=True, math_check_indexes=False, coverage=False,
+                ekf_single=False, postype_single=False, sitl_32bit=False, ubsan=False, ubsan_abort=False, extra_configure_args=[]):
+
+    # first configure
+    if configure:
+        waf_configure(board,
+                      j=j,
+                      debug=debug,
+                      math_check_indexes=math_check_indexes,
+                      ekf_single=ekf_single,
+                      postype_single=postype_single,
+                      coverage=coverage,
+                      sitl_32bit=sitl_32bit,
+                      ubsan=ubsan,
+                      ubsan_abort=ubsan_abort,
+                      extra_args=extra_configure_args)
 
     # then clean
     if clean:
@@ -228,7 +314,7 @@ def make_safe_filename(text):
     """Return a version of text safe for use as a filename."""
     r = re.compile("([^a-zA-Z0-9_.+-])")
     text.replace('/', '-')
-    filename = r.sub(lambda m: "%" + str(hex(ord(str(m.group(1))))).upper(), text)
+    filename = r.sub(lambda m: str(hex(ord(str(m.group(1))))).upper(), text)
     return filename
 
 
@@ -249,7 +335,9 @@ def kill_mac_terminal():
 
 def start_SITL(binary,
                valgrind=False,
+               callgrind=False,
                gdb=False,
+               gdb_no_tui=False,
                wipe=False,
                synthetic_clock=True,
                home=None,
@@ -261,14 +349,16 @@ def start_SITL(binary,
                breakpoints=[],
                disable_breakpoints=False,
                customisations=[],
-               lldb=False):
+               lldb=False,
+               enable_fgview_output=False,
+               supplementary=False):
 
-    if model is None:
+    if model is None and not supplementary:
         raise ValueError("model must not be None")
 
     """Launch a SITL instance."""
     cmd = []
-    if valgrind and os.path.exists('/usr/bin/valgrind'):
+    if (callgrind or valgrind) and os.path.exists('/usr/bin/valgrind'):
         # we specify a prefix for vgdb-pipe because on Vagrant virtual
         # machines the pipes are created on the mountpoint for the
         # shared directory with the host machine.  mmap's,
@@ -283,6 +373,8 @@ def start_SITL(binary,
             '--vgdb-prefix=%s' % vgdb_prefix,
             '-q',
             '--log-file=%s' % log_file])
+        if callgrind:
+            cmd.extend(["--tool=callgrind"])
     if gdbserver:
         cmd.extend(['gdbserver', 'localhost:3333'])
         if gdb:
@@ -303,6 +395,8 @@ def start_SITL(binary,
             f.write("b %s\n" % (breakpoint,))
         if disable_breakpoints:
             f.write("disable\n")
+        if not gdb_no_tui:
+            f.write("tui enable\n")
         f.write("r\n")
         f.close()
         if sys.platform == "darwin" and os.getenv('DISPLAY'):
@@ -333,21 +427,30 @@ def start_SITL(binary,
             raise RuntimeError("DISPLAY was not set")
 
     cmd.append(binary)
-    if wipe:
-        cmd.append('-w')
-    if synthetic_clock:
-        cmd.append('-S')
-    if home is not None:
-        cmd.extend(['--home', home])
-    cmd.extend(['--model', model])
-    if speedup != 1:
-        cmd.extend(['--speedup', str(speedup)])
-    if defaults_filepath is not None:
-        if type(defaults_filepath) == list:
-            defaults_filepath = ",".join(defaults_filepath)
-        cmd.extend(['--defaults', defaults_filepath])
-    if unhide_parameters:
-        cmd.extend(['--unhide-groups'])
+    if not supplementary:
+        if wipe:
+            cmd.append('-w')
+        if synthetic_clock:
+            cmd.append('-S')
+        if home is not None:
+            cmd.extend(['--home', home])
+        cmd.extend(['--model', model])
+        if speedup != 1:
+            cmd.extend(['--speedup', str(speedup)])
+        if defaults_filepath is not None:
+            if type(defaults_filepath) == list:
+                defaults = [reltopdir(path) for path in defaults_filepath]
+                if len(defaults):
+                    cmd.extend(['--defaults', ",".join(defaults)])
+            else:
+                cmd.extend(['--defaults', reltopdir(defaults_filepath)])
+        if unhide_parameters:
+            cmd.extend(['--unhide-groups'])
+        # somewhere for MAVProxy to connect to:
+        cmd.append('--uartC=tcp:2')
+        if not enable_fgview_output:
+            cmd.append("--disable-fgview");
+
     cmd.extend(customisations)
 
     if (gdb or lldb) and sys.platform == "darwin" and os.getenv('DISPLAY'):
@@ -408,7 +511,7 @@ def start_SITL(binary,
         # TODO: have a SITL-compiled ardupilot able to have its
         # console on an output fd.
     else:
-        child.expect('Waiting for connection', timeout=300)
+        child.expect('Waiting for ', timeout=300)
     return child
 
 
@@ -426,8 +529,13 @@ def MAVProxy_version():
         raise ValueError("Unable to determine MAVProxy version from (%s)" % output)
     return (int(match.group(1)), int(match.group(2)), int(match.group(3)))
 
-def start_MAVProxy_SITL(atype, aircraft=None, setup=False, master='tcp:127.0.0.1:5760',
-                        options=[], logfile=sys.stdout):
+def start_MAVProxy_SITL(atype,
+                        aircraft=None,
+                        setup=False,
+                        master='tcp:127.0.0.1:5762',
+                        options=[],
+                        pexpect_timeout=60,
+                        logfile=sys.stdout):
     """Launch mavproxy connected to a SITL instance."""
     local_mp_modules_dir = os.path.abspath(
         os.path.join(__file__, '..', '..', '..', 'mavproxy_modules'))
@@ -442,7 +550,6 @@ def start_MAVProxy_SITL(atype, aircraft=None, setup=False, master='tcp:127.0.0.1
     cmd = []
     cmd.append(mavproxy_cmd())
     cmd.extend(['--master', master])
-    cmd.extend(['--out', '127.0.0.1:14550'])
     if setup:
         cmd.append('--setup')
     if aircraft is None:
@@ -454,7 +561,7 @@ def start_MAVProxy_SITL(atype, aircraft=None, setup=False, master='tcp:127.0.0.1
     print("PYTHONPATH: %s" % str(env['PYTHONPATH']))
     print("Running: %s" % cmd_as_shell(cmd))
 
-    ret = pexpect.spawn(cmd[0], cmd[1:], logfile=logfile, encoding=ENCODING, timeout=60, env=env)
+    ret = pexpect.spawn(cmd[0], cmd[1:], logfile=logfile, encoding=ENCODING, timeout=pexpect_timeout, env=env)
     ret.delaybeforesend = 0
     pexpect_autoclose(ret)
     return ret
@@ -757,6 +864,19 @@ def constrain(value, minv, maxv):
     if value > maxv:
         value = maxv
     return value
+
+def load_local_module(fname):
+    '''load a python module from within the ardupilot tree'''
+    fname = os.path.join(topdir(), fname)
+    if sys.version_info.major >= 3:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("local_module", fname)
+        ret = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(ret)
+    else:
+        import imp
+        ret = imp.load_source("local_module", fname)
+    return ret
 
 
 if __name__ == "__main__":

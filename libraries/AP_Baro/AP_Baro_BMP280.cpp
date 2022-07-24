@@ -14,6 +14,8 @@
  */
 #include "AP_Baro_BMP280.h"
 
+#if AP_BARO_BMP280_ENABLED
+
 #include <utility>
 
 extern const AP_HAL::HAL &hal;
@@ -71,8 +73,6 @@ bool AP_Baro_BMP280::_init()
         return false;
     }
     WITH_SEMAPHORE(_dev->get_semaphore());
-
-    _has_sample = false;
 
     _dev->set_speed(AP_HAL::Device::SPEED_HIGH);
 
@@ -144,12 +144,13 @@ void AP_Baro_BMP280::update(void)
 {
     WITH_SEMAPHORE(_sem);
 
-    if (!_has_sample) {
+    if (_pressure_count == 0) {
         return;
     }
 
-    _copy_to_frontend(_instance, _pressure, _temperature);
-    _has_sample = false;
+    _copy_to_frontend(_instance, _pressure_sum/_pressure_count, _temperature);
+    _pressure_count = 0;
+    _pressure_sum = 0;
 }
 
 // calculate temperature
@@ -163,7 +164,7 @@ void AP_Baro_BMP280::_update_temperature(int32_t temp_raw)
     _t_fine = var1 + var2;
     t = (_t_fine * 5 + 128) >> 8;
 
-    const float temp = ((float)t) / 100.0f;
+    const float temp = ((float)t) * 0.01f;
 
     WITH_SEMAPHORE(_sem);
     
@@ -201,6 +202,8 @@ void AP_Baro_BMP280::_update_pressure(int32_t press_raw)
     
     WITH_SEMAPHORE(_sem);
     
-    _pressure = press;
-    _has_sample = true;
+    _pressure_sum += press;
+    _pressure_count++;
 }
+
+#endif  // AP_BARO_BMP280_ENABLED

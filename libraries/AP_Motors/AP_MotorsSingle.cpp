@@ -37,6 +37,8 @@ void AP_MotorsSingle::init(motor_frame_class frame_class, motor_frame_type frame
         SRV_Channels::set_angle(SRV_Channels::get_motor_function(i), AP_MOTORS_SINGLE_SERVO_INPUT_RANGE);
     }
 
+    _mav_type = MAV_TYPE_COAXIAL;
+
     // record successful initialisation if what we setup was the desired frame_class
     set_initialised_ok(frame_class == MOTOR_FRAME_SINGLE);
 }
@@ -101,7 +103,7 @@ void AP_MotorsSingle::output_to_motors()
 
 // get_motor_mask - returns a bitmask of which outputs are being used for motors or servos (1 means being used)
 //  this can be used to ensure other pwm outputs (i.e. for servos) do not conflict
-uint16_t AP_MotorsSingle::get_motor_mask()
+uint32_t AP_MotorsSingle::get_motor_mask()
 {
     uint32_t motor_mask =
         1U << AP_MOTORS_MOT_1 |
@@ -111,7 +113,7 @@ uint16_t AP_MotorsSingle::get_motor_mask()
         1U << AP_MOTORS_MOT_5 |
         1U << AP_MOTORS_MOT_6;
 
-    uint16_t mask = rc_map_mask(motor_mask);
+    uint32_t mask = motor_mask_to_srv_channel_mask(motor_mask);
 
     // add parent's mask
     mask |= AP_MotorsMulticopter::get_motor_mask();
@@ -160,7 +162,7 @@ void AP_MotorsSingle::output_armed_stabilizing()
     if (is_zero(rp_thrust_max)) {
         rp_scale = 1.0f;
     } else {
-        rp_scale = constrain_float((1.0f - MIN(fabsf(yaw_thrust), (float) _yaw_headroom / 1000.0f)) / rp_thrust_max, 0.0f, 1.0f);
+        rp_scale = constrain_float((1.0f - MIN(fabsf(yaw_thrust), (float) _yaw_headroom * 0.001f)) / rp_thrust_max, 0.0f, 1.0f);
         if (rp_scale < 1.0f) {
             limit.roll = true;
             limit.pitch = true;
@@ -175,7 +177,6 @@ void AP_MotorsSingle::output_armed_stabilizing()
 
     // combine roll, pitch and yaw on each actuator
     // front servo
-
     actuator[0] = rp_scale * roll_thrust - yaw_thrust;
     // right servo
     actuator[1] = rp_scale * pitch_thrust - yaw_thrust;
@@ -237,13 +238,8 @@ void AP_MotorsSingle::output_armed_stabilizing()
 // output_test_seq - spin a motor at the pwm value specified
 //  motor_seq is the motor's sequence number from 1 to the number of motors on the frame
 //  pwm value is an actual pwm value that will be output, normally in the range of 1000 ~ 2000
-void AP_MotorsSingle::output_test_seq(uint8_t motor_seq, int16_t pwm)
+void AP_MotorsSingle::_output_test_seq(uint8_t motor_seq, int16_t pwm)
 {
-    // exit immediately if not armed
-    if (!armed()) {
-        return;
-    }
-
     // output to motors and servos
     switch (motor_seq) {
         case 1:

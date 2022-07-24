@@ -84,8 +84,8 @@ void Mode::get_pilot_input(float &steering_out, float &throttle_out)
             // left paddle from steering input channel, right paddle from throttle input channel
             // steering = left-paddle - right-paddle
             // throttle = average(left-paddle, right-paddle)
-            const float left_paddle = rover.channel_steer->norm_input();
-            const float right_paddle = rover.channel_throttle->norm_input();
+            const float left_paddle = rover.channel_steer->norm_input_dz();
+            const float right_paddle = rover.channel_throttle->norm_input_dz();
 
             throttle_out = 0.5f * (left_paddle + right_paddle) * 100.0f;
             steering_out = (left_paddle - right_paddle) * 0.5f * 4500.0f;
@@ -163,8 +163,16 @@ void Mode::get_pilot_desired_lateral(float &lateral_out)
 void Mode::get_pilot_desired_heading_and_speed(float &heading_out, float &speed_out)
 {
     // get steering and throttle in the -1 to +1 range
-    const float desired_steering = constrain_float(rover.channel_steer->norm_input_dz(), -1.0f, 1.0f);
-    const float desired_throttle = constrain_float(rover.channel_throttle->norm_input_dz(), -1.0f, 1.0f);
+    float desired_steering = constrain_float(rover.channel_steer->norm_input_dz(), -1.0f, 1.0f);
+    float desired_throttle = constrain_float(rover.channel_throttle->norm_input_dz(), -1.0f, 1.0f);
+
+    // handle two paddle input
+    if ((enum pilot_steer_type_t)rover.g.pilot_steer_type.get() == PILOT_STEER_TYPE_TWO_PADDLES) {
+        const float left_paddle = desired_steering;
+        const float right_paddle = desired_throttle;
+        desired_steering = (left_paddle - right_paddle) * 0.5f;
+        desired_throttle = (left_paddle + right_paddle) * 0.5f;
+    }
 
     // calculate angle of input stick vector
     heading_out = wrap_360_cd(atan2f(desired_steering, desired_throttle) * DEGX100);
@@ -238,9 +246,9 @@ float Mode::get_desired_lat_accel() const
 }
 
 // set desired location
-bool Mode::set_desired_location(const struct Location& destination, float next_leg_bearing_cd)
+bool Mode::set_desired_location(const Location &destination, Location next_destination )
 {
-    if (!g2.wp_nav.set_desired_location(destination, next_leg_bearing_cd)) {
+    if (!g2.wp_nav.set_desired_location(destination, next_destination)) {
         return false;
     }
 
@@ -299,9 +307,11 @@ void Mode::calc_throttle(float target_speed, bool avoidance_enabled)
         // sailboats use special throttle and mainsail controller
         float mainsail_out = 0.0f;
         float wingsail_out = 0.0f;
-        rover.g2.sailboat.get_throttle_and_mainsail_out(target_speed, throttle_out, mainsail_out, wingsail_out);
+        float mast_rotation_out = 0.0f;
+        rover.g2.sailboat.get_throttle_and_mainsail_out(target_speed, throttle_out, mainsail_out, wingsail_out, mast_rotation_out);
         rover.g2.motors.set_mainsail(mainsail_out);
         rover.g2.motors.set_wingsail(wingsail_out);
+        rover.g2.motors.set_mast_rotation(mast_rotation_out);
     } else {
         // call speed or stop controller
         if (is_zero(target_speed) && !rover.is_balancebot()) {
@@ -321,7 +331,7 @@ void Mode::calc_throttle(float target_speed, bool avoidance_enabled)
     g2.motors.set_throttle(throttle_out);
 }
 
-// performs a controlled stop with steering centered
+// performs a controlled stop without turning
 bool Mode::stop_vehicle()
 {
     // call throttle controller and convert output to -100 to +100 range
@@ -343,8 +353,12 @@ bool Mode::stop_vehicle()
     // send to motor
     g2.motors.set_throttle(throttle_out);
 
-    // do not attempt to steer
-    g2.motors.set_steering(0.0f);
+    // do not turn while slowing down
+    float steering_out = 0.0;
+    if (!stopped) {
+        steering_out = attitude_control.get_steering_out_rate(0.0, g2.motors.limit.steer_left, g2.motors.limit.steer_right, rover.G_Dt);
+    }
+    g2.motors.set_steering(steering_out * 4500.0);
 
     // return true once stopped
     return stopped;
@@ -375,39 +389,30 @@ float Mode::calc_speed_max(float cruise_speed, float cruise_throttle) const
 //  reversed should be true if the vehicle is intentionally backing up which allows the pilot to increase the backing up speed by pulling the throttle stick down
 float Mode::calc_speed_nudge(float target_speed, bool reversed)
 {
-    // return immediately during RC/GCS failsafe
-    if (rover.failsafe.bits & FAILSAFE_EVENT_THROTTLE) {
-        return target_speed;
-    }
-
-    // return immediately if pilot is not attempting to nudge speed
-    // pilot can nudge up speed if throttle (in range -100 to +100) is above 50% of center in direction of travel
-    const int16_t pilot_throttle = constrain_int16(rover.channel_throttle->get_control_in(), -100, 100);
-    if (((pilot_throttle <= 50) && !reversed) ||
-        ((pilot_throttle >= -50) && reversed)) {
-        return target_speed;
-    }
-
     // sanity checks
     if (g.throttle_cruise > 100 || g.throttle_cruise < 5) {
         return target_speed;
     }
 
-    // project vehicle's maximum speed
-    const float vehicle_speed_max = calc_speed_max(g.speed_cruise, g.throttle_cruise * 0.01f);
+    // convert pilot throttle input to speed
+    float pilot_steering, pilot_throttle;
+    get_pilot_input(pilot_steering, pilot_throttle);
+    float pilot_speed = pilot_throttle * 0.01f * calc_speed_max(g.speed_cruise, g.throttle_cruise * 0.01f);
 
-    // return unadjusted target if already over vehicle's projected maximum speed
-    if (fabsf(target_speed) >= vehicle_speed_max) {
+    // ignore pilot's input if in opposite direction to vehicle's desired direction of travel
+    // note that the target_speed may be negative while reversed is true (or vice-versa)
+    // while vehicle is transitioning between forward and backwards movement
+    if ((is_positive(pilot_speed) && reversed) ||
+        (is_negative(pilot_speed) && !reversed)) {
         return target_speed;
     }
 
-    const float speed_increase_max = vehicle_speed_max - fabsf(target_speed);
-    float speed_nudge = ((static_cast<float>(abs(pilot_throttle)) - 50.0f) * 0.02f) * speed_increase_max;
-    if (pilot_throttle < 0) {
-        speed_nudge = -speed_nudge;
+    // return the larger of the pilot speed and the original target speed
+    if (reversed) {
+        return MIN(target_speed, pilot_speed);
+    } else {
+        return MAX(target_speed, pilot_speed);
     }
-
-    return target_speed + speed_nudge;
 }
 
 // high level call to navigate to waypoint
@@ -415,14 +420,26 @@ float Mode::calc_speed_nudge(float target_speed, bool reversed)
 // this function updates _distance_to_destination
 void Mode::navigate_to_waypoint()
 {
+    // apply speed nudge from pilot
+    // calc_speed_nudge's "desired_speed" argument should be negative when vehicle is reversing
+    // AR_WPNav nudge_speed_max argu,ent should always be positive even when reversing
+    const float calc_nudge_input_speed = g2.wp_nav.get_speed_max() * (g2.wp_nav.get_reversed() ? -1.0 : 1.0);
+    const float nudge_speed_max = calc_speed_nudge(calc_nudge_input_speed, g2.wp_nav.get_reversed());
+    g2.wp_nav.set_nudge_speed_max(fabsf(nudge_speed_max));
+
     // update navigation controller
     g2.wp_nav.update(rover.G_Dt);
     _distance_to_destination = g2.wp_nav.get_distance_to_destination();
 
-    // pass speed to throttle controller after applying nudge from pilot
-    float desired_speed =  g2.wp_nav.get_desired_speed();
-    desired_speed = calc_speed_nudge(desired_speed, g2.wp_nav.get_reversed());
-    calc_throttle(desired_speed, true);
+    // sailboats trigger tack if simple avoidance becomes active
+    if (g2.sailboat.tack_enabled() && g2.avoid.limits_active()) {
+        // we are a sailboat trying to avoid fence, try a tack
+        rover.control_mode->handle_tack_request();
+    }
+
+    // pass desired speed to throttle controller
+    // do not do simple avoidance because this is already handled in the position controller
+    calc_throttle(g2.wp_nav.get_speed(), false);
 
     float desired_heading_cd = g2.wp_nav.oa_wp_bearing_cd();
     if (g2.sailboat.use_indirect_route(desired_heading_cd)) {
@@ -432,8 +449,16 @@ void Mode::navigate_to_waypoint()
         const float turn_rate = g2.sailboat.tacking() ? g2.wp_nav.get_pivot_rate() : 0.0f;
         calc_steering_to_heading(desired_heading_cd, turn_rate);
     } else {
+        // retrieve turn rate from waypoint controller
+        float desired_turn_rate_rads = g2.wp_nav.get_turn_rate_rads();
+
+        // if simple avoidance is active at very low speed do not attempt to turn
+        if (g2.avoid.limits_active() && (fabsf(attitude_control.get_desired_speed()) <= attitude_control.get_stop_speed())) {
+            desired_turn_rate_rads = 0.0f;
+        }
+
         // call turn rate steering controller
-        calc_steering_from_turn_rate(g2.wp_nav.get_turn_rate_rads());
+        calc_steering_from_turn_rate(desired_turn_rate_rads);
     }
 }
 
@@ -455,7 +480,7 @@ void Mode::calc_steering_from_turn_rate(float turn_rate)
 void Mode::calc_steering_from_lateral_acceleration(float lat_accel, bool reversed)
 {
     // constrain to max G force
-    lat_accel = constrain_float(lat_accel, -g.turn_max_g * GRAVITY_MSS, g.turn_max_g * GRAVITY_MSS);
+    lat_accel = constrain_float(lat_accel, -attitude_control.get_turn_lat_accel_max(), attitude_control.get_turn_lat_accel_max());
 
     // send final steering command to motor library
     const float steering_out = attitude_control.get_steering_out_lat_accel(lat_accel,
@@ -483,7 +508,6 @@ void Mode::set_steering(float steering_value)
     if (allows_stick_mixing() && g2.stick_mixing > 0) {
         steering_value = channel_steer->stick_mixing((int16_t)steering_value);
     }
-    steering_value = constrain_float(steering_value, -4500.0f, 4500.0f);
     g2.motors.set_steering(steering_value);
 }
 

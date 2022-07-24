@@ -34,7 +34,7 @@
 #include <AP_RTC/AP_RTC.h>
 #include <AP_Notify/AP_Notify.h>
 #include <AP_Mission/AP_Mission.h>
-#include <AP_InertialSensor/AP_InertialSensor.h>
+#include <AP_SerialManager/AP_SerialManager.h>
 #include <stdio.h>
 
 #define PROT_BINARY   0x80
@@ -73,7 +73,7 @@ void AP_Hott_Telem::init()
         if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_Hott_Telem::loop, void),
                                           "Hott",
                                           1024, AP_HAL::Scheduler::PRIORITY_BOOST, 1)) {
-            hal.console->printf("Failed to create Hott thread\n");
+            DEV_PRINTF("Failed to create Hott thread\n");
         }
     }
 }
@@ -128,9 +128,11 @@ void AP_Hott_Telem::send_EAM(void)
 
     const AP_Baro &baro = AP::baro();
     msg.temp1 = uint8_t(baro.get_temperature(0) + 20.5);
+#if BARO_MAX_INSTANCES > 1
     if (baro.healthy(1)) {
         msg.temp2 = uint8_t(baro.get_temperature(1) + 20.5);
     }
+#endif
 
     AP_AHRS &ahrs = AP::ahrs();
     float alt = 0;
@@ -159,6 +161,7 @@ void AP_Hott_Telem::send_EAM(void)
         msg.electric_sec = t % 60U;
     }
 
+#if AP_AIRSPEED_ENABLED
     AP_Airspeed *airspeed = AP_Airspeed::get_singleton();
     if (airspeed && airspeed->healthy()) {
         msg.speed = uint16_t(airspeed->get_airspeed() * 3.6 + 0.5);
@@ -166,6 +169,10 @@ void AP_Hott_Telem::send_EAM(void)
         WITH_SEMAPHORE(ahrs.get_semaphore());
         msg.speed = uint16_t(ahrs.groundspeed() * 3.6 + 0.5);
     }
+#else
+    WITH_SEMAPHORE(ahrs.get_semaphore());
+    msg.speed = uint16_t(ahrs.groundspeed() * 3.6 + 0.5);
+#endif
 
     send_packet((const uint8_t *)&msg, sizeof(msg));
 }
@@ -275,18 +282,7 @@ void AP_Hott_Telem::send_GPS(void)
     msg.vel_east = vel.y * 1000 + 0.5;
     msg.altitude = uint16_t(500.5 + alt);
 
-    switch (gps.status()) {
-    case AP_GPS::NO_GPS:
-    case AP_GPS::NO_FIX:
-        msg.gps_fix_char = '-';
-        break;
-    case AP_GPS::GPS_OK_FIX_2D:
-        msg.gps_fix_char = '2';
-        break;
-    default:
-        msg.gps_fix_char = '3';
-        break;
-    }
+    msg.gps_fix_char = gps.status_onechar();
     msg.free_char3 = msg.gps_fix_char;
 
     msg.home_direction = degrees(atan2f(home_vec.y, home_vec.x)) * 0.5 + 0.5;

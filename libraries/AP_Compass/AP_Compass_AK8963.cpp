@@ -90,10 +90,12 @@ AP_Compass_Backend *AP_Compass_AK8963::probe_mpu9250(AP_HAL::OwnPtr<AP_HAL::I2CD
     if (!dev) {
         return nullptr;
     }
+#if HAL_INS_ENABLED
     AP_InertialSensor &ins = *AP_InertialSensor::get_singleton();
 
     /* Allow MPU9250 to shortcut auxiliary bus and host bus */
     ins.detect_backends();
+#endif
 
     return probe(std::move(dev), rotation);
 }
@@ -101,6 +103,7 @@ AP_Compass_Backend *AP_Compass_AK8963::probe_mpu9250(AP_HAL::OwnPtr<AP_HAL::I2CD
 AP_Compass_Backend *AP_Compass_AK8963::probe_mpu9250(uint8_t mpu9250_instance,
                                                      enum Rotation rotation)
 {
+#if HAL_INS_ENABLED
     AP_InertialSensor &ins = *AP_InertialSensor::get_singleton();
 
     AP_AK8963_BusDriver *bus =
@@ -116,6 +119,10 @@ AP_Compass_Backend *AP_Compass_AK8963::probe_mpu9250(uint8_t mpu9250_instance,
     }
 
     return sensor;
+#else
+    return nullptr;
+#endif
+
 }
 
 bool AP_Compass_AK8963::init()
@@ -128,27 +135,27 @@ bool AP_Compass_AK8963::init()
     _bus->get_semaphore()->take_blocking();
 
     if (!_bus->configure()) {
-        hal.console->printf("AK8963: Could not configure the bus\n");
+        DEV_PRINTF("AK8963: Could not configure the bus\n");
         goto fail;
     }
 
     if (!_check_id()) {
-        hal.console->printf("AK8963: Wrong id\n");
+        DEV_PRINTF("AK8963: Wrong id\n");
         goto fail;
     }
 
     if (!_calibrate()) {
-        hal.console->printf("AK8963: Could not read calibration data\n");
+        DEV_PRINTF("AK8963: Could not read calibration data\n");
         goto fail;
     }
 
     if (!_setup_mode()) {
-        hal.console->printf("AK8963: Could not setup mode\n");
+        DEV_PRINTF("AK8963: Could not setup mode\n");
         goto fail;
     }
 
     if (!_bus->start_measurements()) {
-        hal.console->printf("AK8963: Could not start measurements\n");
+        DEV_PRINTF("AK8963: Could not start measurements\n");
         goto fail;
     }
 
@@ -305,12 +312,14 @@ AP_AK8963_BusDriver_Auxiliary::AP_AK8963_BusDriver_Auxiliary(AP_InertialSensor &
      * Only initialize members. Fails are handled by configure or while
      * getting the semaphore
      */
+#if HAL_INS_ENABLED
     _bus = ins.get_auxiliary_bus(backend_id, backend_instance);
     if (!_bus) {
         return;
     }
 
     _slave = _bus->request_next_slave(addr);
+#endif
 }
 
 AP_AK8963_BusDriver_Auxiliary::~AP_AK8963_BusDriver_Auxiliary()
@@ -328,7 +337,9 @@ bool AP_AK8963_BusDriver_Auxiliary::block_read(uint8_t reg, uint8_t *buf, uint32
          * We can only read a block when reading the block of sample values -
          * calling with any other value is a mistake
          */
-        assert(reg == AK8963_HXL);
+        if (reg != AK8963_HXL) {
+            return false;
+        }
 
         int n = _slave->read(buf);
         return n == static_cast<int>(size);

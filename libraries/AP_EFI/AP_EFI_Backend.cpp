@@ -15,7 +15,7 @@
 
 #include "AP_EFI.h"
 
-#if EFI_ENABLED
+#if HAL_EFI_ENABLED
 
 #include "AP_EFI_Backend.h"
 
@@ -28,7 +28,7 @@ AP_EFI_Backend::AP_EFI_Backend(AP_EFI &_frontend) :
 
 void AP_EFI_Backend::copy_to_frontend() 
 {
-    WITH_SEMAPHORE(sem);
+    WITH_SEMAPHORE(frontend.sem);
     frontend.state = internal_state;
 }
 
@@ -41,4 +41,10 @@ float AP_EFI_Backend::get_coef2(void) const
 {
     return frontend.coef2;
 }
-#endif // EFI_ENABLED
+
+HAL_Semaphore &AP_EFI_Backend::get_sem(void)
+{
+    return frontend.sem;
+}
+
+#endif // HAL_EFI_ENABLED

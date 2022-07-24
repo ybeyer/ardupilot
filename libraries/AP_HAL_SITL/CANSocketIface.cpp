@@ -39,13 +39,21 @@
 #include <cstring>
 #include "Scheduler.h"
 #include <AP_CANManager/AP_CANManager.h>
+#include <AP_Common/ExpandingString.h>
+
 extern const AP_HAL::HAL& hal;
 
 using namespace HALSITL;
 
+#if HAL_CANMANAGER_ENABLED
 #define Debug(fmt, args...) do { AP::can().log_text(AP_CANManager::LOG_DEBUG, "CANLinuxIface", fmt, ##args); } while (0)
+#else
+#define Debug(fmt, args...)
+#endif
 
 CANIface::CANSocketEventSource CANIface::evt_can_socket[HAL_NUM_CAN_IFACES];
+
+uint8_t CANIface::next_interface;
 
 static can_frame makeSocketCanFrame(const AP_HAL::CANFrame& uavcan_frame)
 {
@@ -63,19 +71,50 @@ static can_frame makeSocketCanFrame(const AP_HAL::CANFrame& uavcan_frame)
     return sockcan_frame;
 }
 
-static AP_HAL::CANFrame makeUavcanFrame(const can_frame& sockcan_frame)
+static canfd_frame makeSocketCanFDFrame(const AP_HAL::CANFrame& uavcan_frame)
 {
-    AP_HAL::CANFrame uavcan_frame(sockcan_frame.can_id & CAN_EFF_MASK, sockcan_frame.data, sockcan_frame.can_dlc);
+    canfd_frame sockcan_frame { uavcan_frame.id& AP_HAL::CANFrame::MaskExtID, AP_HAL::CANFrame::dlcToDataLength(uavcan_frame.dlc), CANFD_BRS, 0, 0, { } };
+    std::copy(uavcan_frame.data, uavcan_frame.data + AP_HAL::CANFrame::dlcToDataLength(uavcan_frame.dlc), sockcan_frame.data);
+    if (uavcan_frame.isExtended()) {
+        sockcan_frame.can_id |= CAN_EFF_FLAG;
+    }
+    if (uavcan_frame.isErrorFrame()) {
+        sockcan_frame.can_id |= CAN_ERR_FLAG;
+    }
+    if (uavcan_frame.isRemoteTransmissionRequest()) {
+        sockcan_frame.can_id |= CAN_RTR_FLAG;
+    }
+    return sockcan_frame;
+}
+
+static AP_HAL::CANFrame makeCanFrame(const can_frame& sockcan_frame)
+{
+    AP_HAL::CANFrame can_frame(sockcan_frame.can_id & CAN_EFF_MASK, sockcan_frame.data, sockcan_frame.can_dlc);
     if (sockcan_frame.can_id & CAN_EFF_FLAG) {
-        uavcan_frame.id |= AP_HAL::CANFrame::FlagEFF;
+        can_frame.id |= AP_HAL::CANFrame::FlagEFF;
     }
     if (sockcan_frame.can_id & CAN_ERR_FLAG) {
-        uavcan_frame.id |= AP_HAL::CANFrame::FlagERR;
+        can_frame.id |= AP_HAL::CANFrame::FlagERR;
     }
     if (sockcan_frame.can_id & CAN_RTR_FLAG) {
-        uavcan_frame.id |= AP_HAL::CANFrame::FlagRTR;
+        can_frame.id |= AP_HAL::CANFrame::FlagRTR;
     }
-    return uavcan_frame;
+    return can_frame;
+}
+
+static AP_HAL::CANFrame makeCanFDFrame(const canfd_frame& sockcan_frame)
+{
+    AP_HAL::CANFrame can_frame(sockcan_frame.can_id & CAN_EFF_MASK, sockcan_frame.data, sockcan_frame.len);
+    if (sockcan_frame.can_id & CAN_EFF_FLAG) {
+        can_frame.id |= AP_HAL::CANFrame::FlagEFF;
+    }
+    if (sockcan_frame.can_id & CAN_ERR_FLAG) {
+        can_frame.id |= AP_HAL::CANFrame::FlagERR;
+    }
+    if (sockcan_frame.can_id & CAN_RTR_FLAG) {
+        can_frame.id |= AP_HAL::CANFrame::FlagRTR;
+    }
+    return can_frame;
 }
 
 bool CANIface::is_initialized() const
@@ -127,6 +166,10 @@ int CANIface::_openSocket(const std::string& iface_name)
         if (setsockopt(s, SOL_CAN_RAW, CAN_RAW_RECV_OWN_MSGS, &on, sizeof(on)) < 0) {
             return -1;
         }
+        // Allow CANFD
+        if (setsockopt(s, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &on, sizeof(on)) < 0) {
+            return -1;
+        }
         // Non-blocking
         if (fcntl(s, F_SETFL, O_NONBLOCK) < 0) {
             return -1;
@@ -150,6 +193,7 @@ int CANIface::_openSocket(const std::string& iface_name)
 int16_t CANIface::send(const AP_HAL::CANFrame& frame, const uint64_t tx_deadline,
                        const CANIface::CanIOFlags flags)
 {
+    WITH_SEMAPHORE(sem);
     CanTxItem tx_item {};
     tx_item.frame = frame;
     if (flags & Loopback) {
@@ -166,12 +210,14 @@ int16_t CANIface::send(const AP_HAL::CANFrame& frame, const uint64_t tx_deadline
     stats.tx_requests++;
     _pollRead();     // Read poll is necessary because it can release the pending TX flag
     _pollWrite();
-    return 1;
+
+    return AP_HAL::CANIface::send(frame, tx_deadline, flags);
 }
 
 int16_t CANIface::receive(AP_HAL::CANFrame& out_frame, uint64_t& out_timestamp_us,
                           CANIface::CanIOFlags& out_flags)
 {
+    WITH_SEMAPHORE(sem);
     if (_rx_queue.empty()) {
         _pollRead();            // This allows to use the socket not calling poll() explicitly.
         if (_rx_queue.empty()) {
@@ -185,16 +231,18 @@ int16_t CANIface::receive(AP_HAL::CANFrame& out_frame, uint64_t& out_timestamp_u
         out_flags        = rx.flags;
     }
     (void)_rx_queue.pop();
-    return 1;
+    return AP_HAL::CANIface::receive(out_frame, out_timestamp_us, out_flags);
 }
 
-bool CANIface::_hasReadyTx() const
+bool CANIface::_hasReadyTx()
 {
-    return !_tx_queue.empty() && (_frames_in_socket_tx_queue < _max_frames_in_socket_tx_queue);
+    WITH_SEMAPHORE(sem);
+    return !_tx_queue.empty();
 }
 
-bool CANIface::_hasReadyRx() const
+bool CANIface::_hasReadyRx()
 {
+    WITH_SEMAPHORE(sem);
     return !_rx_queue.empty();
 }
 
@@ -213,7 +261,8 @@ void CANIface::_poll(bool read, bool write)
 bool CANIface::configureFilters(const CanFilterConfig* const filter_configs,
                               const std::uint16_t num_configs)
 {
-    if (filter_configs == nullptr) {
+#if 0
+    if (filter_configs == nullptr || mode_ != FilteredMode) {
         return false;
     }
     _hw_filters_container.clear();
@@ -236,7 +285,7 @@ bool CANIface::configureFilters(const CanFilterConfig* const filter_configs,
             _hw_filters_container[i].can_mask |= CAN_RTR_FLAG;
         }
     }
-
+#endif
     return true;
 }
 
@@ -257,6 +306,7 @@ uint32_t CANIface::getErrorCount() const
 void CANIface::_pollWrite()
 {
     while (_hasReadyTx()) {
+        WITH_SEMAPHORE(sem);
         const CanTxItem tx = _tx_queue.top();
         uint64_t curr_time = AP_HAL::native_micros64();
         if (tx.deadline >= curr_time) {
@@ -293,7 +343,12 @@ bool CANIface::_pollRead()
         CanRxItem rx;
         rx.timestamp_us = AP_HAL::native_micros64();  // Monotonic timestamp is not required to be precise (unlike UTC)
         bool loopback = false;
-        const int res = _read(rx.frame, rx.timestamp_us, loopback);
+        int res;
+        if (iterations_count % 2 == 0) {
+            res = _read(rx.frame, rx.timestamp_us, loopback);
+        } else {
+            res = _readfd(rx.frame, rx.timestamp_us, loopback);
+        }
         if (res == 1) {
             bool accept = true;
             if (loopback) {           // We receive loopback for all CAN frames
@@ -303,7 +358,8 @@ bool CANIface::_pollRead()
                 stats.tx_confirmed++;
             }
             if (accept) {
-                _rx_queue.push(rx);
+                WITH_SEMAPHORE(sem);
+                add_to_rx_queue(rx);
                 stats.rx_received++;
                 return true;
             }
@@ -319,19 +375,30 @@ bool CANIface::_pollRead()
 
 int CANIface::_write(const AP_HAL::CANFrame& frame) const
 {
+    if (_fd < 0) {
+        return -1;
+    }
     errno = 0;
+    int res = 0;
 
-    const can_frame sockcan_frame = makeSocketCanFrame(frame);
-
-    const int res = write(_fd, &sockcan_frame, sizeof(sockcan_frame));
+    if (frame.isCanFDFrame()) {
+        const canfd_frame sockcan_frame = makeSocketCanFDFrame(frame);
+        res = write(_fd, &sockcan_frame, sizeof(sockcan_frame));
+        if (res > 0 && res != sizeof(sockcan_frame)) {
+            return -1;
+        }
+    } else {
+        const can_frame sockcan_frame = makeSocketCanFrame(frame);
+        res = write(_fd, &sockcan_frame, sizeof(sockcan_frame));
+        if (res > 0 && res != sizeof(sockcan_frame)) {
+            return -1;
+        }
+    }
     if (res <= 0) {
         if (errno == ENOBUFS || errno == EAGAIN) {  // Writing is not possible atm, not an error
             return 0;
         }
         return res;
-    }
-    if (res != sizeof(sockcan_frame)) {
-        return -1;
     }
     return 1;
 }
@@ -339,6 +406,9 @@ int CANIface::_write(const AP_HAL::CANFrame& frame) const
 
 int CANIface::_read(AP_HAL::CANFrame& frame, uint64_t& timestamp_us, bool& loopback) const
 {
+    if (_fd < 0) {
+        return -1;
+    }
     auto iov = iovec();
     auto sockcan_frame = can_frame();
     iov.iov_base = &sockcan_frame;
@@ -367,7 +437,48 @@ int CANIface::_read(AP_HAL::CANFrame& frame, uint64_t& timestamp_us, bool& loopb
         return 0;
     }
 
-    frame = makeUavcanFrame(sockcan_frame);
+    frame = makeCanFrame(sockcan_frame);
+    /*
+     * Timestamp
+     */
+    timestamp_us = AP_HAL::native_micros64();
+    return 1;
+}
+
+int CANIface::_readfd(AP_HAL::CANFrame& frame, uint64_t& timestamp_us, bool& loopback) const
+{
+    if (_fd < 0) {
+        return -1;
+    }
+    auto iov = iovec();
+    auto sockcan_frame = canfd_frame();
+    iov.iov_base = &sockcan_frame;
+    iov.iov_len  = sizeof(sockcan_frame);
+    union {
+        uint8_t data[CMSG_SPACE(sizeof(::timeval))];
+        struct cmsghdr align;
+    } control;
+
+    auto msg = msghdr();
+    msg.msg_iov    = &iov;
+    msg.msg_iovlen = 1;
+    msg.msg_control = control.data;
+    msg.msg_controllen = sizeof(control.data);
+
+    const int res = recvmsg(_fd, &msg, MSG_DONTWAIT);
+    if (res <= 0) {
+        return (res < 0 && errno == EWOULDBLOCK) ? 0 : res;
+    }
+    /*
+     * Flags
+     */
+    loopback = (msg.msg_flags & static_cast<int>(MSG_CONFIRM)) != 0;
+
+    if (!loopback && !_checkHWFilters(sockcan_frame)) {
+        return 0;
+    }
+
+    frame = makeCanFDFrame(sockcan_frame);
     /*
      * Timestamp
      */
@@ -378,6 +489,7 @@ int CANIface::_read(AP_HAL::CANFrame& frame, uint64_t& timestamp_us, bool& loopb
 // Might block forever, only to be used for testing
 void CANIface::flush_tx()
 {
+    WITH_SEMAPHORE(sem);
     do {
         _updateDownStatusFromPollResult(_pollfd);
         _poll(true, true);
@@ -386,6 +498,7 @@ void CANIface::flush_tx()
 
 void CANIface::clear_rx()
 {
+    WITH_SEMAPHORE(sem);
     // Clean Rx Queue
     std::queue<CanRxItem> empty;
     std::swap( _rx_queue, empty );
@@ -426,6 +539,20 @@ bool CANIface::_checkHWFilters(const can_frame& frame) const
     }
 }
 
+bool CANIface::_checkHWFilters(const canfd_frame& frame) const
+{
+    if (!_hw_filters_container.empty()) {
+        for (auto& f : _hw_filters_container) {
+            if (((frame.can_id & f.can_mask) ^ f.can_id) == 0) {
+                return true;
+            }
+        }
+        return false;
+    } else {
+        return true;
+    }
+}
+
 void CANIface::_updateDownStatusFromPollResult(const pollfd& pfd)
 {
     if (!_down && (pfd.revents & POLLERR)) {
@@ -439,11 +566,18 @@ void CANIface::_updateDownStatusFromPollResult(const pollfd& pfd)
     }
 }
 
+bool CANIface::init(const uint32_t bitrate, const uint32_t fdbitrate, const OperatingMode mode)
+{
+    // we are using vcan, so bitrate is irrelevant
+    return init(bitrate, mode);
+}
+
 bool CANIface::init(const uint32_t bitrate, const OperatingMode mode)
 {
     char iface_name[16];
     sprintf(iface_name, "vcan%u", _self_index);
-
+    bitrate_ = bitrate;
+    mode_ = mode;
     if (_initialized) {
         return _initialized;
     }
@@ -464,6 +598,8 @@ bool CANIface::select(bool &read_select, bool &write_select,
 {
     // Detecting whether we need to block at all
     bool need_block = !write_select;    // Write queue is infinite
+    // call poll here to flush some tx
+    _poll(true, true);
 
     if (read_select && _hasReadyRx()) {
         need_block = false;
@@ -563,41 +699,36 @@ bool CANIface::CANSocketEventSource::wait(uint64_t duration, AP_HAL::EventHandle
     return true;
 }
 
-uint32_t CANIface::get_stats(char* data, uint32_t max_size)
+void CANIface::get_stats(ExpandingString &str)
 {
-    if (data == nullptr) {
-        return 0;
-    }
-    uint32_t ret = snprintf(data, max_size,
-                            "tx_requests:    %u\n"
-                            "tx_write_fail:  %u\n"
-                            "tx_full:        %u\n"
-                            "tx_confirmed:   %u\n"
-                            "tx_success:     %u\n"
-                            "tx_timedout:    %u\n"
-                            "rx_received:    %u\n"
-                            "rx_errors:      %u\n"
-                            "num_downs:      %u\n"
-                            "num_rx_poll_req:  %u\n"
-                            "num_tx_poll_req:  %u\n"
-                            "num_poll_waits:   %u\n"
-                            "num_poll_tx_events: %u\n"
-                            "num_poll_rx_events: %u\n",
-                            stats.tx_requests,
-                            stats.tx_write_fail,
-                            stats.tx_full,
-                            stats.tx_confirmed,
-                            stats.tx_success,
-                            stats.tx_timedout,
-                            stats.rx_received,
-                            stats.rx_errors,
-                            stats.num_downs,
-                            stats.num_rx_poll_req,
-                            stats.num_tx_poll_req,
-                            stats.num_poll_waits,
-                            stats.num_poll_tx_events,
-                            stats.num_poll_rx_events);
-    return ret;
+    str.printf("tx_requests:    %u\n"
+               "tx_write_fail:  %u\n"
+               "tx_full:        %u\n"
+               "tx_confirmed:   %u\n"
+               "tx_success:     %u\n"
+               "tx_timedout:    %u\n"
+               "rx_received:    %u\n"
+               "rx_errors:      %u\n"
+               "num_downs:      %u\n"
+               "num_rx_poll_req:  %u\n"
+               "num_tx_poll_req:  %u\n"
+               "num_poll_waits:   %u\n"
+               "num_poll_tx_events: %u\n"
+               "num_poll_rx_events: %u\n",
+               stats.tx_requests,
+               stats.tx_write_fail,
+               stats.tx_full,
+               stats.tx_confirmed,
+               stats.tx_success,
+               stats.tx_timedout,
+               stats.rx_received,
+               stats.rx_errors,
+               stats.num_downs,
+               stats.num_rx_poll_req,
+               stats.num_tx_poll_req,
+               stats.num_poll_waits,
+               stats.num_poll_tx_events,
+               stats.num_poll_rx_events);
 }
 
 #endif

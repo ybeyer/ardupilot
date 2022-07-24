@@ -19,11 +19,11 @@ bool AP_Arming_Rover::rc_calibration_checks(const bool display_failure)
         const RC_Channel *channel = channels[i];
         const char *channel_name = channel_names[i];
         // check if radio has been calibrated
-        if (channel->get_radio_min() > 1300) {
+        if (channel->get_radio_min() > RC_Channel::RC_CALIB_MIN_LIMIT_PWM) {
             check_failed(ARMING_CHECK_RC, display_failure, "%s radio min too high", channel_name);
             return false;
         }
-        if (channel->get_radio_max() < 1700) {
+        if (channel->get_radio_max() < RC_Channel::RC_CALIB_MAX_LIMIT_PWM) {
             check_failed(ARMING_CHECK_RC, display_failure, "%s radio max too low", channel_name);
             return false;
         }
@@ -39,15 +39,17 @@ bool AP_Arming_Rover::gps_checks(bool display_failure)
         return true;
     }
 
+    // call parent gps checks
+    if (!AP_Arming::gps_checks(display_failure)) {
+        return false;
+    }
+
     const AP_AHRS &ahrs = AP::ahrs();
 
     // always check if inertial nav has started and is ready
-    if (!ahrs.prearm_healthy()) {
-        const char *reason = ahrs.prearm_failure_reason();
-        if (reason == nullptr) {
-            reason = "AHRS not healthy";
-        }
-        check_failed(display_failure, "%s", reason);
+    char failure_msg[50] = {};
+    if (!ahrs.pre_arm_check(true, failure_msg, sizeof(failure_msg))) {
+        check_failed(display_failure, "AHRS: %s", failure_msg);
         return false;
     }
 
@@ -59,16 +61,12 @@ bool AP_Arming_Rover::gps_checks(bool display_failure)
 
     // ensure position esetimate is ok
     if (!rover.ekf_position_ok()) {
-        const char *reason = ahrs.prearm_failure_reason();
-        if (reason == nullptr) {
-            reason = "Need Position Estimate";
-        }
-        check_failed(display_failure, "%s", reason);
+        // vehicle level position estimate checks
+        check_failed(display_failure, "Need Position Estimate");
         return false;
     }
 
-    // call parent gps checks
-    return AP_Arming::gps_checks(display_failure);
+    return true;
 }
 
 bool AP_Arming_Rover::pre_arm_checks(bool report)
@@ -88,8 +86,7 @@ bool AP_Arming_Rover::pre_arm_checks(bool report)
     }
 
     return (AP_Arming::pre_arm_checks(report)
-            & rover.g2.motors.pre_arm_check(report)
-            & fence_checks(report)
+            & motor_checks(report)
             & oa_check(report)
             & parameter_checks(report)
             & mode_checks(report));
@@ -140,9 +137,9 @@ bool AP_Arming_Rover::arm(AP_Arming::Method method, const bool do_arming_checks)
 /*
   disarm motors
  */
-bool AP_Arming_Rover::disarm(const AP_Arming::Method method)
+bool AP_Arming_Rover::disarm(const AP_Arming::Method method, bool do_disarm_checks)
 {
-    if (!AP_Arming::disarm(method)) {
+    if (!AP_Arming::disarm(method, do_disarm_checks)) {
         return false;
     }
     if (rover.control_mode != &rover.mode_auto) {
@@ -160,7 +157,7 @@ bool AP_Arming_Rover::disarm(const AP_Arming::Method method)
 // check object avoidance has initialised correctly
 bool AP_Arming_Rover::oa_check(bool report)
 {
-    char failure_msg[50];
+    char failure_msg[50] = {};
     if (rover.g2.oa.pre_arm_check(failure_msg, ARRAY_SIZE(failure_msg))) {
         return true;
     }
@@ -200,4 +197,23 @@ bool AP_Arming_Rover::mode_checks(bool report)
         return false;
     }
     return true;
+}
+
+// check motors are ready
+bool AP_Arming_Rover::motor_checks(bool report)
+{
+    bool ret = rover.g2.motors.pre_arm_check(report);
+
+#if HAL_TORQEEDO_ENABLED
+    char failure_msg[50] = {};
+    AP_Torqeedo *torqeedo = AP_Torqeedo::get_singleton();
+    if (torqeedo != nullptr) {
+        if (!torqeedo->pre_arm_checks(failure_msg, ARRAY_SIZE(failure_msg))) {
+            check_failed(report, "Torqeedo: %s", failure_msg);
+            ret = false;
+        }
+    }
+#endif
+
+    return ret;
 }

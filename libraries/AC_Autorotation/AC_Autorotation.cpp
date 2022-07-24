@@ -29,7 +29,7 @@ const AP_Param::GroupInfo AC_Autorotation::var_info[] = {
     AP_GROUPINFO_FLAGS("ENABLE", 1, AC_Autorotation, _param_enable, 0, AP_PARAM_FLAG_ENABLE),
 
     // @Param: HS_P
-    // @DisplayName: P gain for head spead controller
+    // @DisplayName: P gain for head speed controller
     // @Description: Increase value to increase sensitivity of head speed controller during autonomous autorotation.
     // @Range: 0.3 1
     // @Increment: 0.01
@@ -190,7 +190,7 @@ bool AC_Autorotation::update_hs_glide_controller(float dt)
 
 
 // Function to set collective and collective filter in motor library
-void AC_Autorotation::set_collective(float collective_filter_cutoff)
+void AC_Autorotation::set_collective(float collective_filter_cutoff) const
 {
     AP_Motors *motors = AP::motors();
     if (motors) {
@@ -248,9 +248,10 @@ float AC_Autorotation::get_rpm(bool update_counter)
 }
 
 
-void AC_Autorotation::Log_Write_Autorotation(void)
+void AC_Autorotation::Log_Write_Autorotation(void) const
 {
 // @LoggerMessage: AROT
+// @Vehicles: Copter
 // @Description: Helicopter AutoRotation information
 // @Field: TimeUS: Time since system startup
 // @Field: P: P-term for headspeed controller response
@@ -267,7 +268,7 @@ void AC_Autorotation::Log_Write_Autorotation(void)
 // @Field: PitT: pitch target
 
     //Write to data flash log
-    AP::logger().Write("AROT",
+    AP::logger().WriteStreaming("AROT",
                        "TimeUS,P,hserr,ColOut,FFCol,CRPM,SpdF,CmdV,p,ff,AccO,AccT,PitT",
                          "Qffffffffffff",
                         AP_HAL::micros64(),
@@ -365,7 +366,7 @@ void AC_Autorotation::update_forward_speed_controller(void)
     _accel_out_last = _accel_out;
 
     // update angle targets that will be passed to stabilize controller
-    _pitch_target = atanf(-_accel_out/(GRAVITY_MSS * 100.0f))*(18000.0f/M_PI);
+    _pitch_target = accel_to_angle(-_accel_out*0.01) * 100;
 
 }
 

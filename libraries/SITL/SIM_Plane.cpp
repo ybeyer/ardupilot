@@ -17,6 +17,8 @@
   just enough to be able to debug control logic for new frame types
 */
 
+#define ALLOW_DOUBLE_MATH_FUNCTIONS
+
 #include "SIM_Plane.h"
 
 #include <stdio.h>
@@ -37,7 +39,8 @@ Plane::Plane(const char *frame_str) :
     num_motors = 1;
 
     ground_behavior = GROUND_BEHAVIOR_FWD_ONLY;
-    
+    lock_step_scheduled = true;
+
     if (strstr(frame_str, "-heavy")) {
         mass = 8;
     }
@@ -194,7 +197,7 @@ Vector3f Plane::getTorque(float inputAileron, float inputElevator, float inputRu
 	}
 
 
-	// Add torque to to force misalignment with CG
+	// Add torque to force misalignment with CG
 	// r x F, where r is the distance from CoG to CoL
 	la +=  CGOffset.y * force.z - CGOffset.z * force.y;
 	ma += -CGOffset.x * force.z + CGOffset.z * force.x;
@@ -258,7 +261,7 @@ Vector3f Plane::getForce(float inputAileron, float inputElevator, float inputRud
     return Vector3f(ax, ay, az);
 }
 
-void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel, Vector3f &body_accel)
+void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel)
 {
     float aileron  = filtered_servo_angle(input, 0);
     float elevator = filtered_servo_angle(input, 1);
@@ -307,6 +310,9 @@ void Plane::calculate_forces(const struct sitl_input &input, Vector3f &rot_accel
     }
     
     float thrust     = throttle;
+
+    battery_voltage = sitl->batt_voltage - 0.7*throttle;
+    battery_current = 50.0f*throttle;
 
     if (ice_engine) {
         thrust = icengine.update(input);
@@ -377,7 +383,7 @@ void Plane::update(const struct sitl_input &input)
 
     update_wind(input);
     
-    calculate_forces(input, rot_accel, accel_body);
+    calculate_forces(input, rot_accel);
     
     update_dynamics(rot_accel);
     update_external_payload(input);

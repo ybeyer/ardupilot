@@ -50,6 +50,8 @@
 #       Currently only used for informational purposes.
 #
 
+# AP_FLAKE8_CLEAN
+
 # for python2.7 compatibility
 from __future__ import print_function
 
@@ -70,6 +72,7 @@ import re
 from sys import platform as _platform
 
 is_WSL = bool("Microsoft" in platform.uname()[2])
+is_WSL2 = bool("microsoft-standard-WSL2" in platform.release())
 
 # default list of port names to look for autopilots
 default_ports = ['/dev/serial/by-id/usb-Ardu*',
@@ -81,10 +84,19 @@ default_ports = ['/dev/serial/by-id/usb-Ardu*',
                  '/dev/serial/by-id/usb-Hex_ProfiCNC*',
                  '/dev/serial/by-id/usb-Holybro*',
                  '/dev/serial/by-id/usb-mRo*',
+                 '/dev/serial/by-id/usb-modalFC*',
+                 '/dev/serial/by-id/usb-Auterion*',
+                 '/dev/serial/by-id/usb-*-BL_*',
+                 '/dev/serial/by-id/usb-*_BL_*',
+                 '/dev/serial/by-id/usb-Swift-Flyer*',
                  '/dev/tty.usbmodem*']
 
 if "cygwin" in _platform or is_WSL:
     default_ports += ['/dev/ttyS*']
+
+if "win32" in _platform:
+    for com_port in range(1, 255):
+        default_ports += ['COM' + str(com_port)]
 
 # Detect python version
 if sys.version_info[0] < 3:
@@ -132,12 +144,14 @@ crctab = array.array('I', [
     0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605, 0xcdd70693, 0x54de5729, 0x23d967bf,
     0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d])
 
+
 def crc32(bytes, state=0):
     '''crc32 exposed for use by chibios.py'''
     for byte in bytes:
         index = (state ^ byte) & 0xff
         state = crctab[index] ^ (state >> 8)
     return state
+
 
 class firmware(object):
     '''Loads a firmware file'''
@@ -154,13 +168,26 @@ class firmware(object):
         f.close()
 
         self.image = bytearray(zlib.decompress(base64.b64decode(self.desc['image'])))
-
+        if 'extf_image' in self.desc:
+            self.extf_image = bytearray(zlib.decompress(base64.b64decode(self.desc['extf_image'])))
+        else:
+            self.extf_image = None
         # pad image to 4-byte length
         while ((len(self.image) % 4) != 0):
             self.image.append('\xff')
+        # pad image to 4-byte length
+        if self.extf_image is not None:
+            while ((len(self.extf_image) % 4) != 0):
+                self.extf_image.append('\xff')
 
-    def property(self, propname):
-        return self.desc[propname]
+    def property(self, propname, default=None):
+        if propname in self.desc:
+            return self.desc[propname]
+        return default
+
+    def extf_crc(self, size):
+        state = crc32(self.extf_image[:size], int(0))
+        return state
 
     def crc(self, padlen):
         state = crc32(self.image, int(0))
@@ -201,12 +228,18 @@ class uploader(object):
     REBOOT          = b'\x30'
     SET_BAUD        = b'\x33'     # set baud
 
+    EXTF_ERASE      = b'\x34'	  # erase sectors from external flash
+    EXTF_PROG_MULTI = b'\x35'     # write bytes at external flash program address and increment
+    EXTF_READ_MULTI = b'\x36'     # read bytes at address and increment
+    EXTF_GET_CRC    = b'\x37'	  # compute & return a CRC of data in external flash
+
     INFO_BL_REV     = b'\x01'        # bootloader protocol revision
     BL_REV_MIN      = 2              # minimum supported bootloader protocol
     BL_REV_MAX      = 5              # maximum supported bootloader protocol
     INFO_BOARD_ID   = b'\x02'        # board type
     INFO_BOARD_REV  = b'\x03'        # board revision
     INFO_FLASH_SIZE = b'\x04'        # max firmware size in bytes
+    INFO_EXTF_SIZE  = b'\x06'        # available external flash size
 
     PROG_MULTI_MAX  = 252            # protocol max is 255, must be multiple of 4
     READ_MULTI_MAX  = 252            # protocol max is 255
@@ -215,18 +248,28 @@ class uploader(object):
     NSH_REBOOT_BL   = b"reboot -b\n"
     NSH_REBOOT      = b"reboot\n"
 
-    def __init__(self, portname, baudrate_bootloader, baudrate_flightstack, baudrate_bootloader_flash=None, target_system=None, target_component=None, source_system=None, source_component=None):
-        self.MAVLINK_REBOOT_ID1 = bytearray(b'\xfe\x21\x72\xff\x00\x4c\x00\x00\x40\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x01\x00\x00\x53\x6b')
-        self.MAVLINK_REBOOT_ID0 = bytearray(b'\xfe\x21\x45\xff\x00\x4c\x00\x00\x40\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x00\x00\x00\xcc\x37')
+    def __init__(self,
+                 portname,
+                 baudrate_bootloader,
+                 baudrate_flightstack,
+                 baudrate_bootloader_flash=None,
+                 target_system=None,
+                 target_component=None,
+                 source_system=None,
+                 source_component=None,
+                 no_extf=False):
+        self.MAVLINK_REBOOT_ID1 = bytearray(b'\xfe\x21\x72\xff\x00\x4c\x00\x00\x40\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x01\x00\x00\x53\x6b')  # NOQA
+        self.MAVLINK_REBOOT_ID0 = bytearray(b'\xfe\x21\x45\xff\x00\x4c\x00\x00\x40\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x00\x00\x00\xcc\x37')  # NOQA
         if target_component is None:
             target_component = 1
         if source_system is None:
             source_system = 255
         if source_component is None:
             source_component = 1
+        self.no_extf = no_extf
 
         # open the port, keep the default timeout short so we can poll quickly
-        self.port = serial.Serial(portname, baudrate_bootloader, timeout=1.0)
+        self.port = serial.Serial(portname, baudrate_bootloader, timeout=2.0)
         self.baudrate_bootloader = baudrate_bootloader
         if baudrate_bootloader_flash is not None:
             self.baudrate_bootloader_flash = baudrate_bootloader_flash
@@ -296,6 +339,11 @@ class uploader(object):
     def __recv_int(self):
         raw = self.__recv(4)
         val = struct.unpack("<I", raw)
+        return val[0]
+
+    def __recv_uint8(self):
+        raw = self.__recv(1)
+        val = struct.unpack("<B", raw)
         return val[0]
 
     def __getSync(self):
@@ -431,6 +479,20 @@ class uploader(object):
         self.__send(uploader.EOC)
         self.__getSync()
 
+    # send a PROG_EXTF_MULTI command to write a collection of bytes to external flash
+    def __program_multi_extf(self, data):
+
+        if runningPython3:
+            length = len(data).to_bytes(1, byteorder='big')
+        else:
+            length = chr(len(data))
+
+        self.__send(uploader.EXTF_PROG_MULTI)
+        self.__send(length)
+        self.__send(data)
+        self.__send(uploader.EOC)
+        self.__getSync()
+
     # verify multiple bytes in flash
     def __verify_multi(self, data):
 
@@ -466,7 +528,7 @@ class uploader(object):
         ret = self.__recv(length)
         self.__getSync()
         return ret
-    
+
     # send the reboot command
     def __reboot(self):
         self.__send(uploader.REBOOT +
@@ -520,7 +582,7 @@ class uploader(object):
         f.close()
         self.__drawProgressBar(label, total, self.fw_maxsize)
         print("\nReceived %u bytes to %s" % (total, fw))
-        
+
     # verify code
     def __verify_v2(self, label, fw):
         print("\n", end='')
@@ -564,6 +626,80 @@ class uploader(object):
                     uploader.EOC)
         self.__getSync()
 
+    def erase_extflash(self, label, size):
+        if runningPython3:
+            size_bytes = size.to_bytes(4, byteorder='little')
+        else:
+            size_bytes = chr(size)
+        self.__send(uploader.EXTF_ERASE + size_bytes + uploader.EOC)
+        self.__getSync()
+        last_pct = 0
+        while(True):
+            if last_pct < 90:
+                pct = self.__recv_uint8()
+                if last_pct != pct:
+                    self.__drawProgressBar(label, pct, 100)
+                    last_pct = pct
+            elif self.__trySync():
+                self.__drawProgressBar(label, 10.0, 10.0)
+                return
+
+    def __program_extf(self, label, fw):
+        print("\n", end='')
+        code = fw.extf_image
+        groups = self.__split_len(code, uploader.PROG_MULTI_MAX)
+
+        uploadProgress = 0
+        for bytes in groups:
+            self.__program_multi_extf(bytes)
+
+            # Print upload progress (throttled, so it does not delay upload progress)
+            uploadProgress += 1
+            if uploadProgress % 32 == 0:
+                self.__drawProgressBar(label, uploadProgress, len(groups))
+        self.__drawProgressBar(label, 100, 100)
+
+    def __verify_extf(self, label, fw, size):
+        if runningPython3:
+            size_bytes = size.to_bytes(4, byteorder='little')
+        else:
+            size_bytes = chr(size)
+        print("\n", end='')
+        self.__drawProgressBar(label, 1, 100)
+
+        expect_crc = fw.extf_crc(size)
+        self.__send(uploader.EXTF_GET_CRC +
+                    size_bytes + uploader.EOC)
+
+        # crc can be slow, give it 10s
+        deadline = time.time() + 10.0
+        while time.time() < deadline:
+
+            # Draw progress bar
+            estimatedTimeRemaining = deadline-time.time()
+            if estimatedTimeRemaining >= 4.0:
+                self.__drawProgressBar(label, 10.0-estimatedTimeRemaining, 4.0)
+            else:
+                self.__drawProgressBar(label, 5.0, 5.0)
+                sys.stdout.write(" (timeout: %d seconds) " % int(deadline-time.time()))
+                sys.stdout.flush()
+
+            try:
+                report_crc = self.__recv_int()
+                break
+            except Exception:
+                continue
+
+        if time.time() >= deadline:
+            raise RuntimeError("Program CRC timed out")
+
+        self.__getSync()
+        if report_crc != expect_crc:
+            print("\nExpected 0x%x" % expect_crc)
+            print("Got      0x%x" % report_crc)
+            raise RuntimeError("Program CRC failed")
+        self.__drawProgressBar(label, 100, 100)
+
     # get basic data about the board
     def identify(self):
         # make sure we are in sync before starting
@@ -574,6 +710,16 @@ class uploader(object):
         if (self.bl_rev < uploader.BL_REV_MIN) or (self.bl_rev > uploader.BL_REV_MAX):
             print("Unsupported bootloader protocol %d" % self.bl_rev)
             raise RuntimeError("Bootloader protocol mismatch")
+
+        if self.no_extf:
+            self.extf_maxsize = 0
+        else:
+            try:
+                self.extf_maxsize = self.__getInfo(uploader.INFO_EXTF_SIZE)
+            except Exception:
+                print("Could not get external flash size, assuming 0")
+                self.extf_maxsize = 0
+                self.__sync()
 
         self.board_type = self.__getInfo(uploader.INFO_BOARD_ID)
         self.board_rev = self.__getInfo(uploader.INFO_BOARD_REV)
@@ -638,7 +784,6 @@ class uploader(object):
             }
 
             family = mcu_id & 0xfff
-            chip_s = "%x [unknown family/revision]" % (chip)
 
             if family in F4_IDS:
                 mcu = F4_IDS[family]
@@ -659,7 +804,8 @@ class uploader(object):
                 if rev in revs:
                     (label, flawed) = revs[rev]
                     if flawed and family == 0x419:
-                        print("  %x %s rev%s (flawed; 1M limit, see STM32F42XX Errata sheet sec. 2.1.10)" % (chip, mcu, label,))
+                        print("  %x %s rev%s (flawed; 1M limit, see STM32F42XX Errata sheet sec. 2.1.10)" %
+                              (chip, mcu, label,))
                     elif family == 0x419:
                         print("  %x %s rev%s (no 1M flaw)" % (chip, mcu, label,))
                     else:
@@ -673,6 +819,7 @@ class uploader(object):
 
         print("Info:")
         print("  flash size: %u" % self.fw_maxsize)
+        print("  ext flash size: %u" % self.extf_maxsize)
         name = self.board_name_for_board_id(self.board_type)
         if name is not None:
             print("  board_type: %u (%s)" % (self.board_type, name))
@@ -699,7 +846,7 @@ class uploader(object):
             # uploader.py is swiped into other places, so if the dir
             # doesn't exist then fail silently
             if os.path.exists(hwdef_dir):
-                dirs = [x if (x not in ["scripts","common","STM32CubeConf"] and os.path.isdir(os.path.join(hwdef_dir, x))) else None for x in os.listdir(hwdef_dir)]
+                dirs = [x if (x not in ["scripts", "common", "STM32CubeConf"] and os.path.isdir(os.path.join(hwdef_dir, x))) else None for x in os.listdir(hwdef_dir)]  # NOQA
                 for adir in dirs:
                     if adir is None:
                         continue
@@ -708,11 +855,10 @@ class uploader(object):
                         continue
                     fh = open(filepath)
                     if fh is None:
-#                        print("Failed to open (%s)" % filepath)
                         continue
                     text = fh.readlines()
                     for line in text:
-                        m = re.match("^\s*APJ_BOARD_ID\s+(\d+)\s*$", line)
+                        m = re.match(r"^\s*APJ_BOARD_ID\s+(\d+)\s*$", line)
                         if m is None:
                             continue
                         if int(m.group(1)) == board_id:
@@ -735,17 +881,17 @@ class uploader(object):
                 board_name = compatible_IDs[self.board_type][1]
                 if comp_fw_id == fw.property('board_id'):
                     msg = "Target %s (board_id: %d) is compatible with firmware for board_id=%u)" % (
-                         board_name, self.board_type, fw.property('board_id'))
+                        board_name, self.board_type, fw.property('board_id'))
                     print("INFO: %s" % msg)
                     incomp = False
-            if incomp:                        
+            if incomp:
                 msg = "Firmware not suitable for this board (board_type=%u (%s) board_id=%u (%s))" % (
                     self.board_type,
                     self.board_name_for_board_id(self.board_type),
                     fw.property('board_id'),
                     self.board_name_for_board_id(fw.property('board_id')))
                 print("WARNING: %s" % msg)
-                
+
                 if force:
                     print("FORCED WRITE, FLASHING ANYWAY!")
                 else:
@@ -753,7 +899,7 @@ class uploader(object):
 
         self.dump_board_info()
 
-        if self.fw_maxsize < fw.property('image_size'):
+        if self.fw_maxsize < fw.property('image_size') or self.extf_maxsize < fw.property('extf_image_size', 0):
             raise RuntimeError("Firmware image is too large for this board")
 
         if self.baudrate_bootloader_flash != self.baudrate_bootloader:
@@ -762,13 +908,19 @@ class uploader(object):
             self.port.baudrate = self.baudrate_bootloader_flash
             self.__sync()
 
-        self.__erase("Erase  ")
-        self.__program("Program", fw)
+        if (fw.property('extf_image_size', 0) > 0):
+            self.erase_extflash("Erase ExtF  ", fw.property('extf_image_size', 0))
+            self.__program_extf("Program ExtF", fw)
+            self.__verify_extf("Verify ExtF ", fw, fw.property('extf_image_size', 0))
 
-        if self.bl_rev == 2:
-            self.__verify_v2("Verify ", fw)
-        else:
-            self.__verify_v3("Verify ", fw)
+        if (fw.property('image_size') > 0):
+            self.__erase("Erase  ")
+            self.__program("Program", fw)
+
+            if self.bl_rev == 2:
+                self.__verify_v2("Verify ", fw)
+            else:
+                self.__verify_v3("Verify ", fw)
 
         if boot_delay is not None:
             self.__set_boot_delay(boot_delay)
@@ -829,7 +981,8 @@ class uploader(object):
 
         self.__download("Download", fw)
         self.port.close()
-    
+
+
 def ports_to_try(args):
     portlist = []
     if args.port is None:
@@ -860,13 +1013,21 @@ def ports_to_try(args):
 
     return portlist
 
+
 def modemmanager_check():
     if os.path.exists("/usr/sbin/ModemManager"):
         print("""
-==========================================================================================================
-WARNING: You should uninstall ModemManager as it conflicts with any non-modem serial device (like Pixhawk)
-==========================================================================================================
+===========================================================================================
+WARNING: You should uninstall ModemManager as it conflicts with any non-modem serial device
+===========================================================================================
 """)
+    if os.path.exists("/usr/bin/brltty"):
+        print("""
+=====================================================================================
+WARNING: You should uninstall brltty as it conflicts with any non-modem serial device
+=====================================================================================
+""")
+
 
 def find_bootloader(up, port):
     while (True):
@@ -879,7 +1040,7 @@ def find_bootloader(up, port):
             print("Found board %x,%x bootloader rev %x on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
             return True
 
-        except Exception as e:
+        except Exception:
             pass
 
         reboot_sent = up.send_reboot()
@@ -901,33 +1062,70 @@ def main():
 
     # Parse commandline arguments
     parser = argparse.ArgumentParser(description="Firmware uploader for the PX autopilot system.")
-    parser.add_argument('--port', action="store", help="Comma-separated list of serial port(s) to which the FMU may be attached",
-                        default=None)
-    parser.add_argument('--baud-bootloader', action="store", type=int, default=115200, help="Baud rate of the serial port (default is 115200) when communicating with bootloader, only required for true serial ports.")
-    parser.add_argument('--baud-bootloader-flash', action="store", type=int, default=None, help="Attempt to negotiate this baudrate with bootloader for flashing.")
-    parser.add_argument('--baud-flightstack', action="store", default="57600", help="Comma-separated list of baud rate of the serial port (default is 57600) when communicating with flight stack (Mavlink or NSH), only required for true serial ports.")
+    parser.add_argument(
+        '--port',
+        action="store",
+        help="Comma-separated list of serial port(s) to which the FMU may be attached",
+        default=None
+    )
+    parser.add_argument(
+        '--baud-bootloader',
+        action="store",
+        type=int,
+        default=115200,
+        help="Baud rate of the serial port (default is 115200) when communicating with bootloader, only required for true serial ports."  # NOQA
+    )
+    parser.add_argument(
+        '--baud-bootloader-flash',
+        action="store",
+        type=int,
+        default=None,
+        help="Attempt to negotiate this baudrate with bootloader for flashing."
+    )
+    parser.add_argument(
+        '--baud-flightstack',
+        action="store",
+        default="57600",
+        help="Comma-separated list of baud rate of the serial port (default is 57600) when communicating with flight stack (Mavlink or NSH), only required for true serial ports."  # NOQA
+    )
     parser.add_argument('--force', action='store_true', default=False, help='Override board type check and continue loading')
     parser.add_argument('--boot-delay', type=int, default=None, help='minimum boot delay to store in flash')
     parser.add_argument('--target-system', type=int, action="store", help="System ID to update")
     parser.add_argument('--target-component', type=int, action="store", help="Component ID to update")
-    parser.add_argument('--source-system', type=int, action="store", help="Source system to send reboot mavlink packets from", default=255)
-    parser.add_argument('--source-component', type=int, action="store", help="Source component to send reboot mavlink packets from", default=0)
+    parser.add_argument(
+        '--source-system',
+        type=int,
+        action="store",
+        help="Source system to send reboot mavlink packets from",
+        default=255
+    )
+    parser.add_argument(
+        '--source-component',
+        type=int,
+        action="store",
+        help="Source component to send reboot mavlink packets from",
+        default=0
+    )
     parser.add_argument('--download', action='store_true', default=False, help='download firmware from board')
     parser.add_argument('--identify', action="store_true", help="Do not flash firmware; simply dump information about board")
+    parser.add_argument('--no-extf', action="store_true", help="Do not attempt external flash operations")
+    parser.add_argument('--erase-extflash', type=lambda x: int(x, 0), default=None,
+                        help="Erase sectors containing specified amount of bytes from ext flash")
     parser.add_argument('firmware', nargs="?", action="store", default=None, help="Firmware file to be uploaded")
     args = parser.parse_args()
 
     # warn people about ModemManager which interferes badly with Pixhawk
     modemmanager_check()
 
-    if args.firmware is None and not args.identify:
+    if args.firmware is None and not args.identify and not args.erase_extflash:
         parser.error("Firmware filename required for upload or download")
         sys.exit(1)
 
     # Load the firmware file
-    if not args.download and not args.identify:
+    if not args.download and not args.identify and not args.erase_extflash:
         fw = firmware(args.firmware)
-        print("Loaded firmware for %x,%x, size: %d bytes, waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size')))
+        print("Loaded firmware for %x,%x, size: %d bytes, waiting for the bootloader..." %
+              (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size')))
     print("If the board does not respond within 1-2 seconds, unplug and re-plug the USB connector.")
 
     baud_flightstack = [int(x) for x in args.baud_flightstack.split(',')]
@@ -949,10 +1147,11 @@ def main():
                                   args.target_system,
                                   args.target_component,
                                   args.source_system,
-                                  args.source_component)
+                                  args.source_component,
+                                  args.no_extf)
 
                 except Exception as e:
-                    if not is_WSL:
+                    if not is_WSL and not is_WSL2 and "win32" not in _platform:
                         # open failed, WSL must cycle through all ttyS* ports quickly but rate limit everything else
                         print("Exception creating uploader: %s" % str(e))
                         time.sleep(0.05)
@@ -970,12 +1169,15 @@ def main():
                         up.dump_board_info()
                     elif args.download:
                         up.download(args.firmware)
+                    elif args.erase_extflash:
+                        up.erase_extflash('Erase ExtF', args.erase_extflash)
+                        print("\nExtF Erase Finished")
                     else:
                         up.upload(fw, force=args.force, boot_delay=args.boot_delay)
 
                 except RuntimeError as ex:
-                    # print the error
-                    print("\nERROR: %s" % ex.args)
+                    # print the error and exit as a failure
+                    sys.exit("\nERROR: %s" % ex.args)
 
                 except IOError:
                     up.close()
@@ -995,6 +1197,7 @@ def main():
     except KeyboardInterrupt:
         print("\n Upload aborted by user.")
         sys.exit(0)
+
 
 if __name__ == '__main__':
     main()

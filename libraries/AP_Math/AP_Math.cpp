@@ -83,12 +83,27 @@ template float safe_sqrt<float>(const float v);
 template float safe_sqrt<double>(const double v);
 
 /*
+  replacement for std::swap() needed for STM32
+ */
+static void swap_float(float &f1, float &f2)
+{
+    float tmp = f1;
+    f1 = f2;
+    f2 = tmp;
+}
+
+/*
  * linear interpolation based on a variable in a range
  */
 float linear_interpolate(float low_output, float high_output,
                          float var_value,
                          float var_low, float var_high)
 {
+    if (var_low > var_high) {
+        // support either polarity
+        swap_float(var_low, var_high);
+        swap_float(low_output, high_output);
+    }
     if (var_value <= var_low) {
         return low_output;
     }
@@ -103,7 +118,7 @@ float linear_interpolate(float low_output, float high_output,
  * alpha range: [0,1] min to max expo
  * input range: [-1,1]
  */
-constexpr float expo_curve(float alpha, float x)
+float expo_curve(float alpha, float x)
 {
     return (1.0f - alpha) * x + alpha * x * x * x;
 }
@@ -126,23 +141,6 @@ float throttle_curve(float thr_mid, float alpha, float thr_in)
         thr_out = linear_interpolate(thr_mid, 1.0f, expo_curve(alpha2, t), 0.0f, 1.0f);
     }
     return thr_out;
-}
-
-/*
- * Convert any base number to any base number. Example octal(8) to decimal(10)
- * baseIn: base of input number
- * baseOut: base of output number
- * inputNumber: value currently in base "baseIn" to be converted to base "baseOut"
- */
-uint32_t convertMathBase(const uint8_t baseIn, const uint8_t baseOut, uint32_t inputNumber)
-{
-    uint32_t outputNumber = 0;
-
-    for (uint8_t i=0; inputNumber != 0; i++) {
-        outputNumber += (inputNumber % baseOut) * powf(float(baseIn), i);
-        inputNumber /= baseOut;
-    }
-    return outputNumber;
 }
 
 template <typename T>
@@ -246,44 +244,33 @@ long wrap_360_cd(const long angle)
     }
     return res;
 }
-template <typename T>
-float wrap_PI(const T radian)
+
+ftype wrap_PI(const ftype radian)
 {
-    auto res = wrap_2PI(radian);
+    ftype res = wrap_2PI(radian);
     if (res > M_PI) {
         res -= M_2PI;
     }
     return res;
 }
 
-template float wrap_PI<int>(const int radian);
-template float wrap_PI<short>(const short radian);
-template float wrap_PI<float>(const float radian);
-template float wrap_PI<double>(const double radian);
-
-template <typename T>
-float wrap_2PI(const T radian)
+ftype wrap_2PI(const ftype radian)
 {
-    float res = fmodf(static_cast<float>(radian), M_2PI);
+    ftype res = fmodF(radian, M_2PI);
     if (res < 0) {
         res += M_2PI;
     }
     return res;
 }
 
-template float wrap_2PI<int>(const int radian);
-template float wrap_2PI<short>(const short radian);
-template float wrap_2PI<float>(const float radian);
-template float wrap_2PI<double>(const double radian);
-
 template <typename T>
-T constrain_value(const T amt, const T low, const T high)
+T constrain_value_line(const T amt, const T low, const T high, uint32_t line)
 {
     // the check for NaN as a float prevents propagation of floating point
     // errors through any function that uses constrain_value(). The normal
     // float semantics already handle -Inf and +Inf
     if (isnan(amt)) {
-        INTERNAL_ERROR(AP_InternalError::error_t::constraining_nan);
+        AP::internalerror().error(AP_InternalError::error_t::constraining_nan, line);
         return (low + high) / 2;
     }
 
@@ -298,10 +285,41 @@ T constrain_value(const T amt, const T low, const T high)
     return amt;
 }
 
+template float constrain_value_line<float>(const float amt, const float low, const float high, uint32_t line);
+template double constrain_value_line<double>(const double amt, const double low, const double high, uint32_t line);
+
+template <typename T>
+T constrain_value(const T amt, const T low, const T high)
+{
+    // the check for NaN as a float prevents propagation of floating point
+    // errors through any function that uses constrain_value(). The normal
+    // float semantics already handle -Inf and +Inf
+    if (std::is_floating_point<T>::value) {
+        if (isnan(amt)) {
+            INTERNAL_ERROR(AP_InternalError::error_t::constraining_nan);
+            return (low + high) / 2;
+        }
+    }
+
+    if (amt < low) {
+        return low;
+    }
+
+    if (amt > high) {
+        return high;
+    }
+
+    return amt;
+}
+
 template int constrain_value<int>(const int amt, const int low, const int high);
+template unsigned int constrain_value<unsigned int>(const unsigned int amt, const unsigned int low, const unsigned int high);
 template long constrain_value<long>(const long amt, const long low, const long high);
+template unsigned long constrain_value<unsigned long>(const unsigned long amt, const unsigned long low, const unsigned long high);
 template long long constrain_value<long long>(const long long amt, const long long low, const long long high);
+template unsigned long long constrain_value<unsigned long long>(const unsigned long long amt, const unsigned long long low, const unsigned long long high);
 template short constrain_value<short>(const short amt, const short low, const short high);
+template unsigned short constrain_value<unsigned short>(const unsigned short amt, const unsigned short low, const unsigned short high);
 template float constrain_value<float>(const float amt, const float low, const float high);
 template double constrain_value<double>(const double amt, const double low, const double high);
 
@@ -319,11 +337,15 @@ uint16_t get_random16(void)
 }
 
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+#if AP_SIM_ENABLED
 // generate a random float between -1 and 1, for use in SITL
 float rand_float(void)
 {
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     return ((((unsigned)random()) % 2000000) - 1.0e6) / 1.0e6;
+#else
+    return get_random16() / 65535.0;
+#endif
 }
 
 Vector3f rand_vec3f(void)
@@ -362,23 +384,129 @@ bool rotation_equal(enum Rotation r1, enum Rotation r2)
  * rot_ef_to_bf is a rotation matrix to rotate from earth-frame (NED) to body frame
  * angular_rate is rad/sec
  */
-Vector3f get_vel_correction_for_sensor_offset(const Vector3f &sensor_offset_bf, const Matrix3f &rot_ef_to_bf, const Vector3f &angular_rate)
+Vector3F get_vel_correction_for_sensor_offset(const Vector3F &sensor_offset_bf, const Matrix3F &rot_ef_to_bf, const Vector3F &angular_rate)
 {
     if (sensor_offset_bf.is_zero()) {
-        return Vector3f();
+        return Vector3F();
     }
 
     // correct velocity
-    const Vector3f vel_offset_body = angular_rate % sensor_offset_bf;
-    return rot_ef_to_bf.mul_transpose(vel_offset_body) * -1.0f;
+    const Vector3F vel_offset_body = angular_rate % sensor_offset_bf;
+    return rot_ef_to_bf.mul_transpose(vel_offset_body) * -1.0;
 }
+
+/*
+  calculate a low pass filter alpha value
+ */
+float calc_lowpass_alpha_dt(float dt, float cutoff_freq)
+{
+    if (dt <= 0.0f || cutoff_freq <= 0.0f) {
+        return 1.0;
+    }
+    float rc = 1.0f/(M_2PI*cutoff_freq);
+    return dt/(dt+rc);
+}
+
+#ifndef AP_MATH_FILL_NANF_USE_MEMCPY
+#define AP_MATH_FILL_NANF_USE_MEMCPY (CONFIG_HAL_BOARD == HAL_BOARD_SITL)
+#endif
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
 // fill an array of float with NaN, used to invalidate memory in SITL
 void fill_nanf(float *f, uint16_t count)
 {
-    while (count--) {
-        *f++ = std::numeric_limits<float>::signaling_NaN();
+#if AP_MATH_FILL_NANF_USE_MEMCPY
+    static bool created;
+    static float many_nanfs[2048];
+    if (!created) {
+        for (uint16_t i=0; i<ARRAY_SIZE(many_nanfs); i++) {
+            created = true;
+            many_nanfs[i] = std::numeric_limits<float>::signaling_NaN();
+        }
     }
-}
+    if (count > ARRAY_SIZE(many_nanfs)) {
+        AP_HAL::panic("Too big an area to fill");
+    }
+    memcpy(f, many_nanfs, count*sizeof(many_nanfs[0]));
+#else
+    const float n = std::numeric_limits<float>::signaling_NaN();
+    while (count--) {
+        *f++ = n;
+    }
 #endif
+}
+
+void fill_nanf(double *f, uint16_t count)
+{
+#if AP_MATH_FILL_NANF_USE_MEMCPY
+    static bool created;
+    static double many_nanfs[2048];
+    if (!created) {
+        for (uint16_t i=0; i<ARRAY_SIZE(many_nanfs); i++) {
+            created = true;
+            many_nanfs[i] = std::numeric_limits<double>::signaling_NaN();
+        }
+    }
+    if (count > ARRAY_SIZE(many_nanfs)) {
+        AP_HAL::panic("Too big an area to fill");
+    }
+    memcpy(f, many_nanfs, count*sizeof(many_nanfs[0]));
+#else
+    while (count--) {
+        *f++ = std::numeric_limits<double>::signaling_NaN();
+    }
+#endif
+}
+
+#endif // CONFIG_HAL_BOARD == HAL_BOARD_SITL
+
+// Convert 16-bit fixed-point to float
+float fixed2float(const uint16_t input, const uint8_t fractional_bits)
+{
+    return ((float)input / (float)(1U << fractional_bits));
+}
+
+// Convert float to 16-bit fixed-point
+uint16_t float2fixed(const float input, const uint8_t fractional_bits)
+{
+    return (uint16_t)(roundf(input * (1U << fractional_bits)));
+}
+
+/*
+  calculate turn rate in deg/sec given a bank angle and airspeed for a
+  fixed wing aircraft
+ */
+float fixedwing_turn_rate(float bank_angle_deg, float airspeed)
+{
+    bank_angle_deg = constrain_float(bank_angle_deg, -80, 80);
+    return degrees(GRAVITY_MSS*tanf(radians(bank_angle_deg))/MAX(airspeed,1));
+}
+
+// convert degrees farenheight to Kelvin
+float degF_to_Kelvin(float temp_f)
+{
+    return (temp_f + 459.67) * 0.55556;
+}
+
+/*
+  conversion functions to prevent undefined behaviour
+ */
+int16_t float_to_int16(const float v)
+{
+    return int16_t(constrain_float(v, INT16_MIN, INT16_MAX));
+}
+
+int32_t float_to_int32(const float v)
+{
+    return int32_t(constrain_float(v, INT32_MIN, INT32_MAX));
+}
+
+uint16_t float_to_uint16(const float v)
+{
+    return uint16_t(constrain_float(v, 0, UINT16_MAX));
+}
+
+uint32_t float_to_uint32(const float v)
+{
+    return uint32_t(constrain_float(v, 0, UINT32_MAX));
+}

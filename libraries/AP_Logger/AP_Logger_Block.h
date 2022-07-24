@@ -5,6 +5,8 @@
 
 #include "AP_Logger_Backend.h"
 
+#if HAL_LOGGING_BLOCK_ENABLED
+
 #define BLOCK_LOG_VALIDATE 0
 
 class AP_Logger_Block : public AP_Logger_Backend {
@@ -16,8 +18,6 @@ public:
 
     // erase handling
     void EraseAll() override;
-
-    void Prep() override;
 
     // high level interface
     uint16_t find_last_log() override;
@@ -31,6 +31,7 @@ public:
     void stop_logging_async(void) override;
     bool logging_failed() const override;
     bool logging_started(void) const override { return log_write_started; }
+    void io_timer(void) override;
 
 protected:
     /* Write a block of data at current offset */
@@ -40,12 +41,12 @@ protected:
     bool WritesOK() const override;
 
     // get the current sector from the current page
-    uint32_t get_sector(uint32_t current_page) {
+    uint32_t get_sector(uint32_t current_page) const {
         return ((current_page - 1) / df_PagePerSector);
     }
 
     // get the current block from the current page
-    uint32_t get_block(uint32_t current_page) {
+    uint32_t get_block(uint32_t current_page) const {
         return ((current_page - 1) / df_PagePerBlock);
     }
 
@@ -59,7 +60,6 @@ protected:
     uint32_t df_NumPages;
     volatile bool log_write_started;
 
-    static const uint16_t page_size_max = 256;
     uint8_t *buffer;
     uint32_t last_messagewrite_message_sent;
 
@@ -73,6 +73,7 @@ private:
     virtual void Sector4kErase(uint32_t SectorAdr) = 0;
     virtual void StartErase() = 0;
     virtual bool InErase() = 0;
+    void         flash_test(void);
 
     struct PACKED PageHeader {
         uint32_t FilePage;
@@ -153,12 +154,13 @@ private:
 
     void StartLogFile(uint16_t FileNumber);
     // file numbers
-    uint16_t GetFileNumber();
+    uint16_t GetFileNumber() const;
 
     void _print_log_formats(AP_HAL::BetterStream *port);
 
     // callback on IO thread
     bool io_thread_alive() const;
-    void io_timer(void);
     void write_log_page();
 };
+
+#endif  // HAL_LOGGING_BLOCK_ENABLED

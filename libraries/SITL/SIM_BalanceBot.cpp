@@ -16,6 +16,8 @@
   Balance Bot simulator class
 */
 
+#define ALLOW_DOUBLE_MATH_FUNCTIONS
+
 #include "SIM_BalanceBot.h"
 #include <stdio.h>
 
@@ -28,13 +30,14 @@ BalanceBot::BalanceBot(const char *frame_str) :
     skid_turn_rate(0.15708) // meters/sec
 {
     dcm.from_euler(0,0,0); // initial yaw, pitch and roll in radians
+    lock_step_scheduled = true;
     printf("Balance Bot Simulation Started\n");
 }
 
 /*
    return yaw rate in degrees/second given steering_angle
 */
-float BalanceBot::calc_yaw_rate(float steering)
+float BalanceBot::calc_yaw_rate(float steering) const
 {
     float wheel_base_length = 0.15f;
     return steering * degrees( skid_turn_rate/wheel_base_length );
@@ -148,7 +151,7 @@ void BalanceBot::update(const struct sitl_input &input)
     velocity_ef += accel_earth * delta_time;
 
     // new position vector
-    position += (velocity_ef * delta_time);
+    position += (velocity_ef * delta_time).todouble();
 
     // neglect roll
     dcm.to_euler(&r, &p, &y);

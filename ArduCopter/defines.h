@@ -18,18 +18,15 @@ enum autopilot_yaw_mode {
     AUTO_YAW_FIXED =            3,  // point towards a particular angle (no pilot input accepted)
     AUTO_YAW_LOOK_AHEAD =       4,  // point in the direction the copter is moving
     AUTO_YAW_RESETTOARMEDYAW =  5,  // point towards heading at time motors were armed
-    AUTO_YAW_RATE =             6,  // turn at a specified rate (held in auto_yaw_rate)
-    AUTO_YAW_CIRCLE =           7,  // use AC_Circle's provided yaw (used during Loiter-Turns commands)
+    AUTO_YAW_ANGLE_RATE =       6,  // turn at a specified rate from a starting angle
+    AUTO_YAW_RATE =             7,  // turn at a specified rate (held in auto_yaw_rate)
+    AUTO_YAW_CIRCLE =           8,  // use AC_Circle's provided yaw (used during Loiter-Turns commands)
 };
 
 // Frame types
 #define UNDEFINED_FRAME 0
 #define MULTICOPTER_FRAME 1
 #define HELI_FRAME 2
-
-// HIL enumerations
-#define HIL_MODE_DISABLED               0
-#define HIL_MODE_SENSORS                1
 
 // Tuning enumeration
 enum tuning_func {
@@ -46,7 +43,7 @@ enum tuning_func {
     TUNING_ALTITUDE_HOLD_KP =           14, // altitude hold controller's P term (alt error to desired rate)
     TUNING_RATE_ROLL_PITCH_KD =         21, // body frame roll/pitch rate controller's D term
     TUNING_VEL_XY_KP =                  22, // loiter rate controller's P term (speed error to tilt angle)
-    TUNING_ACRO_RP_KP =                 25, // acro controller's P term.  converts pilot input to a desired roll, pitch or yaw rate
+    TUNING_ACRO_RP_RATE =               25, // acro controller's desired roll and pitch rate in deg/s
     TUNING_YAW_RATE_KD =                26, // body frame yaw rate controller's D term
     TUNING_VEL_XY_KI =                  28, // loiter rate controller's I term (speed error to tilt angle)
     TUNING_AHRS_YAW_KP =                30, // ahrs's compass effect on yaw angle (0 = very low, 1 = very high)
@@ -56,8 +53,8 @@ enum tuning_func {
     TUNING_ACCEL_Z_KD =                 36, // accel based throttle controller's D term
     TUNING_DECLINATION =                38, // compass declination in radians
     TUNING_CIRCLE_RATE =                39, // circle turn rate in degrees (hard coded to about 45 degrees in either direction)
-    TUNING_ACRO_YAW_KP =                40, // acro controller's P term.  converts pilot input to a desired roll, pitch or yaw rate
-    TUNING_RANGEFINDER_GAIN =           41, // rangefinder gain
+    TUNING_ACRO_YAW_RATE =              40, // acro controller's desired yaw rate in deg/s
+    TUNING_RANGEFINDER_GAIN =           41, // unused
     TUNING_EKF_VERTICAL_POS =           42, // unused
     TUNING_EKF_HORIZONTAL_POS =         43, // unused
     TUNING_EKF_ACCEL_NOISE =            44, // unused
@@ -83,44 +80,12 @@ enum tuning_func {
 #define WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP_EXCEPT_RTL    2   // auto pilot will face next waypoint except when doing RTL at which time it will stay in it's last
 #define WP_YAW_BEHAVIOR_LOOK_AHEAD                    3   // auto pilot will look ahead during missions and rtl (primarily meant for traditional helicopters)
 
-// Auto modes
-enum AutoMode {
-    Auto_TakeOff,
-    Auto_WP,
-    Auto_Land,
-    Auto_RTL,
-    Auto_CircleMoveToEdge,
-    Auto_Circle,
-    Auto_Spline,
-    Auto_NavGuided,
-    Auto_Loiter,
-    Auto_LoiterToAlt,
-    Auto_NavPayloadPlace,
-};
-
-// Guided modes
-enum GuidedMode {
-    Guided_TakeOff,
-    Guided_WP,
-    Guided_Velocity,
-    Guided_PosVel,
-    Guided_Angle,
-};
 
 // Airmode
 enum class AirMode {
     AIRMODE_NONE,
     AIRMODE_DISABLED,
     AIRMODE_ENABLED,
-};
-
-// Safe RTL states
-enum SmartRTLState {
-    SmartRTL_WaitForPathCleanup,
-    SmartRTL_PathFollow,
-    SmartRTL_PreLandPosition,
-    SmartRTL_Descend,
-    SmartRTL_Land
 };
 
 enum PayloadPlaceStateType {
@@ -141,10 +106,9 @@ enum PayloadPlaceStateType {
 enum DevOptions {
     DevOptionADSBMAVLink = 1,
     DevOptionVFR_HUDRelativeAlt = 2,
-    DevOptionSetAttitudeTarget_ThrustAsThrust = 4,
 };
 
-//  Logging parameters
+//  Logging parameters - only 32 messages are available to the vehicle here.
 enum LoggingParameters {
      LOG_CONTROL_TUNING_MSG,
      LOG_DATA_INT16_MSG,
@@ -152,13 +116,12 @@ enum LoggingParameters {
      LOG_DATA_INT32_MSG,
      LOG_DATA_UINT32_MSG,
      LOG_DATA_FLOAT_MSG,
-     LOG_MOTBATT_MSG,
      LOG_PARAMTUNE_MSG,
      LOG_HELI_MSG,
-     LOG_PRECLAND_MSG,
-     LOG_GUIDEDTARGET_MSG,
+     LOG_GUIDED_POSITION_TARGET_MSG,
      LOG_SYSIDD_MSG,
      LOG_SYSIDS_MSG,
+     LOG_GUIDED_ATTITUDE_TARGET_MSG
 };
 
 #define MASK_LOG_ATTITUDE_FAST          (1<<0)
@@ -180,23 +143,26 @@ enum LoggingParameters {
 #define MASK_LOG_MOTBATT                (1UL<<17)
 #define MASK_LOG_IMU_FAST               (1UL<<18)
 #define MASK_LOG_IMU_RAW                (1UL<<19)
+#define MASK_LOG_VIDEO_STABILISATION    (1UL<<20)
 #define MASK_LOG_ANY                    0xFFFF
 
 // Radio failsafe definitions (FS_THR parameter)
 #define FS_THR_DISABLED                            0
 #define FS_THR_ENABLED_ALWAYS_RTL                  1
-#define FS_THR_ENABLED_CONTINUE_MISSION            2    // Deprecated in 4.0+, now use fs_options
+#define FS_THR_ENABLED_CONTINUE_MISSION            2    // Removed in 4.0+, now use fs_options
 #define FS_THR_ENABLED_ALWAYS_LAND                 3
 #define FS_THR_ENABLED_ALWAYS_SMARTRTL_OR_RTL      4
 #define FS_THR_ENABLED_ALWAYS_SMARTRTL_OR_LAND     5
+#define FS_THR_ENABLED_AUTO_RTL_OR_RTL             6
 
 // GCS failsafe definitions (FS_GCS_ENABLE parameter)
 #define FS_GCS_DISABLED                        0
 #define FS_GCS_ENABLED_ALWAYS_RTL              1
-#define FS_GCS_ENABLED_CONTINUE_MISSION        2    // Deprecated in 4.0+, now use fs_options
+#define FS_GCS_ENABLED_CONTINUE_MISSION        2    // Removed in 4.0+, now use fs_options
 #define FS_GCS_ENABLED_ALWAYS_SMARTRTL_OR_RTL  3
 #define FS_GCS_ENABLED_ALWAYS_SMARTRTL_OR_LAND 4
 #define FS_GCS_ENABLED_ALWAYS_LAND             5
+#define FS_GCS_ENABLED_AUTO_RTL_OR_RTL         6
 
 // EKF failsafe definitions (FS_EKF_ACTION parameter)
 #define FS_EKF_ACTION_LAND                  1       // switch to LAND mode on EKF failsafe

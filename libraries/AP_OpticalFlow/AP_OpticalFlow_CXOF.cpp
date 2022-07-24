@@ -30,13 +30,16 @@
    sensor sends packets at 25hz
  */
 
-#include <AP_HAL/AP_HAL.h>
 #include "AP_OpticalFlow_CXOF.h"
+
+#if AP_OPTICALFLOW_CXOF_ENABLED
+
+#include <AP_HAL/AP_HAL.h>
 #include <AP_Math/crc.h>
 #include <AP_AHRS/AP_AHRS.h>
 #include <AP_SerialManager/AP_SerialManager.h>
 #include <utility>
-#include "OpticalFlow.h"
+#include "AP_OpticalFlow.h"
 #include <stdio.h>
 
 #define CXOF_HEADER         (uint8_t)0xFE
@@ -63,7 +66,6 @@ AP_OpticalFlow_CXOF *AP_OpticalFlow_CXOF::detect(OpticalFlow &_frontend)
     }
 
     // look for first serial driver with protocol defined as OpticalFlow
-    // this is the only optical flow sensor which uses the serial protocol
     AP_HAL::UARTDriver *uart = serial_manager->find_serial(AP_SerialManager::SerialProtocol_OpticalFlow, 0);
     if (uart == nullptr) {
         return nullptr;
@@ -99,7 +101,7 @@ void AP_OpticalFlow_CXOF::update(void)
     // record gyro values as long as they are being used
     // the sanity check of dt below ensures old gyro values are not used
     if (gyro_sum_count < 1000) {
-        const Vector3f& gyro = AP::ahrs_navekf().get_gyro();
+        const Vector3f& gyro = AP::ahrs().get_gyro();
         gyro_sum.x += gyro.x;
         gyro_sum.y += gyro.y;
         gyro_sum_count++;
@@ -186,8 +188,8 @@ void AP_OpticalFlow_CXOF::update(void)
         // copy average body rate to state structure
         state.bodyRate = Vector2f(gyro_sum.x / gyro_sum_count, gyro_sum.y / gyro_sum_count);
 
+        // we only apply yaw to flowRate as body rate comes from AHRS
         _applyYaw(state.flowRate);
-        _applyYaw(state.bodyRate);
     } else {
         // first frame received in some time so cannot calculate flow values
         state.flowRate.zero();
@@ -200,3 +202,5 @@ void AP_OpticalFlow_CXOF::update(void)
     gyro_sum.zero();
     gyro_sum_count = 0;
 }
+
+#endif  // AP_OPTICALFLOW_CXOF_ENABLED

@@ -39,11 +39,17 @@
 #include <cstring>
 #include "Scheduler.h"
 #include <AP_CANManager/AP_CANManager.h>
+#include <AP_Common/ExpandingString.h>
+
 extern const AP_HAL::HAL& hal;
 
 using namespace Linux;
 
+#if HAL_CANMANAGER_ENABLED
 #define Debug(fmt, args...) do { AP::can().log_text(AP_CANManager::LOG_DEBUG, "CANLinuxIface", fmt, ##args); } while (0)
+#else
+#define Debug(fmt, args...)
+#endif
 
 CANIface::CANSocketEventSource CANIface::evt_can_socket[HAL_NUM_CAN_IFACES];
 
@@ -161,17 +167,19 @@ int16_t CANIface::send(const AP_HAL::CANFrame& frame, const uint64_t tx_deadline
     tx_item.setup = true;
     tx_item.index = _tx_frame_counter;
     tx_item.deadline = tx_deadline;
+    WITH_SEMAPHORE(sem);
     _tx_queue.emplace(tx_item);
     _tx_frame_counter++;
     stats.tx_requests++;
     _pollRead();     // Read poll is necessary because it can release the pending TX flag
     _pollWrite();
-    return 1;
+    return AP_HAL::CANIface::send(frame, tx_deadline, flags);
 }
 
 int16_t CANIface::receive(AP_HAL::CANFrame& out_frame, uint64_t& out_timestamp_us,
                           CANIface::CanIOFlags& out_flags)
 {
+    WITH_SEMAPHORE(sem);
     if (_rx_queue.empty()) {
         _pollRead();            // This allows to use the socket not calling poll() explicitly.
         if (_rx_queue.empty()) {
@@ -185,16 +193,18 @@ int16_t CANIface::receive(AP_HAL::CANFrame& out_frame, uint64_t& out_timestamp_u
         out_flags        = rx.flags;
     }
     (void)_rx_queue.pop();
-    return 1;
+    return AP_HAL::CANIface::receive(out_frame, out_timestamp_us, out_flags);
 }
 
-bool CANIface::_hasReadyTx() const
+bool CANIface::_hasReadyTx()
 {
+    WITH_SEMAPHORE(sem);
     return !_tx_queue.empty() && (_frames_in_socket_tx_queue < _max_frames_in_socket_tx_queue);
 }
 
-bool CANIface::_hasReadyRx() const
+bool CANIface::_hasReadyRx()
 {
+    WITH_SEMAPHORE(sem);
     return !_rx_queue.empty();
 }
 
@@ -213,7 +223,7 @@ void CANIface::_poll(bool read, bool write)
 bool CANIface::configureFilters(const CanFilterConfig* const filter_configs,
                               const std::uint16_t num_configs)
 {
-    if (filter_configs == nullptr) {
+    if (filter_configs == nullptr || mode_ != FilteredMode) {
         return false;
     }
     _hw_filters_container.clear();
@@ -257,6 +267,7 @@ uint32_t CANIface::getErrorCount() const
 void CANIface::_pollWrite()
 {
     while (_hasReadyTx()) {
+        WITH_SEMAPHORE(sem);
         const CanTxItem tx = _tx_queue.top();
         uint64_t curr_time = AP_HAL::native_micros64();
         if (tx.deadline >= curr_time) {
@@ -303,6 +314,7 @@ bool CANIface::_pollRead()
                 stats.tx_confirmed++;
             }
             if (accept) {
+                WITH_SEMAPHORE(sem);
                 _rx_queue.push(rx);
                 stats.rx_received++;
                 return true;
@@ -319,6 +331,9 @@ bool CANIface::_pollRead()
 
 int CANIface::_write(const AP_HAL::CANFrame& frame) const
 {
+    if (_fd < 0) {
+        return -1;
+    }
     errno = 0;
 
     const can_frame sockcan_frame = makeSocketCanFrame(frame);
@@ -339,6 +354,9 @@ int CANIface::_write(const AP_HAL::CANFrame& frame) const
 
 int CANIface::_read(AP_HAL::CANFrame& frame, uint64_t& timestamp_us, bool& loopback) const
 {
+    if (_fd < 0) {
+        return -1;
+    }
     auto iov = iovec();
     auto sockcan_frame = can_frame();
     iov.iov_base = &sockcan_frame;
@@ -378,6 +396,7 @@ int CANIface::_read(AP_HAL::CANFrame& frame, uint64_t& timestamp_us, bool& loopb
 // Might block forever, only to be used for testing
 void CANIface::flush_tx()
 {
+    WITH_SEMAPHORE(sem);
     do {
         _updateDownStatusFromPollResult(_pollfd);
         _poll(true, true);
@@ -386,6 +405,7 @@ void CANIface::flush_tx()
 
 void CANIface::clear_rx()
 {
+    WITH_SEMAPHORE(sem);
     // Clean Rx Queue
     std::queue<CanRxItem> empty;
     std::swap( _rx_queue, empty );
@@ -447,7 +467,8 @@ bool CANIface::init(const uint32_t bitrate, const OperatingMode mode)
     if (_initialized) {
         return _initialized;
     }
-
+    bitrate_ = bitrate;
+    mode_ = mode;
     // TODO: Add possibility change bitrate
     _fd = _openSocket(iface_name);
     Debug("Socket opened iface_name: %s fd: %d", iface_name, _fd);
@@ -564,41 +585,36 @@ bool CANIface::CANSocketEventSource::wait(uint64_t duration, AP_HAL::EventHandle
     return true;
 }
 
-uint32_t CANIface::get_stats(char* data, uint32_t max_size)
+void CANIface::get_stats(ExpandingString &str)
 {
-    if (data == nullptr) {
-        return 0;
-    }
-    uint32_t ret = snprintf(data, max_size,
-                            "tx_requests:    %u\n"
-                            "tx_write_fail:  %u\n"
-                            "tx_full:        %u\n"
-                            "tx_confirmed:   %u\n"
-                            "tx_success:     %u\n"
-                            "tx_timedout:    %u\n"
-                            "rx_received:    %u\n"
-                            "rx_errors:      %u\n"
-                            "num_downs:      %u\n"
-                            "num_rx_poll_req:  %u\n"
-                            "num_tx_poll_req:  %u\n"
-                            "num_poll_waits:   %u\n"
-                            "num_poll_tx_events: %u\n"
-                            "num_poll_rx_events: %u\n",
-                            stats.tx_requests,
-                            stats.tx_write_fail,
-                            stats.tx_full,
-                            stats.tx_confirmed,
-                            stats.tx_success,
-                            stats.tx_timedout,
-                            stats.rx_received,
-                            stats.rx_errors,
-                            stats.num_downs,
-                            stats.num_rx_poll_req,
-                            stats.num_tx_poll_req,
-                            stats.num_poll_waits,
-                            stats.num_poll_tx_events,
-                            stats.num_poll_rx_events);
-    return ret;
+    str.printf("tx_requests:    %u\n"
+               "tx_write_fail:  %u\n"
+               "tx_full:        %u\n"
+               "tx_confirmed:   %u\n"
+               "tx_success:     %u\n"
+               "tx_timedout:    %u\n"
+               "rx_received:    %u\n"
+               "rx_errors:      %u\n"
+               "num_downs:      %u\n"
+               "num_rx_poll_req:  %u\n"
+               "num_tx_poll_req:  %u\n"
+               "num_poll_waits:   %u\n"
+               "num_poll_tx_events: %u\n"
+               "num_poll_rx_events: %u\n",
+               stats.tx_requests,
+               stats.tx_write_fail,
+               stats.tx_full,
+               stats.tx_confirmed,
+               stats.tx_success,
+               stats.tx_timedout,
+               stats.rx_received,
+               stats.rx_errors,
+               stats.num_downs,
+               stats.num_rx_poll_req,
+               stats.num_tx_poll_req,
+               stats.num_poll_waits,
+               stats.num_poll_tx_events,
+               stats.num_poll_rx_events);
 }
 
 #endif

@@ -46,6 +46,7 @@
 #include "AP_GPS.h"
 #include "GPS_Backend.h"
 
+#if AP_GPS_NMEA_ENABLED
 /// NMEA parser
 ///
 class AP_GPS_NMEA : public AP_GPS_Backend
@@ -67,11 +68,14 @@ public:
 
 private:
     /// Coding for the GPS sentences that the parser handles
-    enum _sentence_types {      //there are some more than 10 fields in some sentences , thus we have to increase these value.
+    enum _sentence_types : uint8_t {      //there are some more than 10 fields in some sentences , thus we have to increase these value.
         _GPS_SENTENCE_RMC = 32,
         _GPS_SENTENCE_GGA = 64,
         _GPS_SENTENCE_VTG = 96,
         _GPS_SENTENCE_HDT = 128,
+        _GPS_SENTENCE_PHD = 138, // extension for AllyStar GPS modules
+        _GPS_SENTENCE_THS = 160, // True heading with quality indicator, available on Trimble MB-Two
+        _GPS_SENTENCE_KSXT = 170, // extension for Unicore, 21 fields
         _GPS_SENTENCE_OTHER = 0
     };
 
@@ -139,10 +143,15 @@ private:
     uint8_t _new_satellite_count;                       ///< satellite count parsed from a term
     uint8_t _new_quality_indicator;                                     ///< GPS quality indicator parsed from a term
 
-    uint32_t _last_RMC_ms = 0;
-    uint32_t _last_GGA_ms = 0;
-    uint32_t _last_VTG_ms = 0;
-    uint32_t _last_HDT_ms = 0;
+    uint32_t _last_RMC_ms;
+    uint32_t _last_GGA_ms;
+    uint32_t _last_VTG_ms;
+    uint32_t _last_yaw_ms;
+    uint32_t _last_vvelocity_ms;
+    uint32_t _last_vaccuracy_ms;
+    uint32_t _last_3D_velocity_ms;
+    uint32_t _last_KSXT_pos_ms;
+    uint32_t _last_fix_ms;
 
     /// @name	Init strings
     ///			In ::init, an attempt is made to configure the GPS
@@ -150,11 +159,38 @@ private:
     ///			in using these strings
     //@{
     static const char _SiRF_init_string[];         ///< init string for SiRF units
-    static const char _MTK_init_string[];                  ///< init string for MediaTek units
     static const char _ublox_init_string[];        ///< init string for ublox units
     //@}
 
     static const char _initialisation_blob[];
+
+    /*
+      the $PHD message is an extension from AllyStar that gives
+      vertical velocity and more accuracy estimates. It is designed as
+      a mapping from ublox UBX protocol messages to NMEA. So class 1,
+      message 12 is a mapping to NMEA of the NAV-VELNED UBX message
+      and contains the same fields. Class 1 message 26 is called
+      "NAV-PVERR", but does not correspond to a UBX message
+
+      example:
+        $PHD,01,12,TIIITTITT,,245808000,0,0,0,0,0,10260304,0,0*27
+        $PHD,01,26,TTTTTTT,,245808000,877,864,1451,11,11,17*17
+     */
+    struct {
+        uint8_t msg_class;
+        uint8_t msg_id;
+        uint32_t itow;
+        int32_t fields[8];
+    } _phd;
+
+    /*
+      The KSXT message is an extension from Unicore that gives 3D velocity and yaw
+      example: $KSXT,20211016083433.00,116.31296102,39.95817066,49.4911,223.57,-11.32,330.19,0.024,,1,3,28,27,,,,-0.012,0.021,0.020,,*2D
+     */
+    struct {
+        float fields[21];
+    } _ksxt;
+
 };
 
 #define AP_GPS_NMEA_HEMISPHERE_INIT_STRING \
@@ -164,3 +200,4 @@ private:
         "$JASC,GPVTG,5\r\n" /* VTG at 5Hz */                            \
         "$JASC,GPHDT,5\r\n" /* HDT at 5Hz */                            \
         "$JMODE,SBASR,YES\r\n" /* Enable SBAS */
+#endif

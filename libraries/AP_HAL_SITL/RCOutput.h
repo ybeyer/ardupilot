@@ -1,8 +1,9 @@
 #pragma once
 
 #include <AP_HAL/AP_HAL.h>
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL && !defined(HAL_BUILD_AP_PERIPH)
 #include "AP_HAL_SITL.h"
+#include <AP_ESC_Telem/AP_ESC_Telem_SITL.h>
 
 class HALSITL::RCOutput : public AP_HAL::RCOutput {
 public:
@@ -30,14 +31,16 @@ public:
     /*
       Serial LED emulation
      */
-    bool set_serial_led_num_LEDs(const uint16_t chan, uint8_t num_leds, output_mode mode = MODE_PWM_NONE, uint16_t clock_mask = 0) override;
+    bool set_serial_led_num_LEDs(const uint16_t chan, uint8_t num_leds, output_mode mode = MODE_PWM_NONE, uint32_t clock_mask = 0) override;
     void set_serial_led_rgb_data(const uint16_t chan, int8_t led, uint8_t red, uint8_t green, uint8_t blue) override;
     void serial_led_send(const uint16_t chan) override;
     
 private:
     SITL_State *_sitlState;
+    AP_ESC_Telem_SITL *esc_telem;
+
     uint16_t _freq_hz;
-    uint16_t _enable_mask;
+    uint32_t _enable_mask;
     bool _corked;
     uint16_t _pending[SITL_NUM_CHANNELS];
 };

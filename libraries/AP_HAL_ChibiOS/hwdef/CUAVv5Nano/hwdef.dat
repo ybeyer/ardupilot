@@ -1,6 +1,6 @@
 # hw definition file for processing by chibios_hwdef.py
 # for CUAVv5Nano F7 hardware.
-# This is a varient of fmuv5 without the IOMCU
+# This is a variant of fmuv5 without the IOMCU
 
 include ../fmuv5/hwdef.dat
 
@@ -36,13 +36,10 @@ PA5  TIM2_CH1 TIM2 PWM(9)  GPIO(58)
 PB3  TIM2_CH2 TIM2 PWM(10) GPIO(59)
 PB11 TIM2_CH4 TIM2 PWM(11) GPIO(60)
 
-undef BOARD_PWM_COUNT_DEFAULT
-define BOARD_PWM_COUNT_DEFAULT 11
-
 # RCInput on the PPM pin, for all protocols
 undef PG9
 undef USART6_RX
-PI5 TIM8_CH1 TIM8 RCININT PULLUP LOW
+PI5 TIM8_CH1 TIM8 RCININT PULLDOWN LOW
 
 # setup for supplied power brick
 undef HAL_BATT_VOLT_SCALE

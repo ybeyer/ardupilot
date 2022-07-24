@@ -16,7 +16,7 @@
   CAN bootloader support
  */
 #include <AP_HAL/AP_HAL.h>
-
+#include <hal.h>
 #if HAL_USE_CAN == TRUE || HAL_NUM_CAN_IFACES
 #include <AP_Math/AP_Math.h>
 #include <AP_Math/crc.h>
@@ -29,6 +29,8 @@
 #include <uavcan/protocol/NodeStatus.h>
 #include <uavcan/protocol/RestartNode.h>
 #include <uavcan/protocol/GetNodeInfo.h>
+#include <uavcan/equipment/indication/LightsCommand.h>
+#include <ardupilot/indication/NotifyState.h>
 #include "can.h"
 #include "bl_protocol.h"
 #include <drivers/stm32/canard_stm32.h>
@@ -54,7 +56,7 @@ static CANConfig cancfg = {
     0 // filled in below
 };
 #else
-static ChibiOS::CANIface can_iface(0);
+static ChibiOS::CANIface can_iface[HAL_NUM_CAN_IFACES];
 #endif
 
 #ifndef CAN_APP_VERSION_MAJOR
@@ -71,7 +73,6 @@ static uint8_t node_id_allocation_transfer_id;
 static uavcan_protocol_NodeStatus node_status;
 static uint32_t send_next_node_id_allocation_request_at_ms;
 static uint8_t node_id_allocation_unique_id_offset;
-static uint32_t app_first_words[8];
 
 static struct {
     uint64_t ofs;
@@ -85,11 +86,12 @@ static struct {
 
 enum {
     FAIL_REASON_NO_APP_SIG = 10,
-    FAIL_REASON_BAD_LENGTH = 11,
+    FAIL_REASON_BAD_LENGTH_APP = 11,
     FAIL_REASON_BAD_BOARD_ID = 12,
     FAIL_REASON_BAD_CRC = 13,
     FAIL_REASON_IN_UPDATE = 14,
     FAIL_REASON_WATCHDOG = 15,
+    FAIL_REASON_BAD_LENGTH_DESCRIPTOR = 16,
 };
 
 /*
@@ -150,7 +152,7 @@ static void handle_get_node_info(CanardInstance* ins,
     pkt.name.len = strlen(CAN_APP_NODE_NAME);
     pkt.name.data = (uint8_t *)name;
 
-    uint16_t total_size = uavcan_protocol_GetNodeInfoResponse_encode(&pkt, buffer);
+    uint16_t total_size = uavcan_protocol_GetNodeInfoResponse_encode(&pkt, buffer, true);
 
     canardRequestOrRespond(ins,
                            transfer->source_node_id,
@@ -169,7 +171,7 @@ static void handle_get_node_info(CanardInstance* ins,
 static void send_fw_read(void)
 {
     uint32_t now = AP_HAL::millis();
-    if (now - fw_update.last_ms < 250) {
+    if (now - fw_update.last_ms < 750) {
         // the server may still be responding
         return;
     }
@@ -225,12 +227,7 @@ static void handle_file_read_response(CanardInstance* ins, CanardRxTransfer* tra
         flash_func_erase_sector(fw_update.sector+1);
     }
     for (uint16_t i=0; i<len/4; i++) {
-        if (fw_update.sector == 0 && (fw_update.ofs+i*4) < sizeof(app_first_words)) {
-            // keep first word aside, to be flashed last
-            app_first_words[i] = buf32[i];
-        } else {
-            flash_write_buffer(fw_update.ofs+i*4, &buf32[i], 1);
-        }
+        flash_write_buffer(fw_update.ofs+i*4, &buf32[i], 1);
     }
     fw_update.ofs += len;
     fw_update.sector_ofs += len;
@@ -240,8 +237,6 @@ static void handle_file_read_response(CanardInstance* ins, CanardRxTransfer* tra
     }
     if (len < UAVCAN_PROTOCOL_FILE_READ_RESPONSE_DATA_MAX_LENGTH) {
         fw_update.node_id = 0;
-        // now flash the first word
-        flash_write_buffer(0, app_first_words, ARRAY_SIZE(app_first_words));
         flash_write_flush();
         if (can_check_firmware()) {
             jump_to_app();
@@ -264,8 +259,6 @@ static void handle_begin_firmware_update(CanardInstance* ins, CanardRxTransfer* 
         return;
     }
 
-    memset(app_first_words, 0xff, sizeof(app_first_words));
-
     if (fw_update.node_id == 0) {
         uint32_t offset = 0;
         canardDecodeScalar(transfer, 0, 8, false, (void*)&fw_update.node_id);
@@ -287,7 +280,7 @@ static void handle_begin_firmware_update(CanardInstance* ins, CanardRxTransfer* 
     uavcan_protocol_file_BeginFirmwareUpdateResponse reply {};
     reply.error = UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_RESPONSE_ERROR_OK;
 
-    uint32_t total_size = uavcan_protocol_file_BeginFirmwareUpdateResponse_encode(&reply, buffer);
+    uint32_t total_size = uavcan_protocol_file_BeginFirmwareUpdateResponse_encode(&reply, buffer, true);
     canardRequestOrRespond(ins,
                            transfer->source_node_id,
                            UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_SIGNATURE,
@@ -319,7 +312,6 @@ static void handle_allocation_response(CanardInstance* ins, CanardRxTransfer* tr
     uint8_t received_unique_id[UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_UNIQUE_ID_MAX_LENGTH];
     uint8_t received_unique_id_len = 0;
     for (; received_unique_id_len < (transfer->payload_len - (UniqueIDBitOffset / 8U)); received_unique_id_len++) {
-        assert(received_unique_id_len < UAVCAN_PROTOCOL_DYNAMIC_NODE_ID_ALLOCATION_UNIQUE_ID_MAX_LENGTH);
         const uint8_t bit_offset = (uint8_t)(UniqueIDBitOffset + received_unique_id_len * 8U);
         (void) canardDecodeScalar(transfer, bit_offset, 8, false, &received_unique_id[received_unique_id_len]);
     }
@@ -342,7 +334,6 @@ static void handle_allocation_response(CanardInstance* ins, CanardRxTransfer* tr
         // Allocation complete - copying the allocated node ID from the message
         uint8_t allocated_node_id = 0;
         (void) canardDecodeScalar(transfer, 0, 7, false, &allocated_node_id);
-        assert(allocated_node_id <= 127);
 
         canardSetLocalNodeID(ins, allocated_node_id);
     }
@@ -492,7 +483,11 @@ static void processTx(void)
         memcpy(txmsg.data, txf->data, 8);
         txmsg.id = (txf->id | AP_HAL::CANFrame::FlagEFF);
         // push message with 1s timeout
-        if (can_iface.send(txmsg, AP_HAL::micros64() + 1000000, 0) > 0) {
+        bool send_ok = false;
+        for (uint8_t i=0; i<HAL_NUM_CAN_IFACES; i++) {
+            send_ok |= (can_iface[i].send(txmsg, AP_HAL::micros64() + 1000000, 0) > 0);
+        }
+        if (send_ok) {
             canardPopTxQueue(&canard);
             fail_count = 0;
         } else {
@@ -512,25 +507,32 @@ static void processRx(void)
 {
     AP_HAL::CANFrame rxmsg;
     while (true) {
-        bool read_select = true;
-        bool write_select = false;
-        can_iface.select(read_select, write_select, nullptr, 0);
-        if (!read_select) {
+        bool got_pkt = false;
+        for (uint8_t i=0; i<HAL_NUM_CAN_IFACES; i++) {
+            bool read_select = true;
+            bool write_select = false;
+            can_iface[i].select(read_select, write_select, nullptr, 0);
+            if (!read_select) {
+                continue;
+            }
+#ifdef HAL_GPIO_PIN_LED_BOOTLOADER
+            palToggleLine(HAL_GPIO_PIN_LED_BOOTLOADER);
+#endif
+            CanardCANFrame rx_frame {};
+
+            //palToggleLine(HAL_GPIO_PIN_LED);
+            uint64_t timestamp;
+            AP_HAL::CANIface::CanIOFlags flags;
+            can_iface[i].receive(rxmsg, timestamp, flags);
+            memcpy(rx_frame.data, rxmsg.data, 8);
+            rx_frame.data_len = rxmsg.dlc;
+            rx_frame.id = rxmsg.id;
+            canardHandleRxFrame(&canard, &rx_frame, timestamp);
+            got_pkt = true;
+        }
+        if (!got_pkt) {
             break;
         }
-#ifdef HAL_GPIO_PIN_LED_BOOTLOADER
-        palToggleLine(HAL_GPIO_PIN_LED_BOOTLOADER);
-#endif
-        CanardCANFrame rx_frame {};
-
-        //palToggleLine(HAL_GPIO_PIN_LED);
-        uint64_t timestamp;
-        AP_HAL::CANIface::CanIOFlags flags;
-        can_iface.receive(rxmsg, timestamp, flags);
-        memcpy(rx_frame.data, rxmsg.data, 8);
-        rx_frame.data_len = rxmsg.dlc;
-        rx_frame.id = rxmsg.id;
-        canardHandleRxFrame(&canard, &rx_frame, timestamp);
     }
 }
 #endif //#if HAL_USE_CAN
@@ -590,7 +592,7 @@ static void send_node_status(void)
     uint8_t buffer[UAVCAN_PROTOCOL_NODESTATUS_MAX_SIZE];
     node_status.uptime_sec = AP_HAL::millis() / 1000U;
 
-    uint32_t len = uavcan_protocol_NodeStatus_encode(&node_status, buffer);
+    uint32_t len = uavcan_protocol_NodeStatus_encode(&node_status, buffer, true);
 
     static uint8_t transfer_id;  // Note that the transfer ID variable MUST BE STATIC (or heap-allocated)!
 
@@ -644,12 +646,17 @@ bool can_check_firmware(void)
     }
     // check length
     if (ad->image_size > flash_size) {
-        node_status.vendor_specific_status_code = FAIL_REASON_BAD_LENGTH;
+        node_status.vendor_specific_status_code = FAIL_REASON_BAD_LENGTH_APP;
         printf("Bad fw length %u\n", ad->image_size);
         return false;
     }
 
-    if (ad->board_id != APJ_BOARD_ID) {
+    bool id_ok = (ad->board_id == APJ_BOARD_ID);
+#ifdef ALT_BOARD_ID
+    id_ok |= (ad->board_id == ALT_BOARD_ID);
+#endif
+
+    if (!id_ok) {
         node_status.vendor_specific_status_code = FAIL_REASON_BAD_BOARD_ID;
         printf("Bad board_id %u should be %u\n", ad->board_id, APJ_BOARD_ID);
         return false;
@@ -658,8 +665,8 @@ bool can_check_firmware(void)
     const uint8_t desc_len = offsetof(app_descriptor, version_major) - offsetof(app_descriptor, image_crc1);
     uint32_t len1 = ((const uint8_t *)&ad->image_crc1) - flash;
     if ((len1 + desc_len) > ad->image_size) {
-        node_status.vendor_specific_status_code = FAIL_REASON_BAD_LENGTH;
-        printf("Bad fw length %u\n", ad->image_size);
+        node_status.vendor_specific_status_code = FAIL_REASON_BAD_LENGTH_DESCRIPTOR;
+        printf("Bad fw descriptor length %u\n", ad->image_size);
         return false;
     }
 
@@ -676,18 +683,61 @@ bool can_check_firmware(void)
 }
 
 // check for a firmware update marker left by app
-void can_check_update(void)
+bool can_check_update(void)
 {
+    bool ret = false;
 #if HAL_RAM_RESERVE_START >= 256
     struct app_bootloader_comms *comms = (struct app_bootloader_comms *)HAL_RAM0_START;
     if (comms->magic == APP_BOOTLOADER_COMMS_MAGIC) {
         can_set_node_id(comms->my_node_id);
         fw_update.node_id = comms->server_node_id;
         memcpy(fw_update.path, comms->path, UAVCAN_PROTOCOL_FILE_PATH_PATH_MAX_LENGTH+1);
+        ret = true;
+        // clear comms region
+        memset(comms, 0, sizeof(struct app_bootloader_comms));
     }
-    // clear comms region
-    memset(comms, 0, sizeof(struct app_bootloader_comms));
 #endif
+#if defined(CAN1_BASE) && defined(RCC_APB1ENR_CAN1EN)
+    // check for px4 fw update. px4 uses the filter registers in CAN1
+    // to communicate with the bootloader. This only works on CAN1
+    if (!ret && stm32_was_software_reset()) {
+        uint32_t *fir = (uint32_t *)(CAN1_BASE + 0x240);
+        struct PACKED app_shared {
+            union {
+                uint64_t ull;
+                uint32_t ul[2];
+                uint8_t  valid;
+            } crc;
+            uint32_t signature;
+            uint32_t bus_speed;
+            uint32_t node_id;
+        } *app = (struct app_shared *)&fir[4];
+        /* we need to enable the CAN peripheral in order to look at
+           the FIR registers.
+        */
+        RCC->APB1ENR |= RCC_APB1ENR_CAN1EN;
+        static const uint32_t app_signature = 0xb0a04150;
+        if (app->signature == app_signature &&
+            app->node_id > 0 && app->node_id < 128) {
+            // crc is in reversed word order in FIR registers
+            uint32_t sig[3];
+            memcpy((uint8_t *)&sig[0], (const uint8_t *)&app->signature, sizeof(sig));
+            const uint64_t crc = crc_crc64(sig, 3);
+            const uint32_t *crc32 = (const uint32_t *)&crc;
+            if (crc32[0] == app->crc.ul[1] &&
+                crc32[1] == app->crc.ul[0]) {
+                // reset signature so we don't get in a boot loop
+                app->signature = 0;
+                // setup node ID
+                can_set_node_id(app->node_id);
+                // and baudrate
+                baudrate = app->bus_speed;
+                ret = true;
+            }
+        }
+    }
+#endif
+    return ret;
 }
 
 void can_start()
@@ -704,7 +754,9 @@ void can_start()
         CAN_BTR_BRP(timings.bit_rate_prescaler-1);
     canStart(&CAND1, &cancfg);
 #else
-    can_iface.init(baudrate, AP_HAL::CANIface::NormalMode);
+    for (uint8_t i=0; i<HAL_NUM_CAN_IFACES; i++) {
+        can_iface[i].init(baudrate, AP_HAL::CANIface::NormalMode);
+    }
 #endif
     canardInit(&canard, (uint8_t *)canard_memory_pool, sizeof(canard_memory_pool),
                onTransferReceived, shouldAcceptTransfer, NULL);

@@ -18,12 +18,10 @@
 
 #include "SIM_Gazebo.h"
 
+#if HAL_SIM_GAZEBO_ENABLED
+
 #include <stdio.h>
 #include <errno.h>
-
-#include <AP_HAL/AP_HAL.h>
-
-extern const AP_HAL::HAL& hal;
 
 namespace SITL {
 
@@ -117,10 +115,10 @@ void Gazebo::recv_fdm(const struct sitl_input &input)
                            static_cast<float>(pkt.velocity_xyz[1]),
                            static_cast<float>(pkt.velocity_xyz[2]));
 
-    position = Vector3f(static_cast<float>(pkt.position_xyz[0]),
-                        static_cast<float>(pkt.position_xyz[1]),
-                        static_cast<float>(pkt.position_xyz[2]));
-
+    position = Vector3d(pkt.position_xyz[0],
+                        pkt.position_xyz[1],
+                        pkt.position_xyz[2]);
+    position.xy() += origin.get_distance_NE_double(home);
 
     // auto-adjust to simulation frame rate
     time_now_us += static_cast<uint64_t>(deltat * 1.0e6);
@@ -171,3 +169,6 @@ void Gazebo::update(const struct sitl_input &input)
 }
 
 }  // namespace SITL
+
+
+#endif  // HAL_SIM_GAZEBO_ENABLED

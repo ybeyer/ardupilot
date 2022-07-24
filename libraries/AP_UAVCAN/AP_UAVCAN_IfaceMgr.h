@@ -17,7 +17,7 @@
 #pragma once
 
 #include <AP_HAL/AP_HAL.h>
-#if HAL_MAX_CAN_PROTOCOL_DRIVERS
+#if HAL_ENABLE_LIBUAVCAN_DRIVERS
 
 #include <uavcan/uavcan.hpp>
 
@@ -39,9 +39,11 @@ public:
     virtual int16_t receive(CanFrame& out_frame, MonotonicTime& out_ts_monotonic,
                             UtcTime& out_ts_utc, CanIOFlags& out_flags) override;
 
-    int16_t configureFilters(const CanFilterConfig* filter_configs,
-                             uint16_t num_configs) override;
-
+    virtual int16_t configureFilters(const CanFilterConfig* filter_configs,
+                                     uint16_t num_configs) override {
+        return 0;
+    }
+    
     uint16_t getNumFilters() const override;
 
     uint64_t getErrorCount() const override;

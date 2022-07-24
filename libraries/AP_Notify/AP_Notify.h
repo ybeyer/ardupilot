@@ -71,7 +71,17 @@ public:
         Notify_LED_NCP5623_I2C_Internal     = (1 << 7), // Internal NCP5623
         Notify_LED_NeoPixel                 = (1 << 8), // NeoPixel 5050 AdaFruit 1655 SK6812  Worldsemi WS2812B
         Notify_LED_ProfiLED                 = (1 << 9), // ProfiLED
+        Notify_LED_Scripting                = (1 << 10),// Colour accessor for scripting
+        Notify_LED_DShot                    = (1 << 11),// Use dshot commands to set ESC LEDs
+        Notify_LED_ProfiLED_SPI             = (1 << 12), // ProfiLED
         Notify_LED_MAX
+    };
+
+    enum Notify_Buzz_Type {
+        Notify_Buzz_None                    = 0,
+        Notify_Buzz_Builtin                 = (1 << 0), // Built in default Alarm Out
+        Notify_Buzz_DShot                   = (1 << 1), // DShot Alarm
+        Notify_Buzz_UAVCAN                  = (1 << 2), // UAVCAN Alarm
     };
 
     /// notify_flags_type - bitmask of notification flags
@@ -89,6 +99,7 @@ public:
         bool failsafe_radio;      // true if radio failsafe
         bool failsafe_battery;    // true if battery failsafe
         bool failsafe_gcs;        // true if GCS failsafe
+        bool failsafe_ekf;        // true if ekf failsafe
         bool parachute_release;   // true if parachute is being released
         bool ekf_bad;             // true if ekf is reporting problems
         bool autopilot_mode;      // true if vehicle is in an autopilot flight mode (only used by OreoLEDs)
@@ -102,6 +113,7 @@ public:
         bool waiting_for_throw;   // true when copter is in THROW mode and waiting to detect the user hand launch
         bool powering_off;        // true when the vehicle is powering off
         bool video_recording;     // true when the vehicle is recording video
+        bool temp_cal_running;    // true if a temperature calibration is running
     };
 
     /// notify_events_type - bitmask of active events.
@@ -124,6 +136,9 @@ public:
         uint32_t tune_next              : 3;    // tuning switched to next parameter
         uint32_t tune_save              : 1;    // tuning saved parameters
         uint32_t tune_error             : 1;    // tuning controller error
+        uint32_t initiated_temp_cal     : 1;    // 1 when temperature calibration starts
+        uint32_t temp_cal_saved         : 1;    // 1 when temperature calibration was just saved
+        uint32_t temp_cal_failed        : 1;    // 1 when temperature calibration has just failed
     };
 
     // The notify flags and values are static to allow direct class access
@@ -140,8 +155,11 @@ public:
     // handle a LED_CONTROL message
     static void handle_led_control(const mavlink_message_t &msg);
 
-    // handle RGB from Scripting
+    // handle RGB from Scripting or AP_Periph
     static void handle_rgb(uint8_t r, uint8_t g, uint8_t b, uint8_t rate_hz = 0);
+
+    // handle RGB from Scripting
+    static void handle_rgb_id(uint8_t r, uint8_t g, uint8_t b, uint8_t id);
 
     // handle a PLAY_TUNE message
     static void handle_play_tune(const mavlink_message_t &msg);
@@ -149,7 +167,9 @@ public:
     // play a tune string
     static void play_tune(const char *tune);
 
-    bool buzzer_enabled() const { return _buzzer_enable; }
+    bool buzzer_enabled() const { return _buzzer_type != 0; }
+
+    uint8_t get_buzzer_types() const { return _buzzer_type; }
 
     // set flight mode string
     void set_flight_mode_str(const char *str);
@@ -164,7 +184,8 @@ public:
     uint8_t get_buzz_pin() const  { return _buzzer_pin; }
     uint8_t get_buzz_level() const  { return _buzzer_level; }
     uint8_t get_buzz_volume() const  { return _buzzer_volume; }
-    uint8_t get_led_len() const {return _led_len; }
+    uint8_t get_led_len() const { return _led_len; }
+    int8_t get_rgb_led_brightness_percent() const;
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     HAL_Semaphore sf_window_mutex;
@@ -182,7 +203,7 @@ private:
     // parameters
     AP_Int8 _rgb_led_brightness;
     AP_Int8 _rgb_led_override;
-    AP_Int8 _buzzer_enable;
+    AP_Int8 _buzzer_type;
     AP_Int8 _display_type;
     AP_Int8 _oreo_theme;
     AP_Int8 _buzzer_pin;

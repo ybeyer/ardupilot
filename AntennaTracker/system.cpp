@@ -27,14 +27,18 @@ void Tracker::init_ardupilot()
 
     // setup telem slots with serial ports
     gcs().setup_uarts();
+    // update_send so that if the first packet we receive happens to
+    // be an arm message we don't trigger an internal error when we
+    // try to initialise stream rates in the main loop.
+    gcs().update_send();
 
 #if LOGGING_ENABLED == ENABLED
     log_init();
 #endif
 
-#ifdef ENABLE_SCRIPTING
+#if AP_SCRIPTING_ENABLED
     scripting.init();
-#endif // ENABLE_SCRIPTING
+#endif // AP_SCRIPTING_ENABLED
 
     // initialise compass
     AP::compass().set_log_bit(MASK_LOG_COMPASS);
@@ -59,6 +63,7 @@ void Tracker::init_ardupilot()
     serial_manager.set_blocking_writes_all(false);
 
     // initialise rc channels including setting mode
+    rc().convert_options(RC_Channel::AUX_FUNC::ARMDISARM_UNUSED, RC_Channel::AUX_FUNC::ARMDISARM);
     rc().init();
 
     // initialise servos
@@ -92,15 +97,12 @@ void Tracker::init_ardupilot()
         // for some servos)
         prepare_servos();
     }
-
-    // disable safety if requested
-    BoardConfig.init_safety();    
 }
 
 /*
   fetch HOME from EEPROM
 */
-bool Tracker::get_home_eeprom(struct Location &loc)
+bool Tracker::get_home_eeprom(struct Location &loc) const
 {
     // Find out proper location in memory by using the start_byte position + the index
     // --------------------------------------------------------------------------------
@@ -176,6 +178,8 @@ void Tracker::prepare_servos()
 
 void Tracker::set_mode(Mode &newmode, const ModeReason reason)
 {
+    control_mode_reason = reason;
+
     if (mode == &newmode) {
         // don't switch modes if we are already in the correct mode.
         return;

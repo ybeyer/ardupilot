@@ -13,13 +13,17 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "AP_ICEngine.h"
+
+#if AP_ICENGINE_ENABLED
 
 #include <SRV_Channel/SRV_Channel.h>
 #include <GCS_MAVLink/GCS.h>
 #include <AP_AHRS/AP_AHRS.h>
 #include <AP_Scheduler/AP_Scheduler.h>
 #include <AP_Notify/AP_Notify.h>
-#include "AP_ICEngine.h"
+#include <RC_Channel/RC_Channel.h>
+#include <AP_RPM/AP_RPM.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -36,7 +40,7 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
 
     // @Param: START_CHAN
     // @DisplayName: Input channel for engine start
-    // @Description: This is an RC input channel for requesting engine start. Engine will try to start when channel is at or above 1700. Engine will stop when channel is at or below 1300. Between 1301 and 1699 the engine will not change state unless a MAVLink command or mission item commands a state change, or the vehicle is disamed.
+    // @Description: This is an RC input channel for requesting engine start. Engine will try to start when channel is at or above 1700. Engine will stop when channel is at or below 1300. Between 1301 and 1699 the engine will not change state unless a MAVLink command or mission item commands a state change, or the vehicle is disarmed. See ICE_STARTCHN_MIN parameter to change engine stop PWM value and/or to enable debouncing of the START_CH to avoid accidental engine kills due to noise on channel.
     // @User: Standard
     // @Values: 0:None,1:Chan1,2:Chan2,3:Chan3,4:Chan4,5:Chan5,6:Chan6,7:Chan7,8:Chan8,9:Chan9,10:Chan10,11:Chan11,12:Chan12,13:Chan13,14:Chan14,15:Chan15,16:Chan16
     AP_GROUPINFO("START_CHAN", 1, AP_ICEngine, start_chan, 0),
@@ -131,8 +135,8 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
 
     // @Param: OPTIONS
     // @DisplayName: ICE options
-    // @Description: Options for ICE control
-    // @Bitmask: 0:DisableIgnitionRCFailsafe
+    // @Description: Options for ICE control. The DisableIgnitionRCFailsafe option will cause the ignition to be set off on any R/C failsafe. If ThrottleWhileDisarmed is set then throttle control will be allowed while disarmed for planes when in MANUAL mode.
+    // @Bitmask: 0:DisableIgnitionRCFailsafe,1:DisableRedineGovernor,2:ThrottleWhileDisarmed
     AP_GROUPINFO("OPTIONS", 15, AP_ICEngine, options, 0),
 
     // @Param: STARTCHN_MIN
@@ -141,6 +145,14 @@ const AP_Param::GroupInfo AP_ICEngine::var_info[] = {
     // @User: Standard
     // @Range: 0 1300
     AP_GROUPINFO("STARTCHN_MIN", 16, AP_ICEngine, start_chan_min_pwm, 0),
+
+    // @Param: REDLINE_RPM
+    // @DisplayName: RPM of the redline limit for the engine
+    // @Description: Maximum RPM for the engine provided by the manufacturer. A value of 0 disables this feature. See ICE_OPTIONS to enable or disable the governor.
+    // @User: Advanced
+    // @Range: 0 2000000
+    // @Units: RPM
+    AP_GROUPINFO("REDLINE_RPM", 17, AP_ICEngine, redline_rpm, 0),
 
     AP_GROUPEND
 };
@@ -156,6 +168,9 @@ AP_ICEngine::AP_ICEngine(const AP_RPM &_rpm) :
         AP_HAL::panic("AP_ICEngine must be singleton");
     }
     _singleton = this;
+
+    // ICEngine runs at 10Hz
+    _rpm_filter.set_cutoff_frequency(10, 0.5f);
 }
 
 /*
@@ -180,9 +195,9 @@ void AP_ICEngine::update(void)
         // snap the input to either 1000, 1500, or 2000
         // this is useful to compare a debounce changed value
         // while ignoring tiny noise
-        if (cvalue >= 1700) {
+        if (cvalue >= RC_Channel::AUX_PWM_TRIGGER_HIGH) {
             cvalue = 2000;
-        } else if ((cvalue > 800) && (cvalue <= 1300)) {
+        } else if ((cvalue > 800) && (cvalue <= RC_Channel::AUX_PWM_TRIGGER_LOW)) {
             cvalue = 1300;
         } else {
             cvalue = 1500;
@@ -203,18 +218,20 @@ void AP_ICEngine::update(void)
     }
 
 
-    if (state == ICE_OFF && start_chan_last_value >= 1700) {
+    if (state == ICE_OFF && start_chan_last_value >= RC_Channel::AUX_PWM_TRIGGER_HIGH) {
         should_run = true;
-    } else if (start_chan_last_value <= 1300) {
+    } else if (start_chan_last_value <= RC_Channel::AUX_PWM_TRIGGER_LOW) {
         should_run = false;
     } else if (state != ICE_OFF) {
         should_run = true;
     }
 
-    if ((options & uint16_t(Options::DISABLE_IGNITION_RC_FAILSAFE)) && AP_Notify::flags.failsafe_radio) {
+    if (option_set(Options::DISABLE_IGNITION_RC_FAILSAFE) && AP_Notify::flags.failsafe_radio) {
         // user has requested ignition kill on RC failsafe
         should_run = false;
     }
+
+    float rpm_value;
 
     // switch on current state to work out new state
     switch (state) {
@@ -264,11 +281,11 @@ void AP_ICEngine::update(void)
             gcs().send_text(MAV_SEVERITY_INFO, "Stopped engine");
         } else if (rpm_instance > 0) {
             // check RPM to see if still running
-            float rpm_value;
             if (!rpm.get_rpm(rpm_instance-1, rpm_value) ||
                 rpm_value < rpm_threshold) {
                 // engine has stopped when it should be running
                 state = ICE_START_DELAY;
+                gcs().send_text(MAV_SEVERITY_INFO, "Uncommanded engine stop");
             }
         }
         break;
@@ -282,10 +299,29 @@ void AP_ICEngine::update(void)
                 // reset initial height while disarmed
                 initial_height = -pos.z;
             }
-        } else if (idle_percent <= 0) { // check if we should idle
+        } else if (idle_percent <= 0 && !option_set(Options::THROTTLE_WHILE_DISARMED)) {
             // force ignition off when disarmed
             state = ICE_OFF;
         }
+    }
+
+    // check against redline RPM
+    if (rpm_instance > 0 && redline_rpm > 0 && rpm.get_rpm(rpm_instance-1, rpm_value)) {
+        // update the filtered RPM value
+        filtered_rpm_value =  _rpm_filter.apply(rpm_value);
+        if (!redline.flag && filtered_rpm_value > redline_rpm) {
+            // redline governor is off. rpm is too high. enable the governor
+            gcs().send_text(MAV_SEVERITY_INFO, "Engine: Above redline RPM");
+            redline.flag = true;
+        } else if (redline.flag && filtered_rpm_value < redline_rpm * 0.9f) {
+            // redline governor is on. rpm is safely below. disable the governor
+            redline.flag = false;
+            // reset redline governor
+            redline.throttle_percentage = 0.0f;
+            redline.governor_integrator = 0.0f;
+        }
+    } else {
+        redline.flag = false;
     }
 
     /* now set output channels */
@@ -323,8 +359,11 @@ void AP_ICEngine::update(void)
 /*
   check for throttle override. This allows the ICE controller to force
   the correct starting throttle when starting the engine and maintain idle when disarmed
+
+  base_throttle is the throttle before the disarmed override
+  check. This allows for throttle control while disarmed
  */
-bool AP_ICEngine::throttle_override(uint8_t &percentage)
+bool AP_ICEngine::throttle_override(float &percentage, const float base_throttle)
 {
     if (!enable) {
         return false;
@@ -333,16 +372,54 @@ bool AP_ICEngine::throttle_override(uint8_t &percentage)
     if (state == ICE_RUNNING &&
         idle_percent > 0 &&
         idle_percent < 100 &&
-        (int16_t)idle_percent > SRV_Channels::get_output_scaled(SRV_Channel::k_throttle))
+        idle_percent > percentage)
     {
-        percentage = (uint8_t)idle_percent;
+        percentage = idle_percent;
+        if (option_set(Options::THROTTLE_WHILE_DISARMED) && !hal.util->get_soft_armed()) {
+            percentage = MAX(percentage, base_throttle);
+        }
         return true;
     }
 
     if (state == ICE_STARTING || state == ICE_START_DELAY) {
-        percentage = (uint8_t)start_percent.get();
+        percentage = start_percent.get();
+        return true;
+    } else if (state != ICE_RUNNING && hal.util->get_soft_armed()) {
+        percentage = 0;
         return true;
     }
+    
+    if (redline.flag && !option_set(Options::DISABLE_REDLINE_GOVERNOR)) {
+        // limit the throttle from increasing above what the current output is
+        if (redline.throttle_percentage < 1.0f) {
+            redline.throttle_percentage = percentage;
+        }
+        if (percentage < redline.throttle_percentage - redline.governor_integrator) {
+            // the throttle before the override is much lower than what the integrator is at
+            // reset the integrator
+            redline.governor_integrator = 0;
+            redline.throttle_percentage = percentage;
+        } else if (percentage < redline.throttle_percentage) {
+            // the throttle is below the integrator set point
+            // remove the difference from the integrator
+            redline.governor_integrator -= redline.throttle_percentage - percentage;
+            redline.throttle_percentage = percentage;
+        } else if (filtered_rpm_value > redline_rpm) {
+            // reduce the throttle if still over the redline RPM
+            const float redline_setpoint_step = idle_slew * AP::scheduler().get_loop_period_s();
+            redline.governor_integrator += redline_setpoint_step;
+        }
+        percentage = redline.throttle_percentage - redline.governor_integrator;
+        return true;
+    }
+
+    // if THROTTLE_WHILE_DISARMED is set then we use the base_throttle, allowing the pilot to control throttle while disarmed
+    if (option_set(Options::THROTTLE_WHILE_DISARMED) && !hal.util->get_soft_armed() &&
+        base_throttle > percentage) {
+        percentage = base_throttle;
+        return true;
+    }
+
     return false;
 }
 
@@ -360,7 +437,7 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
     if (c != nullptr && rc().has_valid_input()) {
         // get starter control channel
         uint16_t cvalue = c->get_radio_in();
-        if (cvalue >= start_chan_min_pwm && cvalue <= 1300) {
+        if (cvalue >= start_chan_min_pwm && cvalue <= RC_Channel::AUX_PWM_TRIGGER_LOW) {
             gcs().send_text(MAV_SEVERITY_INFO, "Engine: start control disabled");
             return false;
         }
@@ -383,6 +460,9 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
 */
 void AP_ICEngine::update_idle_governor(int8_t &min_throttle)
 {
+    if (!enable) {
+        return;
+    }
     const int8_t min_throttle_base = min_throttle;
 
     // Initialize idle point to min_throttle on the first run
@@ -414,7 +494,7 @@ void AP_ICEngine::update_idle_governor(int8_t &min_throttle)
     // Override
     min_throttle = roundf(idle_governor_integrator);
 
-    // Caclulate Error in system
+    // Calculate Error in system
     int32_t error = idle_rpm - rpmv;
 
     bool underspeed = error > 0;
@@ -431,7 +511,7 @@ void AP_ICEngine::update_idle_governor(int8_t &min_throttle)
         return;
     }
 
-    // Calculate the change per loop to acheieve the desired slew rate of 1 percent per second
+    // Calculate the change per loop to achieve the desired slew rate of 1 percent per second
     static const float idle_setpoint_step = idle_slew * AP::scheduler().get_loop_period_s();
 
     // Update Integrator 
@@ -454,3 +534,5 @@ AP_ICEngine *ice() {
         return AP_ICEngine::get_singleton();
     }
 }
+
+#endif  // AP_ICENGINE_ENABLED

@@ -213,11 +213,10 @@ const AP_Param::Info Tracker::var_info[] = {
     // @User: Standard
     GSCALAR(pitch_max,               "PITCH_MAX",	PITCH_MAX_DEFAULT),
 
-    // barometer ground calibration. The GND_ prefix is chosen for
-    // compatibility with previous releases of ArduPlane
-    // @Group: GND_
+    // barometer library
+    // @Group: BARO
     // @Path: ../libraries/AP_Baro/AP_Baro.cpp
-    GOBJECT(barometer, "GND_", AP_Baro),
+    GOBJECT(barometer, "BARO", AP_Baro),
 
     // @Group: COMPASS_
     // @Path: ../libraries/AP_Compass/AP_Compass.cpp
@@ -231,22 +230,45 @@ const AP_Param::Info Tracker::var_info[] = {
     // @Path: GCS_Mavlink.cpp
     GOBJECTN(_gcs.chan_parameters[0], gcs0,        "SR0_",     GCS_MAVLINK_Parameters),
 
+#if MAVLINK_COMM_NUM_BUFFERS >= 2
     // @Group: SR1_
     // @Path: GCS_Mavlink.cpp
     GOBJECTN(_gcs.chan_parameters[1],  gcs1,       "SR1_",     GCS_MAVLINK_Parameters),
+#endif
 
+#if MAVLINK_COMM_NUM_BUFFERS >= 3
     // @Group: SR2_
     // @Path: GCS_Mavlink.cpp
     GOBJECTN(_gcs.chan_parameters[2],  gcs2,       "SR2_",     GCS_MAVLINK_Parameters),
+#endif
 
+#if MAVLINK_COMM_NUM_BUFFERS >= 4
     // @Group: SR3_
     // @Path: GCS_Mavlink.cpp
     GOBJECTN(_gcs.chan_parameters[3],  gcs3,       "SR3_",     GCS_MAVLINK_Parameters),
+#endif
+
+#if MAVLINK_COMM_NUM_BUFFERS >= 5
+    // @Group: SR4_
+    // @Path: GCS_Mavlink.cpp
+    GOBJECTN(_gcs.chan_parameters[4],  gcs4,       "SR4_",     GCS_MAVLINK_Parameters),
+#endif
+
+#if MAVLINK_COMM_NUM_BUFFERS >= 6
+    // @Group: SR5_
+    // @Path: GCS_Mavlink.cpp
+    GOBJECTN(_gcs.chan_parameters[5],  gcs5,       "SR5_",     GCS_MAVLINK_Parameters),
+#endif
+
+#if MAVLINK_COMM_NUM_BUFFERS >= 7
+    // @Group: SR6_
+    // @Path: GCS_Mavlink.cpp
+    GOBJECTN(_gcs.chan_parameters[6],  gcs6,       "SR6_",     GCS_MAVLINK_Parameters),
+#endif
 
     // @Param: LOG_BITMASK
     // @DisplayName: Log bitmask
     // @Description: 4 byte bitmap of log types to enable
-    // @Values: 127:Default,0:Disabled
     // @Bitmask: 0:ATTITUDE,1:GPS,2:RCIN,3:IMU,4:RCOUT,5:COMPASS,6:Battery
     // @User: Standard
     GSCALAR(log_bitmask, "LOG_BITMASK", DEFAULT_LOG_BITMASK),
@@ -259,10 +281,10 @@ const AP_Param::Info Tracker::var_info[] = {
     // @Path: ../libraries/AP_AHRS/AP_AHRS.cpp
     GOBJECT(ahrs,                   "AHRS_",    AP_AHRS),
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+#if AP_SIM_ENABLED
     // @Group: SIM_
     // @Path: ../libraries/SITL/SITL.cpp
-    GOBJECT(sitl, "SIM_", SITL::SITL),
+    GOBJECT(sitl, "SIM_", SITL::SIM),
 #endif
 
     // @Group: BRD_
@@ -276,9 +298,9 @@ const AP_Param::Info Tracker::var_info[] = {
 #endif
 
     // GPS driver
-    // @Group: GPS_
+    // @Group: GPS
     // @Path: ../libraries/AP_GPS/AP_GPS.cpp
-    GOBJECT(gps, "GPS_", AP_GPS),
+    GOBJECT(gps, "GPS", AP_GPS),
 
     // @Group: NTF_
     // @Path: ../libraries/AP_Notify/AP_Notify.cpp
@@ -355,7 +377,15 @@ const AP_Param::Info Tracker::var_info[] = {
     // @Increment: 1
     // @Units: Hz
     // @User: Standard
-	GGROUP(pidPitch2Srv,       "PITCH2SRV_", AC_PID),
+
+    // @Param: PITCH2SRV_SMAX
+    // @DisplayName: Pitch slew rate limit
+    // @Description: Sets an upper limit on the slew rate produced by the combined P and D gains. If the amplitude of the control action produced by the rate feedback exceeds this value, then the D+P gain is reduced to respect the limit. This limits the amplitude of high frequency oscillations caused by an excessive gain. The limit should be set to no more than 25% of the actuators maximum slew rate to allow for load effects. Note: The gain will not be reduced to less than 10% of the nominal value. A value of zero will disable this feature.
+    // @Range: 0 200
+    // @Increment: 0.5
+    // @User: Advanced
+
+    GGROUP(pidPitch2Srv,       "PITCH2SRV_", AC_PID),
 
     // @Param: YAW2SRV_P
     // @DisplayName: Yaw axis controller P gain
@@ -416,9 +446,17 @@ const AP_Param::Info Tracker::var_info[] = {
     // @Increment: 1
     // @Units: Hz
     // @User: Standard
-	GGROUP(pidYaw2Srv,         "YAW2SRV_", AC_PID),
 
-#ifdef ENABLE_SCRIPTING
+    // @Param: YAW2SRV_SMAX
+    // @DisplayName: Yaw slew rate limit
+    // @Description: Sets an upper limit on the slew rate produced by the combined P and D gains. If the amplitude of the control action produced by the rate feedback exceeds this value, then the D+P gain is reduced to respect the limit. This limits the amplitude of high frequency oscillations caused by an excessive gain. The limit should be set to no more than 25% of the actuators maximum slew rate to allow for load effects. Note: The gain will not be reduced to less than 10% of the nominal value. A value of zero will disable this feature.
+    // @Range: 0 200
+    // @Increment: 0.5
+    // @User: Advanced
+
+    GGROUP(pidYaw2Srv,         "YAW2SRV_", AC_PID),
+
+#if AP_SCRIPTING_ENABLED
     // @Group: SCR_
     // @Path: ../libraries/AP_Scripting/AP_Scripting.cpp
     GOBJECT(scripting, "SCR_", AP_Scripting),
@@ -477,6 +515,14 @@ const AP_Param::Info Tracker::var_info[] = {
     // @Path: ../libraries/AP_Stats/AP_Stats.cpp
     GOBJECT(stats, "STAT",  AP_Stats),
 
+    // @Param: AUTO_OPTIONS
+    // @DisplayName: Auto mode options
+    // @Description: 1: Scan for unknown target
+    // @User: Standard
+    // @Values: 0:None, 1: Scan for unknown target in auto mode
+    // @Bitmask: 0:Scan for unknown target
+    GSCALAR(auto_opts,              "AUTO_OPTIONS",        0),
+
     // @Group:
     // @Path: ../libraries/AP_Vehicle/AP_Vehicle.cpp
     { AP_PARAM_GROUP, "", Parameters::k_param_vehicle, (const void *)&tracker, {group_info : AP_Vehicle::var_info} },
@@ -503,6 +549,7 @@ void Tracker::load_parameters(void)
         g.format_version.set_and_save(Parameters::k_format_version);
         hal.console->printf("done.\n");
     }
+    g.format_version.set_default(Parameters::k_format_version);
 
     uint32_t before = AP_HAL::micros();
     // Load all auto-loaded EEPROM variables

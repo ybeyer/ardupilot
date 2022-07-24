@@ -26,7 +26,6 @@ const AP_Param::GroupInfo AC_AttitudeControl_Multi::var_info[] = {
     // @Description: Roll axis rate controller I gain maximum.  Constrains the maximum motor output that the I gain will output
     // @Range: 0 1
     // @Increment: 0.01
-    // @Units: %
     // @User: Standard
 
     // @Param: RAT_RLL_D
@@ -66,6 +65,14 @@ const AP_Param::GroupInfo AC_AttitudeControl_Multi::var_info[] = {
     // @Increment: 1
     // @Units: Hz
     // @User: Standard
+
+    // @Param: RAT_RLL_SMAX
+    // @DisplayName: Roll slew rate limit
+    // @Description: Sets an upper limit on the slew rate produced by the combined P and D gains. If the amplitude of the control action produced by the rate feedback exceeds this value, then the D+P gain is reduced to respect the limit. This limits the amplitude of high frequency oscillations caused by an excessive gain. The limit should be set to no more than 25% of the actuators maximum slew rate to allow for load effects. Note: The gain will not be reduced to less than 10% of the nominal value. A value of zero will disable this feature.
+    // @Range: 0 200
+    // @Increment: 0.5
+    // @User: Advanced
+
     AP_SUBGROUPINFO(_pid_rate_roll, "RAT_RLL_", 1, AC_AttitudeControl_Multi, AC_PID),
 
     // @Param: RAT_PIT_P
@@ -87,7 +94,6 @@ const AP_Param::GroupInfo AC_AttitudeControl_Multi::var_info[] = {
     // @Description: Pitch axis rate controller I gain maximum.  Constrains the maximum motor output that the I gain will output
     // @Range: 0 1
     // @Increment: 0.01
-    // @Units: %
     // @User: Standard
 
     // @Param: RAT_PIT_D
@@ -127,6 +133,14 @@ const AP_Param::GroupInfo AC_AttitudeControl_Multi::var_info[] = {
     // @Increment: 1
     // @Units: Hz
     // @User: Standard
+
+    // @Param: RAT_PIT_SMAX
+    // @DisplayName: Pitch slew rate limit
+    // @Description: Sets an upper limit on the slew rate produced by the combined P and D gains. If the amplitude of the control action produced by the rate feedback exceeds this value, then the D+P gain is reduced to respect the limit. This limits the amplitude of high frequency oscillations caused by an excessive gain. The limit should be set to no more than 25% of the actuators maximum slew rate to allow for load effects. Note: The gain will not be reduced to less than 10% of the nominal value. A value of zero will disable this feature.
+    // @Range: 0 200
+    // @Increment: 0.5
+    // @User: Advanced
+
     AP_SUBGROUPINFO(_pid_rate_pitch, "RAT_PIT_", 2, AC_AttitudeControl_Multi, AC_PID),
 
     // @Param: RAT_YAW_P
@@ -148,7 +162,6 @@ const AP_Param::GroupInfo AC_AttitudeControl_Multi::var_info[] = {
     // @Description: Yaw axis rate controller I gain maximum.  Constrains the maximum motor output that the I gain will output
     // @Range: 0 1
     // @Increment: 0.01
-    // @Units: %
     // @User: Standard
 
     // @Param: RAT_YAW_D
@@ -188,6 +201,14 @@ const AP_Param::GroupInfo AC_AttitudeControl_Multi::var_info[] = {
     // @Increment: 1
     // @Units: Hz
     // @User: Standard
+
+    // @Param: RAT_YAW_SMAX
+    // @DisplayName: Yaw slew rate limit
+    // @Description: Sets an upper limit on the slew rate produced by the combined P and D gains. If the amplitude of the control action produced by the rate feedback exceeds this value, then the D+P gain is reduced to respect the limit. This limits the amplitude of high frequency oscillations caused by an excessive gain. The limit should be set to no more than 25% of the actuators maximum slew rate to allow for load effects. Note: The gain will not be reduced to less than 10% of the nominal value. A value of zero will disable this feature.
+    // @Range: 0 200
+    // @Increment: 0.5
+    // @User: Advanced
+
     AP_SUBGROUPINFO(_pid_rate_yaw, "RAT_YAW_", 3, AC_AttitudeControl_Multi, AC_PID),
 
     // @Param: THR_MIX_MIN
@@ -274,8 +295,9 @@ float AC_AttitudeControl_Multi::get_throttle_boosted(float throttle_in)
     // inverted_factor reduces from 1 to 0 for tilt angles between 60 and 90 degrees
 
     float cos_tilt = _ahrs.cos_pitch() * _ahrs.cos_roll();
-    float inverted_factor = constrain_float(2.0f * cos_tilt, 0.0f, 1.0f);
-    float boost_factor = 1.0f / constrain_float(cos_tilt, 0.5f, 1.0f);
+    float inverted_factor = constrain_float(10.0f * cos_tilt, 0.0f, 1.0f);
+    float cos_tilt_target = cosf(_thrust_angle);
+    float boost_factor = 1.0f / constrain_float(cos_tilt_target, 0.1f, 1.0f);
 
     float throttle_out = throttle_in * inverted_factor * boost_factor;
     _angle_boost = constrain_float(throttle_out - throttle_in, -1.0f, 1.0f);
@@ -300,6 +322,20 @@ void AC_AttitudeControl_Multi::update_throttle_rpy_mix()
     } else if (_throttle_rpy_mix > _throttle_rpy_mix_desired) {
         // reduce more slowly (from 0.9 to 0.1 in 1.6 seconds)
         _throttle_rpy_mix -= MIN(0.5f * _dt, _throttle_rpy_mix - _throttle_rpy_mix_desired);
+
+        // if the mix is still higher than that being used, reset immediately
+        const float throttle_hover = _motors.get_throttle_hover();
+        const float throttle_in = _motors.get_throttle();
+        const float throttle_out = MAX(_motors.get_throttle_out(), throttle_in);
+        float mix_used;
+        // since throttle_out >= throttle_in at this point we don't need to check throttle_in < throttle_hover
+        if (throttle_out < throttle_hover) {
+            mix_used = (throttle_out - throttle_in) / (throttle_hover - throttle_in);
+        } else {
+            mix_used = throttle_out / throttle_hover;
+        }
+
+        _throttle_rpy_mix = MIN(_throttle_rpy_mix, MAX(mix_used, _throttle_rpy_mix_desired));
     }
     _throttle_rpy_mix = constrain_float(_throttle_rpy_mix, 0.1f, AC_ATTITUDE_CONTROL_MAX);
 }
@@ -309,20 +345,20 @@ void AC_AttitudeControl_Multi::rate_controller_run()
     // move throttle vs attitude mixing towards desired (called from here because this is conveniently called on every iteration)
     update_throttle_rpy_mix();
 
-    _rate_target_ang_vel += _rate_sysid_ang_vel;
+    _ang_vel_body += _sysid_ang_vel_body;
 
     Vector3f gyro_latest = _ahrs.get_gyro_latest();
 
-    _motors.set_roll(get_rate_roll_pid().update_all(_rate_target_ang_vel.x, gyro_latest.x, _motors.limit.roll) + _actuator_sysid.x);
+    _motors.set_roll(get_rate_roll_pid().update_all(_ang_vel_body.x, gyro_latest.x, _motors.limit.roll) + _actuator_sysid.x);
     _motors.set_roll_ff(get_rate_roll_pid().get_ff());
 
-    _motors.set_pitch(get_rate_pitch_pid().update_all(_rate_target_ang_vel.y, gyro_latest.y, _motors.limit.pitch) + _actuator_sysid.y);
+    _motors.set_pitch(get_rate_pitch_pid().update_all(_ang_vel_body.y, gyro_latest.y, _motors.limit.pitch) + _actuator_sysid.y);
     _motors.set_pitch_ff(get_rate_pitch_pid().get_ff());
 
-    _motors.set_yaw(get_rate_yaw_pid().update_all(_rate_target_ang_vel.z, gyro_latest.z, _motors.limit.yaw) + _actuator_sysid.z);
+    _motors.set_yaw(get_rate_yaw_pid().update_all(_ang_vel_body.z, gyro_latest.z, _motors.limit.yaw) + _actuator_sysid.z);
     _motors.set_yaw_ff(get_rate_yaw_pid().get_ff()*_feedforward_scalar);
 
-    _rate_sysid_ang_vel.zero();
+    _sysid_ang_vel_body.zero();
     _actuator_sysid.zero();
 
     control_monitor_update();
@@ -332,18 +368,18 @@ void AC_AttitudeControl_Multi::rate_controller_run()
 void AC_AttitudeControl_Multi::parameter_sanity_check()
 {
     // sanity check throttle mix parameters
-    if (_thr_mix_man < 0.1f || _thr_mix_man > 4.0f) {
+    if (_thr_mix_man < 0.1f || _thr_mix_man > AC_ATTITUDE_CONTROL_MAN_LIMIT) {
         // parameter description recommends thr-mix-man be no higher than 0.9 but we allow up to 4.0
         // which can be useful for very high powered copters with very low hover throttle
-        _thr_mix_man.set_and_save(AC_ATTITUDE_CONTROL_MAN_DEFAULT);
+        _thr_mix_man.set_and_save(constrain_float(_thr_mix_man, 0.1, AC_ATTITUDE_CONTROL_MAN_LIMIT));
     }
-    if (_thr_mix_min < 0.1f || _thr_mix_min > 0.25f) {
-        _thr_mix_min.set_and_save(AC_ATTITUDE_CONTROL_MIN_DEFAULT);
+    if (_thr_mix_min < 0.1f || _thr_mix_min > AC_ATTITUDE_CONTROL_MIN_LIMIT) {
+        _thr_mix_min.set_and_save(constrain_float(_thr_mix_min, 0.1, AC_ATTITUDE_CONTROL_MIN_LIMIT));
     }
     if (_thr_mix_max < 0.5f || _thr_mix_max > AC_ATTITUDE_CONTROL_MAX) {
         // parameter description recommends thr-mix-max be no higher than 0.9 but we allow up to 5.0
         // which can be useful for very high powered copters with very low hover throttle
-        _thr_mix_max.set_and_save(AC_ATTITUDE_CONTROL_MAX_DEFAULT);
+        _thr_mix_max.set_and_save(constrain_float(_thr_mix_max, 0.5, AC_ATTITUDE_CONTROL_MAX));
     }
     if (_thr_mix_min > _thr_mix_max) {
         _thr_mix_min.set_and_save(AC_ATTITUDE_CONTROL_MIN_DEFAULT);

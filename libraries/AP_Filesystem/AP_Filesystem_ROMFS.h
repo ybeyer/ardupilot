@@ -21,7 +21,7 @@ class AP_Filesystem_ROMFS : public AP_Filesystem_Backend
 {
 public:
     // functions that closely match the equivalent posix calls
-    int open(const char *fname, int flags) override;
+    int open(const char *fname, int flags, bool allow_absolute_paths = false) override;
     int close(int fd) override;
     int32_t read(int fd, void *buf, uint32_t count) override;
     int32_t write(int fd, const void *buf, uint32_t count) override;
@@ -43,6 +43,14 @@ public:
     // set modification time on a file
     bool set_mtime(const char *filename, const uint32_t mtime_sec) override;
 
+    /*
+      load a full file. Use delete to free the data
+     */
+    FileData *load_file(const char *filename) override;
+
+    // unload data from load_file()
+    void unload_file(FileData *fd) override;
+    
 private:
     // only allow up to 4 files at a time
     static constexpr uint8_t max_open_file = 4;

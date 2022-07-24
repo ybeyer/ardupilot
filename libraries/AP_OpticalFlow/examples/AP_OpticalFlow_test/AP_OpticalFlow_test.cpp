@@ -27,11 +27,13 @@ public:
     AP_InertialSensor ins;
     AP_SerialManager serial_manager;
     RangeFinder sonar;
-    AP_AHRS_NavEKF ahrs{AP_AHRS_NavEKF::FLAG_ALWAYS_USE_EKF};
+    AP_AHRS ahrs{AP_AHRS::FLAG_ALWAYS_USE_EKF};
 };
 
 static DummyVehicle vehicle;
+#if AP_OPTICALFLOW_ENABLED
 static OpticalFlow optflow;
+#endif
 
 void setup()
 {
@@ -39,12 +41,16 @@ void setup()
 
     hal.scheduler->delay(1000);
 
+#if AP_OPTICALFLOW_ENABLED
     // flowSensor initialization
     optflow.init(-1);
 
     if (!optflow.healthy()) {
-        hal.console->printf("Failed to initialise PX4Flow ");
+        hal.console->printf("Failed to initialise OpticalFlow");
     }
+#else
+    hal.console->printf("OpticalFlow compiled out");
+#endif
 
     hal.scheduler->delay(1000);
 }

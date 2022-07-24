@@ -99,6 +99,7 @@ protected:
     bool reverse_elevator_rudder;
     bool ice_engine;
     bool tailsitter;
+    bool copter_tailsitter;
     bool have_launcher;
     float launch_accel;
     float launch_time;
@@ -114,14 +115,15 @@ protected:
         choke_servo,
         ignition_servo,
         starter_servo,
-        slewrate
+        slewrate,
+        true
     };
 
     float liftCoeff(float alpha) const;
     float dragCoeff(float alpha) const;
     Vector3f getForce(float inputAileron, float inputElevator, float inputRudder) const;
     Vector3f getTorque(float inputAileron, float inputElevator, float inputRudder, float inputThrust, const Vector3f &force) const;
-    void calculate_forces(const struct sitl_input &input, Vector3f &rot_accel, Vector3f &body_accel);
+    void calculate_forces(const struct sitl_input &input, Vector3f &rot_accel);
 };
 
 } // namespace SITL

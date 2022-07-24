@@ -19,6 +19,10 @@
 #include <AP_HAL/AP_HAL.h>
 #include "NotifyDevice.h"
 
+#ifndef HAL_OREO_LED_ENABLED
+#define HAL_OREO_LED_ENABLED 0
+#endif
+
 #define OREOLED_NUM_LEDS        4       // maximum number of individual LEDs connected to the oreo led cpu
 #define OREOLED_INSTANCE_ALL    0xff    // instance number to indicate all LEDs (used for set_rgb and set_macro)
 #define OREOLED_BRIGHT          0xff    // maximum brightness when flying (disconnected from usb)
@@ -164,7 +168,7 @@ private:
                      uint8_t new_blue, uint8_t new_amplitude_red, uint8_t new_amplitude_green, uint8_t new_amplitude_blue,
                      uint16_t new_period, uint16_t new_phase_offset);
 
-        bool operator==(const oreo_state &os);
+        bool operator==(const oreo_state &os) const;
     };
 
     typedef struct {
@@ -196,4 +200,3 @@ private:
     uint32_t _last_boot_ms;
     uint32_t _last_sync_ms;
 };
-

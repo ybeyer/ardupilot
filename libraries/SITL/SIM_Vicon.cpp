@@ -24,6 +24,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+extern const AP_HAL::HAL& hal;
+
 using namespace SITL;
 
 Vicon::Vicon() :
@@ -68,7 +70,7 @@ bool Vicon::get_free_msg_buf_index(uint8_t &index)
 }
 
 void Vicon::update_vicon_position_estimate(const Location &loc,
-                                           const Vector3f &position,
+                                           const Vector3d &position,
                                            const Vector3f &velocity,
                                            const Quaternion &attitude)
 {
@@ -88,8 +90,8 @@ void Vicon::update_vicon_position_estimate(const Location &loc,
             uint8_t buf[300];
             uint16_t buf_len = mavlink_msg_to_send_buffer(buf, &msg_buf[i].obs_msg);
 
-            if (::write(fd_my_end, (void*)&buf, buf_len) != buf_len) {
-                ::fprintf(stderr, "Vicon: write failure\n");
+            if (write_to_autopilot((char*)&buf, buf_len) != buf_len) {
+                hal.console->printf("Vicon: write failure\n");
             }
             msg_buf[i].time_send_us = 0;
         }
@@ -122,7 +124,7 @@ void Vicon::update_vicon_position_estimate(const Location &loc,
     Vector3f pos_offset_ef = rot * pos_offset;
 
     // add earth frame sensor offset and glitch to position
-    Vector3f pos_corrected = position + pos_offset_ef + _sitl->vicon_glitch.get();
+    Vector3d pos_corrected = position + (pos_offset_ef + _sitl->vicon_glitch.get()).todouble();
 
     // calculate a velocity offset due to the antenna position offset and body rotation rate
     // note: % operator is overloaded for cross product
@@ -140,10 +142,10 @@ void Vicon::update_vicon_position_estimate(const Location &loc,
     if (vicon_yaw_deg != 0) {
         const float vicon_yaw_rad = radians(vicon_yaw_deg);
         yaw = wrap_PI(yaw - vicon_yaw_rad);
-        Matrix3f vicon_yaw_rot;
+        Matrix3d vicon_yaw_rot;
         vicon_yaw_rot.from_euler(0, 0, -vicon_yaw_rad);
         pos_corrected = vicon_yaw_rot * pos_corrected;
-        vel_corrected = vicon_yaw_rot * vel_corrected;
+        vel_corrected = vicon_yaw_rot.tofloat() * vel_corrected;
     }
 
     // add yaw error reported to vehicle
@@ -204,12 +206,82 @@ void Vicon::update_vicon_position_estimate(const Location &loc,
             NULL, 0);
         msg_buf[msg_buf_index].time_send_us = time_send_us;
     }
+
+
+    // send ODOMETRY message
+    if (should_send(ViconTypeMask::ODOMETRY) && get_free_msg_buf_index(msg_buf_index)) {
+        mavlink_msg_odometry_pack_chan(
+            system_id,
+            component_id,
+            mavlink_ch,
+            &msg_buf[msg_buf_index].obs_msg,
+            now_us + time_offset_us,
+            MAV_FRAME_LOCAL_FRD,
+            MAV_FRAME_BODY_FRD,
+            pos_corrected.x,
+            pos_corrected.y,
+            pos_corrected.z,
+            &attitude[0],
+            vel_corrected.x,
+            vel_corrected.y,
+            vel_corrected.z,
+            gyro.x,
+            gyro.y,
+            gyro.z,
+            NULL, NULL,
+            0,
+            MAV_ESTIMATOR_TYPE_VIO);
+        msg_buf[msg_buf_index].time_send_us = time_send_us;
+    }
+
+    // determine time, position, and angular deltas
+    uint64_t time_delta = now_us - last_observation_usec;
+
+    Quaternion attitude_curr;                   // Rotation to current MAV_FRAME_BODY_FRD from MAV_FRAME_LOCAL_NED
+    attitude_curr.from_euler(roll, pitch, yaw); // Rotation to MAV_FRAME_LOCAL_NED from current MAV_FRAME_BODY_FRD
+    attitude_curr.invert();
+
+    Quaternion attitude_curr_prev = attitude_curr * _attitude_prev.inverse(); // Get rotation to current MAV_FRAME_BODY_FRD from previous MAV_FRAME_BODY_FRD
+    float angle_delta[3] = {attitude_curr_prev.get_euler_roll(),
+                            attitude_curr_prev.get_euler_pitch(),
+                            attitude_curr_prev.get_euler_yaw()};
+
+    Matrix3f body_ned_m;
+    attitude_curr.rotation_matrix(body_ned_m);
+
+    Vector3f pos_delta = body_ned_m * (pos_corrected - _position_prev).tofloat();
+    float postion_delta[3] = {pos_delta.x, pos_delta.y, pos_delta.z};
+
+    // send vision position delta
+    // time_usec: (usec) Current time stamp
+    // time_delta_usec: (usec) Time since last reported camera frame
+    // angle_delta [3]: (radians) Roll, pitch, yaw angles that define rotation to current MAV_FRAME_BODY_FRD from previous MAV_FRAME_BODY_FRD
+    // delta_position [3]: (meters) Change in position: To current position from previous position rotated to current MAV_FRAME_BODY_FRD from MAV_FRAME_LOCAL_NED
+    // confidence: Normalized confidence level [0, 100]
+    if (should_send(ViconTypeMask::VISION_POSITION_DELTA) && get_free_msg_buf_index(msg_buf_index)) {
+        mavlink_msg_vision_position_delta_pack_chan(
+            system_id,
+            component_id,
+            mavlink_ch,
+            &msg_buf[msg_buf_index].obs_msg,
+            now_us + time_offset_us,
+            time_delta,
+            angle_delta,
+            postion_delta,
+            0.0f);
+        msg_buf[msg_buf_index].time_send_us = time_send_us;
+    }
+
+    // set previous position & attitude
+    last_observation_usec = now_us;
+    _position_prev = pos_corrected;
+    _attitude_prev = attitude_curr;
 }
 
 /*
   update vicon sensor state
  */
-void Vicon::update(const Location &loc, const Vector3f &position, const Vector3f &velocity, const Quaternion &attitude)
+void Vicon::update(const Location &loc, const Vector3d &position, const Vector3f &velocity, const Quaternion &attitude)
 {
     if (!init_sitl_pointer()) {
         return;
@@ -218,4 +290,3 @@ void Vicon::update(const Location &loc, const Vector3f &position, const Vector3f
     maybe_send_heartbeat();
     update_vicon_position_estimate(loc, position, velocity, attitude);
 }
-

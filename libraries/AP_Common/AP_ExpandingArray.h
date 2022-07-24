@@ -83,12 +83,12 @@ class AP_ExpandingArray : public AP_ExpandingArrayGeneric
 {
 public:
 
-    AP_ExpandingArray<T>(uint16_t elements_per_chunk) :
+    AP_ExpandingArray(uint16_t elements_per_chunk) :
         AP_ExpandingArrayGeneric(sizeof(T), elements_per_chunk)
     {}
 
     /* Do not allow copies */
-    AP_ExpandingArray<T>(const AP_ExpandingArray<T> &other) = delete;
+    AP_ExpandingArray(const AP_ExpandingArray<T> &other) = delete;
     AP_ExpandingArray<T> &operator=(const AP_ExpandingArray<T>&) = delete;
 
     // allow use as an array for assigning to elements. no bounds checking is performed
@@ -99,7 +99,7 @@ public:
         #pragma GCC diagnostic push
         #pragma GCC diagnostic ignored "-Wcast-align"
         T *el_array = (T *)chunk_ptrs[chunk_num];
-        #pragma pop
+        #pragma GCC diagnostic pop
         return el_array[chunk_index];
     }
 
@@ -111,7 +111,7 @@ public:
         #pragma GCC diagnostic push
         #pragma GCC diagnostic ignored "-Wcast-align"
         const T *el_array = (const T *)chunk_ptrs[chunk_num];
-        #pragma pop
+        #pragma GCC diagnostic pop
         return el_array[chunk_index];
     }
 };

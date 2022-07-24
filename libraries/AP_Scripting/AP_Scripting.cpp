@@ -33,8 +33,8 @@
 #endif // !defined(SCRIPTING_STACK_MAX_SIZE)
 
 #if !defined(SCRIPTING_HEAP_SIZE)
-  #if CONFIG_HAL_BOARD == HAL_BOARD_SITL || CONFIG_HAL_BOARD == HAL_BOARD_LINUX
-    #define SCRIPTING_HEAP_SIZE (64 * 1024)
+  #if CONFIG_HAL_BOARD == HAL_BOARD_SITL || CONFIG_HAL_BOARD == HAL_BOARD_LINUX || HAL_MEM_CLASS >= HAL_MEM_CLASS_500
+    #define SCRIPTING_HEAP_SIZE (100 * 1024)
   #else
     #define SCRIPTING_HEAP_SIZE (43 * 1024)
   #endif
@@ -42,6 +42,10 @@
 
 static_assert(SCRIPTING_STACK_SIZE >= SCRIPTING_STACK_MIN_SIZE, "Scripting requires a larger minimum stack size");
 static_assert(SCRIPTING_STACK_SIZE <= SCRIPTING_STACK_MAX_SIZE, "Scripting requires a smaller stack size");
+
+#ifndef SCRIPTING_ENABLE_DEFAULT
+#define SCRIPTING_ENABLE_DEFAULT 0
+#endif
 
 extern const AP_HAL::HAL& hal;
 
@@ -52,7 +56,7 @@ const AP_Param::GroupInfo AP_Scripting::var_info[] = {
     // @Values: 0:None,1:Lua Scripts
     // @RebootRequired: True
     // @User: Advanced
-    AP_GROUPINFO_FLAGS("ENABLE", 1, AP_Scripting, _enable, 0, AP_PARAM_FLAG_ENABLE),
+    AP_GROUPINFO_FLAGS("ENABLE", 1, AP_Scripting, _enable, SCRIPTING_ENABLE_DEFAULT, AP_PARAM_FLAG_ENABLE),
 
     // @Param: VM_I_COUNT
     // @DisplayName: Scripting Virtual Machine Instruction Count
@@ -71,11 +75,12 @@ const AP_Param::GroupInfo AP_Scripting::var_info[] = {
     // @RebootRequired: True
     AP_GROUPINFO("HEAP_SIZE", 3, AP_Scripting, _script_heap_size, SCRIPTING_HEAP_SIZE),
 
-    // @Param: DEBUG_LVL
+    // @Param: DEBUG_OPTS
     // @DisplayName: Scripting Debug Level
-    // @Description: The higher the number the more verbose builtin scripting debug will be.
+    // @Description: Debugging options
+    // @Bitmask: 0:No Scripts to run message if all scripts have stopped, 1:Runtime messages for memory usage and execution time, 2:Suppress logging scripts to dataflash, 3:log runtime memory usage and execution time
     // @User: Advanced
-    AP_GROUPINFO("DEBUG_LVL", 4, AP_Scripting, _debug_level, 0),
+    AP_GROUPINFO("DEBUG_OPTS", 4, AP_Scripting, _debug_options, 0),
 
     // @Param: USER1
     // @DisplayName: Scripting User Parameter1
@@ -101,6 +106,26 @@ const AP_Param::GroupInfo AP_Scripting::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("USER4", 8, AP_Scripting, _user[3], 0.0),
 
+    // @Param: USER5
+    // @DisplayName: Scripting User Parameter5
+    // @Description: General purpose user variable input for scripts
+    // @User: Standard
+    AP_GROUPINFO("USER5", 10, AP_Scripting, _user[4], 0.0),
+
+    // @Param: USER6
+    // @DisplayName: Scripting User Parameter6
+    // @Description: General purpose user variable input for scripts
+    // @User: Standard
+    AP_GROUPINFO("USER6", 11, AP_Scripting, _user[5], 0.0),
+    
+    // @Param: DIR_DISABLE
+    // @DisplayName: Directory disable
+    // @Description: This will stop scripts being loaded from the given locations
+    // @Bitmask: 0:ROMFS, 1:APM/scripts
+    // @RebootRequired: True
+    // @User: Advanced
+    AP_GROUPINFO("DIR_DISABLE", 9, AP_Scripting, _dir_disable, 0),
+
     AP_GROUPEND
 };
 
@@ -124,7 +149,6 @@ void AP_Scripting::init(void) {
     if (AP::FS().mkdir(dir_name)) {
         if (errno != EEXIST) {
             gcs().send_text(MAV_SEVERITY_INFO, "Lua: failed to create (%s)", dir_name);
-            return;
         }
     }
 
@@ -142,6 +166,14 @@ MAV_RESULT AP_Scripting::handle_command_int_packet(const mavlink_command_int_t &
             return repl_start() ? MAV_RESULT_ACCEPTED : MAV_RESULT_FAILED;
         case SCRIPTING_CMD_REPL_STOP:
             repl_stop();
+            return MAV_RESULT_ACCEPTED;
+        case SCRIPTING_CMD_STOP:
+            _restart = false;
+            _stop = true;
+            return MAV_RESULT_ACCEPTED;
+        case SCRIPTING_CMD_STOP_AND_RESTART:
+            _restart = true;
+            _stop = true;
             return MAV_RESULT_ACCEPTED;
         case SCRIPTING_CMD_ENUM_END: // cope with MAVLink generator appending to our enum
             break;
@@ -186,17 +218,67 @@ void AP_Scripting::repl_stop(void) {
 }
 
 void AP_Scripting::thread(void) {
-    lua_scripts *lua = new lua_scripts(_script_vm_exec_count, _script_heap_size, _debug_level, terminal);
-    if (lua == nullptr || !lua->heap_allocated()) {
-        gcs().send_text(MAV_SEVERITY_CRITICAL, "Unable to allocate scripting memory");
+    while (true) {
+        // reset flags
+        _stop = false;
+        _restart = false;
+
+        lua_scripts *lua = new lua_scripts(_script_vm_exec_count, _script_heap_size, _debug_options, terminal);
+        if (lua == nullptr || !lua->heap_allocated()) {
+            gcs().send_text(MAV_SEVERITY_CRITICAL, "Unable to allocate scripting memory");
+            _init_failed = true;
+        } else {
+            // run won't return while scripting is still active
+            lua->run();
+
+            // only reachable if the lua backend has died for any reason
+            gcs().send_text(MAV_SEVERITY_CRITICAL, "Scripting has stopped");
+        }
         delete lua;
-        _init_failed = true;
+
+        bool cleared = false;
+        while(true) {
+            // 1hz check if we should restart
+            hal.scheduler->delay(1000);
+            if (!enabled()) {
+                // enable must be put to 0 and back to 1 to restart from params
+                cleared = true;
+                continue;
+            }
+            // must be enabled to get this far
+            if (cleared || _restart) {
+                gcs().send_text(MAV_SEVERITY_CRITICAL, "Scripting restarted");
+                break;
+            }
+            if ((_debug_options.get() & uint8_t(lua_scripts::DebugLevel::NO_SCRIPTS_TO_RUN)) != 0) {
+                gcs().send_text(MAV_SEVERITY_DEBUG, "Lua: scripting stopped");
+            }
+        }
+    }
+}
+
+void AP_Scripting::handle_mission_command(const AP_Mission::Mission_Command& cmd_in)
+{
+    if (!_enable) {
         return;
     }
-    lua->run();
 
-    // only reachable if the lua backend has died for any reason
-    gcs().send_text(MAV_SEVERITY_CRITICAL, "Scripting has stopped");
+    if (mission_data == nullptr) {
+        // load buffer
+        mission_data = new ObjectBuffer<struct AP_Scripting::scripting_mission_cmd>(mission_cmd_queue_size);
+        if (mission_data == nullptr) {
+            gcs().send_text(MAV_SEVERITY_INFO, "scripting: unable to receive mission command");
+            return;
+        }
+    }
+
+    struct scripting_mission_cmd cmd {cmd_in.p1,
+                                      cmd_in.content.scripting.p1,
+                                      cmd_in.content.scripting.p2,
+                                      cmd_in.content.scripting.p3,
+                                      AP_HAL::millis()};
+
+    mission_data->push(cmd);
 }
 
 AP_Scripting *AP_Scripting::_singleton = nullptr;

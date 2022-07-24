@@ -49,23 +49,23 @@ last_read_s = time.time()
 msp = pymsp.PyMSP()
 
 pygame.init()
-  
-# define the RGB value for white, 
-#  green, blue colour . 
-white = (255, 255, 255) 
-green = (0, 255, 0) 
-blue = (0, 0, 128) 
+
+# define the RGB value for white,
+#  green, blue colour .
+white = (255, 255, 255)
+green = (0, 255, 0)
+blue = (0, 0, 128)
 black = (0, 0 ,0)
-  
+
 # window size
 FontWidth = 25
 FontHeight = 25
 
 WindowWidth = 27 * FontWidth
 WindowHeight = 16 * FontHeight
-  
-# create the display surface object 
-# of specific dimension..e(X, Y). 
+
+# create the display surface object
+# of specific dimension..e(X, Y).
 display_surface = pygame.display.set_mode((WindowWidth,WindowHeight))
 
 # set the pygame window name
@@ -107,7 +107,7 @@ def draw_batt_icon(x, y):
     pygame.draw.rect(display_surface, (255, 255, 255), (x, y+3, 8, 14))
 
 def draw_triangle(x, y, r, angle):
-    a = angle -90 
+    a = angle -90
     ra = math.radians(a)
     x1 = int(x + r * math.cos(ra))
     y1 = int(y + r * math.sin(ra))
@@ -170,12 +170,12 @@ def display_cell_voltage():
     (X,Y) = XY
     px = X * FontWidth
     py = Y * FontHeight
-    display_text(msp.OSD_AVG_CELL_VOLTAGE, "%.02fv" % (0 if msp.get('BATTERY_STATE.cellCount')==0 else msp.get('BATTERY_STATE.voltage')/msp.get('BATTERY_STATE.cellCount')*0.1), 12)
+    display_text(msp.OSD_AVG_CELL_VOLTAGE, "%.02fv" % (0 if msp.get('BATTERY_STATE.cellCount')==0 else msp.get('BATTERY_STATE.voltage_cv')/msp.get('BATTERY_STATE.cellCount')*0.01), 12)
     draw_batt_icon(px,py-6)
 
 def display_all():
     '''display all items'''
-    
+
     '''
     _osd_item_settings[OSD_RSSI_VALUE] = &osd->screen[0].rssi;
     _osd_item_settings[OSD_MAIN_BATT_VOLTAGE] = &osd->screen[0].bat_volt;
@@ -212,10 +212,10 @@ def display_all():
     display_text(msp.OSD_GPS_LAT, "Lat:%.07f" % (msp.get('RAW_GPS.Lat')*0.0000001))
     display_text(msp.OSD_GPS_LON, "Lon:%.07f" % (msp.get('RAW_GPS.Lon')*0.0000001))
     display_text(msp.OSD_RTC_DATETIME, "%04d-%02d-%02d %02d:%02d:%02d" % (msp.get('RTC.year'),msp.get('RTC.mon'),msp.get('RTC.mday'),msp.get('RTC.hour'),msp.get('RTC.min'),msp.get('RTC.sec')))
-    display_text(msp.OSD_DISARMED, "%s" % ("ARMED" if msp.get('STATUS.mode_flags')&0X01==1 else "DISARMED"))
+    display_text(msp.OSD_DISARMED, "%s" % ("" if msp.get('STATUS.mode_flags')&0X01==1 else "DISARMED"))
     display_homedir()
     display_text(msp.OSD_HOME_DIST, "Dist: %dm" % (msp.get('COMP_GPS.distanceToHome')))
-    display_text(msp.OSD_RSSI_VALUE, "Rssi:%02d" % (msp.get('ANALOG.rssi')))
+    display_text(msp.OSD_RSSI_VALUE, "Rssi:%02d" % (msp.get('ANALOG.rssi') * 0.097))
     display_text(msp.OSD_GPS_SPEED, "%.1fm/s" % (msp.get('RAW_GPS.Speed')*0.01))
     display_text(msp.OSD_GPS_SATS, "Sats:%u" % msp.get("RAW_GPS.numSat"))
     display_text(msp.OSD_ROLL_ANGLE, "Roll:%.1f" % (msp.get("ATTITUDE.roll")*0.1))
@@ -264,7 +264,7 @@ def run():
             display_all()
             pygame.display.update()
             time.sleep(0.01)
-    
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -274,4 +274,3 @@ try:
     run()
 except KeyboardInterrupt:
     pass
-

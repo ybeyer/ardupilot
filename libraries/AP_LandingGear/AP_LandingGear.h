@@ -76,8 +76,8 @@ public:
     /// set landing gear position to retract, deploy or deploy-and-keep-deployed
     void set_position(LandingGearCommand cmd);
     
-    uint32_t get_gear_state_duration_ms();
-    uint32_t get_wow_state_duration_ms();
+    uint32_t get_gear_state_duration_ms() const;
+    uint32_t get_wow_state_duration_ms() const;
 
     static const struct AP_Param::GroupInfo        var_info[];
     
@@ -91,6 +91,7 @@ public:
 
 private:
     // Parameters
+    AP_Int8     _enable;
     AP_Int8     _startup_behaviour;     // start-up behaviour (see LandingGearStartupBehaviour)
     
     AP_Int8     _pin_deployed;

@@ -22,10 +22,10 @@ const AP_Param::GroupInfo AC_HELI_PID::var_info[] = {
 
     // 3 was for uint16 IMAX
 
-    // @Param: VFF
-    // @DisplayName: Velocity FF FeedForward Gain
-    // @Description: Velocity FF Gain which produces an output value that is proportional to the demanded input
-    AP_GROUPINFO("VFF",    4, AC_HELI_PID, _kff, 0),
+    // @Param: FF
+    // @DisplayName: FF FeedForward Gain
+    // @Description: FF Gain which produces an output value that is proportional to the demanded input
+    AP_GROUPINFO("FF",    4, AC_HELI_PID, _kff, 0),
 
     // @Param: IMAX
     // @DisplayName: PID Integral Maximum
@@ -61,6 +61,14 @@ const AP_Param::GroupInfo AC_HELI_PID::var_info[] = {
     // @Units: Hz
     AP_GROUPINFO("FLTD", 11, AC_HELI_PID, _filt_D_hz, AC_PID_DFILT_HZ_DEFAULT),
 
+    // @Param: SMAX
+    // @DisplayName: Slew rate limit
+    // @Description: Sets an upper limit on the slew rate produced by the combined P and D gains. If the amplitude of the control action produced by the rate feedback exceeds this value, then the D+P gain is reduced to respect the limit. This limits the amplitude of high frequency oscillations caused by an excessive gain. The limit should be set to no more than 25% of the actuators maximum slew rate to allow for load effects. Note: The gain will not be reduced to less than 10% of the nominal value. A value of zero will disable this feature.
+    // @Range: 0 200
+    // @Increment: 0.5
+    // @User: Advanced
+    AP_GROUPINFO("SMAX", 12, AC_HELI_PID, _slew_rate_max, 0),
+
     AP_GROUPEND
 };
 
@@ -76,7 +84,7 @@ AC_HELI_PID::AC_HELI_PID(float initial_p, float initial_i, float initial_d, floa
 
 void AC_HELI_PID::update_leaky_i(float leak_rate)
 {
-    if(!is_zero(_ki) && !is_zero(_dt)){
+    if (!is_zero(_ki) && !is_zero(_dt)){
 
         // integrator does not leak down below Leak Min
         if (_integrator > _leak_min){

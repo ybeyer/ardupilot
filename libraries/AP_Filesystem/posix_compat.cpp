@@ -71,7 +71,7 @@ static int posix_fopen_modes_to_open(const char *mode)
     }
     if (modecmp(mode,"a+") || modecmp(mode, "a+b" ) || modecmp(mode, "ab+" )) {
         flag = O_RDWR | O_CREAT | O_APPEND;
-        return -1;
+        return flag;
     }
     return -1;
 }
@@ -107,7 +107,10 @@ int apfs_fprintf(APFS_FILE *stream, const char *fmt, ...)
 int apfs_fflush(APFS_FILE *stream)
 {
     CHECK_STREAM(stream, EOF);
-    return 0;
+    if (AP::FS().fsync(stream->fd) == 0) {
+        return 0;
+    }
+    return EOF;
 }
 
 size_t apfs_fread(void *ptr, size_t size, size_t nmemb, APFS_FILE *stream)
@@ -143,15 +146,14 @@ int apfs_fputs(const char *s, APFS_FILE *stream)
     return ret;
 }
 
+#undef fgets
 char *apfs_fgets(char *s, int size, APFS_FILE *stream)
 {
     CHECK_STREAM(stream, NULL);
-    ssize_t ret = AP::FS().read(stream->fd, s, size-1);
-    if (ret < 0) {
-        stream->error = true;
+    auto &fs = AP::FS();
+    if (!fs.fgets(s, size, stream->fd)) {
         return NULL;
     }
-    s[ret] = 0;
     return s;
 }
 

@@ -51,9 +51,16 @@ def _vehicle_index(vehicle):
         _vehicle_indexes[vehicle] = len(_vehicle_indexes) + 1
     return _vehicle_indexes[vehicle]
 
-_vehicle_macros = ('SKETCHNAME', 'SKETCH', 'APM_BUILD_DIRECTORY',
-                   'APM_BUILD_TYPE')
+# note that AP_NavEKF3_core.h is needed for AP_NavEKF3_feature.h
+_vehicle_macros = ['SKETCHNAME', 'SKETCH', 'APM_BUILD_DIRECTORY',
+                   'APM_BUILD_TYPE', 'APM_BUILD_COPTER_OR_HELI',
+                   'AP_NavEKF3_core.h', 'lua_generated_bindings.h']
 _macros_re = re.compile(r'\b(%s)\b' % '|'.join(_vehicle_macros))
+
+# some cpp files are not available at the time we run this check so need to be
+# unilaterally added
+_vehicle_cpp_need_macros = ['lua_generated_bindings.cpp']
+_macros_cpp_re = re.compile(r'\b(%s)\b' % '|'.join(_vehicle_cpp_need_macros))
 
 def _remove_comments(s):
     return c_preproc.re_cpp.sub(c_preproc.repl, s)
@@ -64,12 +71,16 @@ def _depends_on_vehicle(bld, source_node):
 
     if not bld.env.BUILDROOT:
         bld.env.BUILDROOT = bld.bldnode.make_node('').abspath()
-    if path.startswith(bld.env.BUILDROOT) or path.startswith("build/"):
-        _depends_on_vehicle_cache[path] = False
+
+    if _macros_cpp_re.search(path) is not None:
+        _depends_on_vehicle_cache[path] = True
 
     if path not in _depends_on_vehicle_cache:
-        s = _remove_comments(source_node.read())
-        _depends_on_vehicle_cache[path] = _macros_re.search(s) is not None
+        try:
+            s = _remove_comments(source_node.read())
+            _depends_on_vehicle_cache[path] = _macros_re.search(s) is not None
+        except Exception:
+            return False
 
     return _depends_on_vehicle_cache[path]
 
@@ -128,7 +139,7 @@ def ap_library(bld, library, vehicle):
         kw.update(
             name=_vehicle_tgen_name(library, vehicle),
             source=source,
-            defines=ap.get_legacy_defines(vehicle),
+            defines=ap.get_legacy_defines(vehicle, bld),
             idx=_vehicle_index(vehicle),
         )
         bld.objects(**kw)
@@ -152,6 +163,9 @@ class ap_library_check_headers(Task.Task):
     whitelist = (
         'libraries/AP_Vehicle/AP_Vehicle_Type.h',
         'libraries/AP_Camera/AP_RunCam.h',
+        'libraries/AP_Common/AP_FWVersionDefine.h',
+        'libraries/AP_Scripting/lua_generated_bindings.h',
+        'libraries/AP_NavEKF3/AP_NavEKF3_feature.h',
     )
     whitelist = tuple(os.path.join(*p.split('/')) for p in whitelist)
 
@@ -189,7 +203,19 @@ class ap_library_check_headers(Task.Task):
             p = n.abspath()
             if not p.startswith(srcnode_path):
                 continue
-            if os.path.relpath(p, srcnode_path) in self.whitelist:
+            rel_p = os.path.relpath(p, srcnode_path)
+            if rel_p in self.whitelist:
+                continue
+
+            # check if the path ends with something in the white list
+            # this is required for white listing files in 'build/' (for scripting generated bindings)
+            found = False
+            for m in self.whitelist:
+                if rel_p.endswith(m):
+                    found = True
+                    break
+            
+            if found:
                 continue
 
             r.append(n)
@@ -224,7 +250,26 @@ def double_precision_check(tasks):
                     t.env.CXXFLAGS.remove(single_precision_option)
                 t.env.CXXFLAGS.append("-DALLOW_DOUBLE_MATH_FUNCTIONS")
 
-    
+
+def gsoap_library_check(bld, tasks):
+    '''check for tasks marked as gSOAP library source'''
+
+    for t in tasks:
+        if len(t.inputs) == 1:
+            gsoap_tasks = []
+            for s in t.env.AP_LIB_EXTRA_SOURCES["AP_ONVIF"]:
+                gsoap_tasks.append(bld.bldnode.find_or_declare(os.path.join('libraries', "AP_ONVIF", s)))
+
+            if t.inputs[0] in gsoap_tasks:
+                t.env.CXXFLAGS += [
+                    '-Wno-shadow',
+                ]
+                if 'clang++' not in t.env.COMPILER_CXX:
+                    t.env.CXXFLAGS += [
+                        '-Wno-suggest-override',
+                    ]
+
+
 @feature('ap_library_object')
 @after_method('process_source')
 def ap_library_register_for_check(self):
@@ -232,6 +277,8 @@ def ap_library_register_for_check(self):
         return
 
     double_precision_check(self.compiled_tasks)
+    if self.env.ENABLE_ONVIF:
+        gsoap_library_check(self.bld, self.compiled_tasks)
 
     if not self.env.ENABLE_HEADER_CHECKS:
         return

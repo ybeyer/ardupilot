@@ -78,9 +78,6 @@ bool Copter::set_home(const Location& loc, bool lock)
 
     // init inav and compass declination
     if (!home_was_set) {
-        // record home is set
-        AP::logger().Write_Event(LogEvent::SET_HOME);
-
 #if MODE_AUTO_ENABLED == ENABLED
         // log new home position which mission library will pull from ahrs
         if (should_log(MASK_LOG_CMD)) {
@@ -107,8 +104,10 @@ bool Copter::far_from_EKF_origin(const Location& loc)
 {
     // check distance to EKF origin
     Location ekf_origin;
-    if (ahrs.get_origin(ekf_origin) && (ekf_origin.get_distance(loc) > EKF_ORIGIN_MAX_DIST_M)) {
-        return true;
+    if (ahrs.get_origin(ekf_origin)) {
+        if (labs(ekf_origin.alt - loc.alt)*0.01 > EKF_ORIGIN_MAX_ALT_KM*1000.0) {
+            return true;
+        }
     }
 
     // close enough to origin

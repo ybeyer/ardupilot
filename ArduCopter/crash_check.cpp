@@ -12,6 +12,10 @@
 #define THRUST_LOSS_CHECK_ANGLE_DEVIATION_CD  1500  // we can't expect to maintain altitude beyond 15 degrees on all aircraft
 #define THRUST_LOSS_CHECK_MINIMUM_THROTTLE    0.9f  // we can expect to maintain altitude above 90 % throttle
 
+// Yaw imbalance check
+#define YAW_IMBALANCE_IMAX_THRESHOLD 0.75f
+#define YAW_IMBALANCE_WARN_MS 10000
+
 // crash_check - disarms motors if a crash has been detected
 // crashes are detected by the vehicle being more than 20 degrees beyond it's angle limits continuously for more than 1 second
 // called at MAIN_LOOP_RATE
@@ -31,15 +35,21 @@ void Copter::crash_check()
         return;
     }
 
+    // exit immediately if in force flying
+    if (force_flying && !flightmode->is_landing()) {
+        crash_counter = 0;
+        return;
+    }
+
     // return immediately if we are not in an angle stabilize flight mode or we are flipping
-    if (control_mode == Mode::Number::ACRO || control_mode == Mode::Number::FLIP) {
+    if (flightmode->mode_number() == Mode::Number::ACRO || flightmode->mode_number() == Mode::Number::FLIP) {
         crash_counter = 0;
         return;
     }
 
 #if MODE_AUTOROTATE_ENABLED == ENABLED
     //return immediately if in autorotation mode
-    if (control_mode == Mode::Number::AUTOROTATE) {
+    if (flightmode->mode_number() == Mode::Number::AUTOROTATE) {
         crash_counter = 0;
         return;
     }
@@ -79,8 +89,6 @@ void Copter::crash_check()
     // check if crashing for 2 seconds
     if (crash_counter >= (CRASH_CHECK_TRIGGER_SEC * scheduler.get_loop_rate_hz())) {
         AP::logger().Write_Error(LogErrorSubsystem::CRASH_CHECK, LogErrorCode::CRASH_CHECK_CRASH);
-        // keep logging even if disarmed:
-        AP::logger().set_force_log_disarmed(true);
         // send message to gcs
         gcs().send_text(MAV_SEVERITY_EMERGENCY,"Crash: Disarming: AngErr=%.0f>%.0f, Accel=%.1f<%.1f", angle_error, CRASH_CHECK_ANGLE_DEVIATION_DEG, filtered_acc, CRASH_CHECK_ACCEL_MAX);
         // disarm motors
@@ -92,6 +100,11 @@ void Copter::crash_check()
 void Copter::thrust_loss_check()
 {
     static uint16_t thrust_loss_counter;  // number of iterations vehicle may have been crashed
+
+    // no-op if suppresed by flight options param
+    if ((copter.g2.flight_options & uint32_t(FlightOptions::DISABLE_THRUST_LOSS_CHECK)) != 0) {
+        return;
+    }
 
     // exit immediately if thrust boost is already engaged
     if (motors->get_thrust_boost()) {
@@ -130,7 +143,7 @@ void Copter::thrust_loss_check()
     }
 
     // check for descent
-    if (!is_negative(inertial_nav.get_velocity_z())) {
+    if (!is_negative(inertial_nav.get_velocity_z_up_cms())) {
         thrust_loss_counter = 0;
         return;
     }
@@ -156,6 +169,63 @@ void Copter::thrust_loss_check()
         // enable thrust loss handling
         motors->set_thrust_boost(true);
         // the motors library disables this when it is no longer needed to achieve the commanded output
+
+#if GRIPPER_ENABLED == ENABLED
+        if ((copter.g2.flight_options & uint32_t(FlightOptions::RELEASE_GRIPPER_ON_THRUST_LOSS)) != 0) {
+            copter.g2.gripper.release();
+        }
+#endif
+    }
+}
+
+// check for a large yaw imbalance, could be due to badly calibrated ESC or misaligned motors
+void Copter::yaw_imbalance_check()
+{
+    // no-op if suppresed by flight options param
+    if ((copter.g2.flight_options & uint32_t(FlightOptions::DISABLE_YAW_IMBALANCE_WARNING)) != 0) {
+        return;
+    }
+
+    // If I is disabled it is unlikely that the issue is not obvious
+    if (!is_positive(attitude_control->get_rate_yaw_pid().kI())) {
+        return;
+    }
+
+    // thrust loss is triggered, yaw issues are expected
+    if (motors->get_thrust_boost()) {
+        yaw_I_filt.reset(0.0f);
+        return;
+    }
+
+    // return immediately if disarmed
+    if (!motors->armed() || ap.land_complete) {
+        yaw_I_filt.reset(0.0f);
+        return;
+    }
+
+    // exit immediately if in standby
+    if (standby_active) {
+        yaw_I_filt.reset(0.0f);
+        return;
+    }
+
+    // magnitude of low pass filtered I term
+    const float I_term = attitude_control->get_rate_yaw_pid().get_pid_info().I;
+    const float I = fabsf(yaw_I_filt.apply(attitude_control->get_rate_yaw_pid().get_pid_info().I,G_Dt));
+    if (I > fabsf(I_term)) {
+        // never allow to be larger than I
+        yaw_I_filt.reset(I_term);
+    }
+
+    const float I_max = attitude_control->get_rate_yaw_pid().imax();
+    if ((is_positive(I_max) && ((I > YAW_IMBALANCE_IMAX_THRESHOLD * I_max) || (is_equal(I_term,I_max))))) {
+        // filtered using over percentage of I max or unfiltered = I max
+        // I makes up more than percentage of total available control power
+        const uint32_t now = millis();
+        if (now - last_yaw_warn_ms > YAW_IMBALANCE_WARN_MS) {
+            last_yaw_warn_ms = now;
+            gcs().send_text(MAV_SEVERITY_EMERGENCY, "Yaw Imbalance %0.0f%%", I *100);
+        }
     }
 }
 
@@ -163,7 +233,7 @@ void Copter::thrust_loss_check()
 
 // Code to detect a crash main ArduCopter code
 #define PARACHUTE_CHECK_TRIGGER_SEC         1       // 1 second of loss of control triggers the parachute
-#define PARACHUTE_CHECK_ANGLE_DEVIATION_CD  3000    // 30 degrees off from target indicates a loss of control
+#define PARACHUTE_CHECK_ANGLE_DEVIATION_DEG 30.0f   // 30 degrees off from target indicates a loss of control
 
 // parachute_check - disarms motors and triggers the parachute if serious loss of control has been detected
 // vehicle is considered to have a "serious loss of control" by the vehicle being more than 30 degrees off from the target roll and pitch angles continuously for 1 second
@@ -177,6 +247,12 @@ void Copter::parachute_check()
     if (!parachute.enabled()) {
         return;
     }
+
+    // pass is_flying to parachute library
+    parachute.set_is_flying(!ap.land_complete);
+
+    // pass sink rate to parachute library
+    parachute.set_sink_rate(-inertial_nav.get_velocity_z_up_cms() * 0.01f);
 
     // exit immediately if in standby
     if (standby_active) {
@@ -192,8 +268,13 @@ void Copter::parachute_check()
         return;
     }
 
+    if (parachute.release_initiated()) {
+        copter.arming.disarm(AP_Arming::Method::PARACHUTE_RELEASE);
+        return;
+    }
+
     // return immediately if we are not in an angle stabilize flight mode or we are flipping
-    if (control_mode == Mode::Number::ACRO || control_mode == Mode::Number::FLIP) {
+    if (flightmode->mode_number() == Mode::Number::ACRO || flightmode->mode_number() == Mode::Number::FLIP) {
         control_loss_count = 0;
         return;
     }
@@ -209,9 +290,12 @@ void Copter::parachute_check()
         return;
     }
 
+    // trigger parachute release based on sink rate
+    parachute.check_sink_rate();
+
     // check for angle error over 30 degrees
     const float angle_error = attitude_control->get_att_error_angle_deg();
-    if (angle_error <= CRASH_CHECK_ANGLE_DEVIATION_DEG) {
+    if (angle_error <= PARACHUTE_CHECK_ANGLE_DEVIATION_DEG) {
         if (control_loss_count > 0) {
             control_loss_count--;
         }
@@ -242,9 +326,6 @@ void Copter::parachute_check()
         // release parachute
         parachute_release();
     }
-
-    // pass sink rate to parachute library
-    parachute.set_sink_rate(-inertial_nav.get_velocity_z() * 0.01);
 }
 
 // parachute_release - trigger the release of the parachute, disarm the motors and notify the user
@@ -256,8 +337,10 @@ void Copter::parachute_release()
     // release parachute
     parachute.release();
 
+#if LANDING_GEAR_ENABLED == ENABLED
     // deploy landing gear
     landinggear.set_position(AP_LandingGear::LandingGear_Deploy);
+#endif
 }
 
 // parachute_manual_release - trigger the release of the parachute, after performing some checks for pilot error

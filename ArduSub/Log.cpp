@@ -27,7 +27,7 @@ void Sub::Log_Write_Control_Tuning()
 {
     // get terrain altitude
     float terr_alt = 0.0f;
-#if AP_TERRAIN_AVAILABLE && AC_TERRAIN
+#if AP_TERRAIN_AVAILABLE
     terrain.height_above_terrain(terr_alt, true);
 #endif
 
@@ -38,13 +38,13 @@ void Sub::Log_Write_Control_Tuning()
         angle_boost         : attitude_control.angle_boost(),
         throttle_out        : motors.get_throttle(),
         throttle_hover      : motors.get_throttle_hover(),
-        desired_alt         : pos_control.get_alt_target() / 100.0f,
-        inav_alt            : inertial_nav.get_altitude() / 100.0f,
+        desired_alt         : pos_control.get_pos_target_z_cm() / 100.0f,
+        inav_alt            : inertial_nav.get_position_z_up_cm() * 0.01f,
         baro_alt            : barometer.get_altitude(),
         desired_rangefinder_alt   : (int16_t)target_rangefinder_alt,
         rangefinder_alt           : rangefinder_state.alt_cm,
         terr_alt            : terr_alt,
-        target_climb_rate   : (int16_t)pos_control.get_vel_target_z(),
+        target_climb_rate   : (int16_t)pos_control.get_vel_target_z_cms(),
         climb_rate          : climb_rate
     };
     logger.WriteBlock(&pkt, sizeof(pkt));
@@ -55,37 +55,9 @@ void Sub::Log_Write_Attitude()
 {
     Vector3f targets = attitude_control.get_att_target_euler_cd();
     targets.z = wrap_360_cd(targets.z);
-    logger.Write_Attitude(targets);
+    ahrs.Write_Attitude(targets);
 
-    AP::ahrs_navekf().Log_Write();
-    logger.Write_AHRS2();
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-    sitl.Log_Write_SIMSTATE();
-#endif
-    logger.Write_POS();
-}
-
-struct PACKED log_MotBatt {
-    LOG_PACKET_HEADER;
-    uint64_t time_us;
-    float   lift_max;
-    float   bat_volt;
-    float   bat_res;
-    float   th_limit;
-};
-
-// Write an rate packet
-void Sub::Log_Write_MotBatt()
-{
-    struct log_MotBatt pkt_mot = {
-        LOG_PACKET_HEADER_INIT(LOG_MOTBATT_MSG),
-        time_us         : AP_HAL::micros64(),
-        lift_max        : (float)(motors.get_lift_max()),
-        bat_volt        : (float)(motors.get_batt_voltage_filt()),
-        bat_res         : (float)(battery.get_resistance()),
-        th_limit        : (float)(motors.get_throttle_limit())
-    };
-    logger.WriteBlock(&pkt_mot, sizeof(pkt_mot));
+    AP::ahrs().Log_Write();
 }
 
 struct PACKED log_Data_Int16t {
@@ -196,22 +168,6 @@ void Sub::Log_Write_Data(LogDataID id, float value)
     }
 }
 
-// logs when baro or compass becomes unhealthy
-void Sub::Log_Sensor_Health()
-{
-    // check baro
-    if (sensor_health.baro != barometer.healthy()) {
-        sensor_health.baro = barometer.healthy();
-        AP::logger().Write_Error(LogErrorSubsystem::BARO, (sensor_health.baro ? LogErrorCode::ERROR_RESOLVED : LogErrorCode::UNHEALTHY));
-    }
-
-    // check compass
-    if (sensor_health.compass != compass.healthy()) {
-        sensor_health.compass = compass.healthy();
-        AP::logger().Write_Error(LogErrorSubsystem::COMPASS, (sensor_health.compass ? LogErrorCode::ERROR_RESOLVED : LogErrorCode::UNHEALTHY));
-    }
-}
-
 struct PACKED log_GuidedTarget {
     LOG_PACKET_HEADER;
     uint64_t time_us;
@@ -295,7 +251,7 @@ void Sub::Log_Write_GuidedTarget(uint8_t target_type, const Vector3f& pos_target
 // @Field: Id: Data type identifier
 // @Field: Value: Value
 
-// @LoggerMessage: GUID
+// @LoggerMessage: GUIP
 // @Description: Guided mode target information
 // @Field: TimeUS: Time since system startup
 // @Field: Type: Type of guided mode
@@ -313,8 +269,6 @@ const struct LogStructure Sub::log_structure[] = {
     LOG_COMMON_STRUCTURES,
     { LOG_CONTROL_TUNING_MSG, sizeof(log_Control_Tuning),
       "CTUN", "Qfffffffccfhh", "TimeUS,ThI,ABst,ThO,ThH,DAlt,Alt,BAlt,DSAlt,SAlt,TAlt,DCRt,CRt", "s----mmmmmmnn", "F----00BBBBBB" },
-    { LOG_MOTBATT_MSG, sizeof(log_MotBatt),
-      "MOTB", "Qffff",  "TimeUS,LiftMax,BatVolt,BatRes,ThLimit", "s-vw-", "F-00-" },
     { LOG_DATA_INT16_MSG, sizeof(log_Data_Int16t),         
       "D16",   "QBh",         "TimeUS,Id,Value", "s--", "F--" },
     { LOG_DATA_UINT16_MSG, sizeof(log_Data_UInt16t),         
@@ -326,7 +280,7 @@ const struct LogStructure Sub::log_structure[] = {
     { LOG_DATA_FLOAT_MSG, sizeof(log_Data_Float),         
       "DFLT",  "QBf",         "TimeUS,Id,Value", "s--", "F--" },
     { LOG_GUIDEDTARGET_MSG, sizeof(log_GuidedTarget),
-      "GUID",  "QBffffff",    "TimeUS,Type,pX,pY,pZ,vX,vY,vZ", "s-mmmnnn", "F-000000" },
+      "GUIP",  "QBffffff",    "TimeUS,Type,pX,pY,pZ,vX,vY,vZ", "s-mmmnnn", "F-000000" },
 };
 
 void Sub::Log_Write_Vehicle_Startup_Messages()
@@ -346,15 +300,12 @@ void Sub::log_init()
 #else // LOGGING_ENABLED
 
 void Sub::Log_Write_Control_Tuning() {}
-void Sub::Log_Write_Performance() {}
 void Sub::Log_Write_Attitude(void) {}
-void Sub::Log_Write_MotBatt() {}
-void Sub::Log_Write_Data(uint8_t id, int32_t value) {}
-void Sub::Log_Write_Data(uint8_t id, uint32_t value) {}
-void Sub::Log_Write_Data(uint8_t id, int16_t value) {}
-void Sub::Log_Write_Data(uint8_t id, uint16_t value) {}
-void Sub::Log_Write_Data(uint8_t id, float value) {}
-void Sub::Log_Sensor_Health() {}
+void Sub::Log_Write_Data(LogDataID id, int32_t value) {}
+void Sub::Log_Write_Data(LogDataID id, uint32_t value) {}
+void Sub::Log_Write_Data(LogDataID id, int16_t value) {}
+void Sub::Log_Write_Data(LogDataID id, uint16_t value) {}
+void Sub::Log_Write_Data(LogDataID id, float value) {}
 void Sub::Log_Write_GuidedTarget(uint8_t target_type, const Vector3f& pos_target, const Vector3f& vel_target) {}
 void Sub::Log_Write_Vehicle_Startup_Messages() {}
 

@@ -28,13 +28,24 @@
 #define APM_BUILD_ArduSub        7
 #define APM_BUILD_iofirmware     8
 #define APM_BUILD_AP_Periph      9
+#define APM_BUILD_AP_DAL_Standalone 10
+#define APM_BUILD_AP_Bootloader  11
+#define APM_BUILD_Blimp      12
+#define APM_BUILD_Heli       13
 
+#ifdef APM_BUILD_DIRECTORY
 /*
   using this macro catches cases where we try to check vehicle type on
   build systems that don't support it
  */
-#ifdef APM_BUILD_DIRECTORY
 #define APM_BUILD_TYPE(type) ((type) == APM_BUILD_DIRECTORY)
-#else
-#define APM_BUILD_TYPE(type) ((type) == APM_BUILD_UNKNOWN)
+
+/*
+  Copter and heli share a lot of code. This macro makes it easier to check for both
+*/
+#define APM_BUILD_COPTER_OR_HELI (APM_BUILD_TYPE(APM_BUILD_ArduCopter) || APM_BUILD_TYPE(APM_BUILD_Heli))
+
+#else 
+#define APM_BUILD_TYPE(type) @Invalid_use_of_APM_BUILD_TYPE
+#define APM_BUILD_COPTER_OR_HELI @Invalid_use_of_APM_BUILD_COPTER_OR_HELI
 #endif

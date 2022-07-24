@@ -1,6 +1,13 @@
 #include "Plane.h"
 
 Mode::Mode()
+#if HAL_QUADPLANE_ENABLED
+    : quadplane(plane.quadplane),
+    pos_control(plane.quadplane.pos_control),
+    attitude_control(plane.quadplane.attitude_control),
+    loiter_nav(plane.quadplane.loiter_nav),
+    poscontrol(plane.quadplane.poscontrol)
+#endif
 {
 }
 
@@ -12,6 +19,11 @@ void Mode::exit()
 
 bool Mode::enter()
 {
+#if AP_SCRIPTING_ENABLED
+    // reset nav_scripting.enabled
+    plane.nav_scripting.enabled = false;
+#endif
+
     // cancel inverted flight
     plane.auto_state.inverted_flight = false;
 
@@ -23,6 +35,7 @@ bool Mode::enter()
 
     // zero locked course
     plane.steer_state.locked_course_err = 0;
+    plane.steer_state.locked_course = false;
 
     // reset crash detection
     plane.crash_state.is_crashed = false;
@@ -60,9 +73,16 @@ bool Mode::enter()
     // record time of mode change
     plane.last_mode_change_ms = AP_HAL::millis();
 
-    // assume non-VTOL mode
-    plane.auto_state.vtol_mode = false;
+    // set VTOL auto state
+    plane.auto_state.vtol_mode = is_vtol_mode();
     plane.auto_state.vtol_loiter = false;
+
+    // initialize speed variable used in AUTO and GUIDED for DO_CHANGE_SPEED commands
+    plane.new_airspeed_cm = -1;
+
+#if HAL_QUADPLANE_ENABLED
+    quadplane.mode_enter();
+#endif
 
     bool enter_result = _enter();
 
@@ -71,9 +91,9 @@ bool Mode::enter()
         // these must be done AFTER _enter() because they use the results to set more flags
 
         // start with throttle suppressed in auto_throttle modes
-        plane.throttle_suppressed = plane.auto_throttle_mode;
+        plane.throttle_suppressed = does_auto_throttle();
 #if HAL_ADSB_ENABLED
-        plane.adsb.set_is_auto_mode(plane.auto_navigation_mode);
+        plane.adsb.set_is_auto_mode(does_auto_navigation());
 #endif
 
         // reset steering integrator on mode change
@@ -88,15 +108,15 @@ bool Mode::enter()
 
 bool Mode::is_vtol_man_throttle() const
 {
-    if (!plane.quadplane.in_vtol_mode() &&
-        plane.quadplane.is_tailsitter() && 
-        plane.quadplane.tailsitter_transition_fw_complete() && 
+#if HAL_QUADPLANE_ENABLED
+    if (plane.quadplane.tailsitter.is_in_fw_flight() &&
         plane.quadplane.assisted_flight) {
-        // a tailsitter that has fully transisisoned to Q-assisted forward flight
-        // in this case the forward throttle directly drives the vertical throttle
+        // We are a tailsitter that has fully transitioned to Q-assisted forward flight.
+        // In this case the forward throttle directly drives the vertical throttle so
         // set vertical throttle state to match the forward throttle state. Confusingly the booleans are inverted,
-        // forward throttle uses 'auto_throttle_mode' whereas vertical used 'is_vtol_man_throttle'
-        return !plane.auto_throttle_mode;
+        // forward throttle uses 'does_auto_throttle' whereas vertical uses 'is_vtol_man_throttle'.
+        return !does_auto_throttle();
     }
+#endif
     return false;
 }

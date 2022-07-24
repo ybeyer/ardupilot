@@ -20,6 +20,8 @@
  */
 #include "AP_RangeFinder_VL53L1X.h"
 
+#if AP_RANGEFINDER_VL53L1X_ENABLED
+
 #include <utility>
 
 #include <AP_HAL/AP_HAL.h>
@@ -27,6 +29,8 @@
 #include <stdio.h>
 
 extern const AP_HAL::HAL& hal;
+
+static const uint8_t MEASUREMENT_TIME_MS = 50; // Start continuous readings at a rate of one measurement every 50 ms
 
 AP_RangeFinder_VL53L1X::AP_RangeFinder_VL53L1X(RangeFinder::RangeFinder_State &_state, AP_RangeFinder_Params &_params, AP_HAL::OwnPtr<AP_HAL::I2CDevice> _dev)
     : AP_RangeFinder_Backend(_state, _params)
@@ -82,6 +86,11 @@ bool AP_RangeFinder_VL53L1X::check_id(void)
 }
 
 bool AP_RangeFinder_VL53L1X::reset(void) {
+    if (dev->get_bus_id()!=0x29) {
+        // if sensor is on a different port than the default do not  reset sensor otherwise we will lose the addess.
+        // we assume it is already confirgured.
+        return true;
+    }
     if (!write_register(SOFT_RESET, 0x00)) {
         return false;
     }
@@ -157,13 +166,13 @@ bool AP_RangeFinder_VL53L1X::init(DistanceMode mode)
           // measurement is started; assumes MM1 and MM2 are disabled
           write_register16(ALGO__PART_TO_PART_RANGE_OFFSET_MM, mm_config_outer_offset_mm * 4) &&
           // set continuous mode
-          startContinuous(50)
+          startContinuous(MEASUREMENT_TIME_MS)
           )) {
               return false;
           }
 
-    // call timer() every 50ms. We expect new data to be available every 50ms
-    dev->register_periodic_callback(50000,
+    // call timer() every MEASUREMENT_TIME_MS. We expect new data to be available every MEASUREMENT_TIME_MS
+    dev->register_periodic_callback(MEASUREMENT_TIME_MS * 1000,
                                     FUNCTOR_BIND_MEMBER(&AP_RangeFinder_VL53L1X::timer, void));
 
     return true;
@@ -400,7 +409,7 @@ uint32_t AP_RangeFinder_VL53L1X::timeoutMicrosecondsToMclks(uint32_t timeout_us,
 // Calculate macro period in microseconds (12.12 format) with given VCSEL period
 // assumes fast_osc_frequency has been read and stored
 // based on VL53L1_calc_macro_period_us()
-uint32_t AP_RangeFinder_VL53L1X::calcMacroPeriod(uint8_t vcsel_period)
+uint32_t AP_RangeFinder_VL53L1X::calcMacroPeriod(uint8_t vcsel_period) const
 {
     // from VL53L1_calc_pll_period_us()
     // fast osc frequency in 4.12 format; PLL period in 0.24 format
@@ -561,7 +570,7 @@ void AP_RangeFinder_VL53L1X::update(void)
 {
     WITH_SEMAPHORE(_sem);
     if (counter > 0) {
-        state.distance_cm = sum_mm / (10*counter);
+        state.distance_m = (sum_mm * 0.001f) / counter;
         state.last_reading_ms = AP_HAL::millis();
         update_status();
         sum_mm = 0;
@@ -571,3 +580,5 @@ void AP_RangeFinder_VL53L1X::update(void)
         set_status(RangeFinder::Status::NoData);
     }
 }
+
+#endif  // AP_RANGEFINDER_VL53L1X_ENABLED

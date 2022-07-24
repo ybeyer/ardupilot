@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from xml.sax.saxutils import escape, quoteattr
 
 from emit import Emit
@@ -8,8 +6,8 @@ from lxml import etree
 
 # Emit ArduPilot documentation in an machine readable XML format for Mission Planner
 class XmlEmitMP(Emit):
-    def __init__(self):
-        Emit.__init__(self)
+    def __init__(self, *args, **kwargs):
+        Emit.__init__(self, *args, **kwargs)
         self.mp_fname = 'ParameterMetaData.xml'
         self.f = open(self.mp_fname, mode='w')
         self.preamble = '''<?xml version="1.0" encoding="utf-8"?>\n'''
@@ -43,7 +41,7 @@ class XmlEmitMP(Emit):
     def emit(self, g):
         t = ""
         if not self.skip_name:
-            self.gname = g.name
+            self.gname = g.reference
             if self.gname == "ArduCopter":
                 self.gname = "ArduCopter2"
             if self.gname == "APMrover2" or self.gname == "Rover":

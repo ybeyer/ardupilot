@@ -2,6 +2,7 @@
 
 #include <AP_Common/AP_Common.h>
 #include "RC_Channel.h"
+#include <AP_Proximity/AP_Proximity.h>
 
 #if GRIPPER_ENABLED == ENABLED
  # include <AP_Gripper/AP_Gripper.h>
@@ -99,10 +100,10 @@ public:
         k_param_throttle_accel_enabled,     // deprecated - remove
         k_param_wp_yaw_behavior,
         k_param_acro_trainer,
-        k_param_pilot_speed_up,    // renamed from k_param_pilot_velocity_z_max
-        k_param_circle_rate,                // deprecated - remove
-        k_param_rangefinder_gain,
-        k_param_ch8_option_old, // deprecated
+        k_param_pilot_speed_up,         // renamed from k_param_pilot_velocity_z_max
+        k_param_circle_rate,            // deprecated - remove
+        k_param_rangefinder_gain,       // deprecated - remove
+        k_param_ch8_option_old,         // deprecated
         k_param_arming_check_old,       // deprecated - remove
         k_param_sprayer,
         k_param_angle_max,
@@ -127,7 +128,7 @@ public:
         k_param_rangefinder, // rangefinder object
         k_param_fs_ekf_thresh,
         k_param_terrain,
-        k_param_acro_rp_expo,
+        k_param_acro_rp_expo,           // deprecated - remove
         k_param_throttle_deadzone,
         k_param_optflow,
         k_param_dcmcheck_thresh,        // deprecated - remove
@@ -218,6 +219,9 @@ public:
         k_param_takeoff_trigger_dz_old,
         k_param_gcs3,
         k_param_gcs_pid_mask,    // 126
+        k_param_gcs4,
+        k_param_gcs5,
+        k_param_gcs6,
 
         //
         // 135 : reserved for Solo until features merged with master
@@ -315,6 +319,7 @@ public:
         k_param_flight_mode6,
         k_param_simple_modes,
         k_param_flight_mode_chan,
+        k_param_initial_mode,
 
         //
         // 210: Waypoint data
@@ -334,8 +339,8 @@ public:
         //
         // 220: PI/D Controllers
         //
-        k_param_acro_rp_p = 221,
-        k_param_axis_lock_p,    // remove
+        k_param_acro_rp_p = 221,    // remove
+        k_param_axis_lock_p,        // remove
         k_param_pid_rate_roll,      // remove
         k_param_pid_rate_pitch,     // remove
         k_param_pid_rate_yaw,       // remove
@@ -357,7 +362,7 @@ public:
         k_param_pid_accel_z,            // remove
         k_param_acro_balance_roll,
         k_param_acro_balance_pitch,
-        k_param_acro_yaw_p,
+        k_param_acro_yaw_p,             // remove
         k_param_autotune_axis_bitmask, // remove
         k_param_autotune_aggressiveness, // remove
         k_param_pi_vel_xy,              // remove
@@ -388,28 +393,30 @@ public:
     AP_Int16        throttle_behavior;
     AP_Float        pilot_takeoff_alt;
 
-    AP_Int16        rtl_altitude;
+#if MODE_RTL_ENABLED == ENABLED
+    AP_Int32        rtl_altitude;
     AP_Int16        rtl_speed_cms;
     AP_Float        rtl_cone_slope;
-#if RANGEFINDER_ENABLED == ENABLED
-    AP_Float        rangefinder_gain;
+    AP_Int16        rtl_alt_final;
+    AP_Int16        rtl_climb_min;              // rtl minimum climb in cm
+    AP_Int32        rtl_loiter_time;
+    AP_Int8         rtl_alt_type;
 #endif
 
     AP_Int8         failsafe_gcs;               // ground station failsafe behavior
     AP_Int16        gps_hdop_good;              // GPS Hdop value at or below this value represent a good position
 
     AP_Int8         super_simple;
-    AP_Int16        rtl_alt_final;
-    AP_Int16        rtl_climb_min;              // rtl minimum climb in cm
 
     AP_Int8         wp_yaw_behavior;            // controls how the autopilot controls yaw during missions
 
+#if MODE_POSHOLD_ENABLED == ENABLED
     AP_Int16        poshold_brake_rate;         // PosHold flight mode's rotation rate during braking in deg/sec
     AP_Int16        poshold_brake_angle_max;    // PosHold flight mode's max lean angle during braking in centi-degrees
-    
+#endif
+
     // Waypoints
     //
-    AP_Int32        rtl_loiter_time;
     AP_Int16        land_speed;
     AP_Int16        land_speed_high;
     AP_Int16        pilot_speed_up;    // maximum vertical ascending velocity the pilot may request
@@ -431,6 +438,7 @@ public:
     AP_Int8         flight_mode6;
     AP_Int8         simple_modes;
     AP_Int8         flight_mode_chan;
+    AP_Int8         initial_mode;
 
     // Misc
     //
@@ -447,20 +455,21 @@ public:
     AP_Int16        gcs_pid_mask;
 
 #if MODE_THROW_ENABLED == ENABLED
-    AP_Int8         throw_motor_start;
+    AP_Enum<ModeThrow::PreThrowMotorState>         throw_motor_start;
 #endif
-
-    AP_Int8         rtl_alt_type;
 
     AP_Int16                rc_speed; // speed of fast RC Channels in Hz
 
+#if MODE_ACRO_ENABLED == ENABLED || MODE_SPORT_ENABLED == ENABLED
     // Acro parameters
-    AP_Float                acro_rp_p;
-    AP_Float                acro_yaw_p;
     AP_Float                acro_balance_roll;
     AP_Float                acro_balance_pitch;
+#endif
+
+#if MODE_ACRO_ENABLED == ENABLED
+    // Acro parameters
     AP_Int8                 acro_trainer;
-    AP_Float                acro_rp_expo;
+#endif
 
     // Note: keep initializers here in the same order as they are declared
     // above.
@@ -483,7 +492,9 @@ public:
     AP_Float wp_navalt_min;
 
     // button checking
+#if HAL_BUTTON_ENABLED
     AP_Button *button_ptr;
+#endif
 
 #if STATS_ENABLED == ENABLED
     // vehicle statistics
@@ -497,7 +508,7 @@ public:
 #if MODE_THROW_ENABLED == ENABLED
     // Throw mode parameters
     AP_Int8 throw_nextmode;
-    AP_Int8 throw_type;
+    AP_Enum<ModeThrow::ThrowType> throw_type;
 #endif
 
     // ground effect compensation enable/disable
@@ -511,7 +522,7 @@ public:
     AP_Beacon beacon;
 #endif
 
-#if PROXIMITY_ENABLED == ENABLED
+#if HAL_PROXIMITY_ENABLED
     // proximity (aka object avoidance) library
     AP_Proximity proximity;
 #endif
@@ -527,8 +538,6 @@ public:
     // developer options
     AP_Int32 dev_options;
 
-    // acro exponent parameters
-    AP_Float acro_y_expo;
 #if MODE_ACRO_ENABLED == ENABLED
     AP_Float acro_thr_mid;
 #endif
@@ -562,7 +571,7 @@ public:
     ToyMode toy_mode;
 #endif
 
-#if OPTFLOW == ENABLED
+#if AP_OPTICALFLOW_ENABLED
     // we need a pointer to the mode for the G2 table
     void *mode_flowhold_ptr;
 #endif
@@ -582,9 +591,9 @@ public:
     void *autotune_ptr;
 #endif
 
-#ifdef ENABLE_SCRIPTING
+#if AP_SCRIPTING_ENABLED
     AP_Scripting scripting;
-#endif // ENABLE_SCRIPTING
+#endif // AP_SCRIPTING_ENABLED
 
     AP_Float tuning_min;
     AP_Float tuning_max;
@@ -615,6 +624,17 @@ public:
     void *mode_zigzag_ptr;
 #endif
 
+    // command model parameters
+#if MODE_ACRO_ENABLED == ENABLED || MODE_SPORT_ENABLED == ENABLED
+    AC_CommandModel command_model_acro_rp;
+#endif
+
+#if MODE_ACRO_ENABLED == ENABLED || MODE_DRIFT_ENABLED == ENABLED
+    AC_CommandModel command_model_acro_y;
+#endif
+
+    AC_CommandModel command_model_pilot;
+
 #if MODE_ACRO_ENABLED == ENABLED
     AP_Int8 acro_options;
 #endif
@@ -623,6 +643,29 @@ public:
     AP_Int32 auto_options;
 #endif
 
+#if MODE_GUIDED_ENABLED == ENABLED
+    AP_Int32 guided_options;
+#endif
+
+    AP_Float fs_gcs_timeout;
+
+#if MODE_RTL_ENABLED == ENABLED
+    AP_Int32 rtl_options;
+#endif
+
+    AP_Int32 flight_options;
+
+#if RANGEFINDER_ENABLED == ENABLED
+    AP_Float rangefinder_filt;
+#endif
+
+#if MODE_GUIDED_ENABLED == ENABLED
+    AP_Float guided_timeout;
+#endif
+
+    AP_Int8                 surftrak_mode;
+    AP_Int8                 failsafe_dr_enable;
+    AP_Int16                failsafe_dr_timeout;
 };
 
 extern const AP_Param::Info        var_info[];

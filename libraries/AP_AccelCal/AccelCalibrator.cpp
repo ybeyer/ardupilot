@@ -355,7 +355,7 @@ void AccelCalibrator::run_fit(uint8_t max_iterations, float& fitness)
             }
         }
 
-        if (!inverse(JTJ, JTJ, get_num_params())) {
+        if (!mat_inverse(JTJ, JTJ, get_num_params())) {
             return;
         }
 
@@ -389,13 +389,6 @@ float AccelCalibrator::calc_residual(const Vector3f& sample, const struct param_
         params.offdiag.y , params.offdiag.z , params.diag.z
     );
     return GRAVITY_MSS - (M*(sample+params.offset)).length();
-}
-
-// calculated the total mean squared fitness of all the collected samples using parameters
-// converged to LSq estimator so far
-float AccelCalibrator::calc_mean_squared_residuals() const
-{
-    return calc_mean_squared_residuals(_param.s);
 }
 
 // calculated the total mean squared fitness of all the collected samples using parameters
@@ -450,7 +443,7 @@ void AccelCalibrator::calc_jacob(const Vector3f& sample, const struct param_t& p
             ret[8] = -1.0f * (((sample.z + offset.z) * B) + ((sample.y + offset.y) * C))/length;
             return;
         }
-    };
+    }
 }
 
 // returns number of parameters are required for selected Fit type

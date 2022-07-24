@@ -22,6 +22,8 @@
 #include "AP_GPS.h"
 #include "GPS_Backend.h"
 
+#if AP_GPS_SBF_ENABLED
+
 #define SBF_DISK_ACTIVITY (1 << 7)
 #define SBF_DISK_FULL     (1 << 8)
 #define SBF_DISK_MOUNTED  (1 << 9)
@@ -39,7 +41,7 @@ public:
 
     const char *name() const override { return "SBF"; }
 
-    bool is_configured (void) override;
+    bool is_configured (void) const override;
 
     void broadcast_configuration_failure_reason(void) const override;
 
@@ -54,6 +56,7 @@ public:
 
     bool prepare_for_arming(void) override;
 
+    bool get_error_codes(uint32_t &error_codes) const override { error_codes = RxError; return true; };
 
 private:
 
@@ -63,16 +66,32 @@ private:
     static const uint8_t SBF_PREAMBLE1 = '$';
     static const uint8_t SBF_PREAMBLE2 = '@';
 
-    bool _validated_initial_sso;
     uint8_t _init_blob_index;
     uint32_t _init_blob_time;
-    char *_initial_sso;
-    const char* _sso_normal = ", PVTGeodetic+DOP+ReceiverStatus+VelCovGeodetic+BaseVectorGeod, msec100\n";
-    const char* _initialisation_blob[4] = {
-    "srd, Moderate, UAV\n",
-    "sem, PVT, 5\n",
-    "spm, Rover, all\n",
-    "sso, Stream2, Dsk1, postprocess+event+comment+ReceiverStatus, msec100\n"};
+    enum class Config_State {
+        Baud_Rate,
+        SSO,
+        Blob,
+        SBAS,
+        Complete
+    };
+    Config_State config_step;
+    char *config_string;
+    static constexpr const char* _initialisation_blob[] = {
+    "srd,Moderate,UAV",
+    "sem,PVT,5",
+    "spm,Rover,all",
+    "sso,Stream2,Dsk1,postprocess+event+comment+ReceiverStatus,msec100",
+#if defined (GPS_SBF_EXTRA_CONFIG)
+    GPS_SBF_EXTRA_CONFIG
+#endif
+    };
+    static constexpr const char* sbas_off = "sst, -SBAS";
+    static constexpr const char* sbas_on_blob[] = {
+                                                   "snt,+GEOL1+GEOL5",
+                                                   "sst,+SBAS",
+                                                   "ssbc,auto,Operational,MixedSystems,auto",
+                                                  };
     uint32_t _config_last_ack_time;
 
     const char* _port_enable = "\nSSSSSSSSSS\n";
@@ -239,4 +258,10 @@ private:
         INVALIDCONFIG = (1 << 10),  // set if one or more configuration file (permission or channel configuration) is invalid or absent.
         OUTOFGEOFENCE = (1 << 11),  // set if the receiver is currently out of its permitted region of operation (geo-fencing).
     };
+
+    static constexpr const char *portIdentifiers[] = { "COM", "USB", "IP1", "NTR", "IPS", "IPR" };
+    char portIdentifier[5];
+    uint8_t portLength;
+    bool readyForCommand;
 };
+#endif

@@ -1,17 +1,20 @@
 #pragma once
 
 #include <stdarg.h>
+#include <AP_Common/AP_Common.h> // for FMT_PRINTF
 #include "AP_HAL_Namespace.h"
+
+class ExpandingString;
 
 class AP_HAL::Util {
 public:
     int snprintf(char* str, size_t size,
-                 const char *format, ...);
+                 const char *format, ...) FMT_PRINTF(4, 5);
 
     int vsnprintf(char* str, size_t size,
                   const char *format, va_list ap);
 
-    void set_soft_armed(const bool b);
+    virtual void set_soft_armed(const bool b);
     bool get_soft_armed() const { return soft_armed; }
 
     // return the time that the armed state last changed
@@ -36,6 +39,9 @@ public:
     virtual const char* get_custom_defaults_file() const {
         return HAL_PARAM_DEFAULTS_PATH;
     }
+
+    // set command line parameters to the eeprom on start
+    virtual void set_cmdline_parameters() {};
 
     // run a debug shall on the given stream if possible. This is used
     // to support dropping into a debug shell to run firmware upgrade
@@ -88,12 +94,12 @@ public:
     /*
       set HW RTC in UTC microseconds
      */
-    virtual void set_hw_rtc(uint64_t time_utc_usec);
+    virtual void set_hw_rtc(uint64_t time_utc_usec) = 0;
 
     /*
       get system clock in UTC microseconds
      */
-    virtual uint64_t get_hw_rtc() const;
+    virtual uint64_t get_hw_rtc() const = 0;
 
     enum class FlashBootloader {
         OK=0,
@@ -120,10 +126,7 @@ public:
      */
     virtual void commandline_arguments(uint8_t &argc, char * const *&argv) { argc = 0; }
 
-    /*
-        ToneAlarm Driver
-    */
-    virtual bool toneAlarm_init() { return false;}
+    virtual bool toneAlarm_init(uint8_t types) { return false;}
     virtual void toneAlarm_set_buzzer_tone(float frequency, float volume, uint32_t duration_ms) {}
 
     /*
@@ -137,20 +140,6 @@ public:
     /* Support for an imu heating system */
     virtual void set_imu_target_temp(int8_t *target) {}
     
-    /*
-      performance counter calls - wrapper around original PX4 interface
-     */
-    enum perf_counter_type {
-        PC_COUNT,        /**< count the number of times an event occurs */
-        PC_ELAPSED,      /**< measure the time elapsed performing an event */
-        PC_INTERVAL      /**< measure the interval between instances of an event */
-    };
-    typedef void *perf_counter_t;
-    virtual perf_counter_t perf_alloc(perf_counter_type t, const char *name) { return nullptr; }
-    virtual void perf_begin(perf_counter_t h) {}
-    virtual void perf_end(perf_counter_t h) {}
-    virtual void perf_count(perf_counter_t h) {}
-
     // allocate and free DMA-capable memory if possible. Otherwise return normal memory
     enum Memory_Type {
         MEM_DMA_SAFE,
@@ -176,17 +165,39 @@ public:
      */
     virtual uint32_t available_memory(void) { return 4096; }
 
-    /*
-      initialise (or re-initialise) filesystem storage
-     */
-    virtual bool fs_init(void) { return false; }
-
     // attempt to trap the processor, presumably to enter an attached debugger
     virtual bool trap() const { return false; }
 
     // request information on running threads
-    virtual size_t thread_info(char *buf, size_t bufsize) { return 0; }
+    virtual void thread_info(ExpandingString &str) {}
 
+    // request information on dma contention
+    virtual void dma_info(ExpandingString &str) {}
+
+    // request information on memory allocation
+    virtual void mem_info(ExpandingString &str) {}
+
+    // load persistent parameters from bootloader sector
+    virtual bool load_persistent_params(ExpandingString &str) const { return false; }
+
+#if HAL_UART_STATS_ENABLED
+    // request information on uart I/O
+    virtual void uart_info(ExpandingString &str) {}
+#endif
+    // request information on timer frequencies
+    virtual void timer_info(ExpandingString &str) {}
+
+    // generate Random values
+    virtual bool get_random_vals(uint8_t* data, size_t size) { return false; }
+
+    // generate Random values, will block until enough entropy is available
+    virtual bool get_true_random_vals(uint8_t* data, size_t size, uint32_t timeout_us) { return false; }
+
+    // log info on stack usage
+    virtual void log_stack_info(void) {}
+
+    virtual size_t last_crash_dump_size() const { return 0; }
+    virtual void* last_crash_dump_ptr() const { return nullptr; }
 protected:
     // we start soft_armed false, so that actuators don't send any
     // values until the vehicle code has fully started

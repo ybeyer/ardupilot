@@ -7,10 +7,23 @@
 #include <AP_Scheduler/AP_Scheduler.h>
 #include <AP_Baro/AP_Baro.h>
 #include <AP_AHRS/AP_AHRS.h>
+#include <AP_Compass/AP_Compass.h>
 #include <AP_GPS/AP_GPS.h>
 #include <AP_Arming/AP_Arming.h>
+#include <AP_VisualOdom/AP_VisualOdom.h>
+#include <AP_Notify/AP_Notify.h>
+
+#include "MissionItemProtocol_Waypoints.h"
+#include "MissionItemProtocol_Rally.h"
+#include "MissionItemProtocol_Fence.h"
 
 extern const AP_HAL::HAL& hal;
+
+// if this assert fails then fix it and the comment in GCS.h where
+// _statustext_queue is declared
+#if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
+assert_storage_size<GCS::statustext_t, 58> _assert_statustext_t_size;
+#endif
 
 void GCS::get_sensor_status_flags(uint32_t &present,
                                   uint32_t &enabled,
@@ -107,10 +120,21 @@ void GCS::send_named_float(const char *name, float value) const
                                   (const char *)&packet);
 }
 
+#if HAL_HIGH_LATENCY2_ENABLED
+void GCS::enable_high_latency_connections(bool enabled)
+{
+    for (uint8_t i=0; i<num_gcs(); i++) {
+        GCS_MAVLINK &c = *chan(i);
+        c.high_latency_link_enabled = enabled && c.is_high_latency_link;
+    } 
+    gcs().send_text(MAV_SEVERITY_NOTICE, "High Latency %s", enabled ? "enabled" : "disabled");
+}
+#endif // HAL_HIGH_LATENCY2_ENABLED
+
 /*
   install an alternative protocol handler. This allows another
   protocol to take over the link if MAVLink goes idle. It is used to
-  allow for the AP_BLHeli pass-thru protocols to run on hal.uartA
+  allow for the AP_BLHeli pass-thru protocols to run on hal.serial(0)
  */
 bool GCS::install_alternative_protocol(mavlink_channel_t c, GCS_MAVLINK::protocol_handler_fn_t handler)
 {
@@ -132,33 +156,42 @@ void GCS::update_sensor_status_flags()
     control_sensors_enabled = 0;
     control_sensors_health = 0;
 
+#if !defined(HAL_BUILD_AP_PERIPH) || defined(HAL_PERIPH_ENABLE_AHRS)
     AP_AHRS &ahrs = AP::ahrs();
     const AP_InertialSensor &ins = AP::ins();
 
     control_sensors_present |= MAV_SYS_STATUS_AHRS;
-    control_sensors_enabled |= MAV_SYS_STATUS_AHRS;
-    if (!ahrs.initialised() || ahrs.healthy()) {
-        if (!ahrs.have_inertial_nav() || ins.accel_calibrated_ok_all()) {
-            control_sensors_health |= MAV_SYS_STATUS_AHRS;
+    if (ahrs.initialised()) {
+        control_sensors_enabled |= MAV_SYS_STATUS_AHRS;
+        if (ahrs.healthy()) {
+            if (!ahrs.have_inertial_nav() || ins.accel_calibrated_ok_all()) {
+                control_sensors_health |= MAV_SYS_STATUS_AHRS;
+            }
         }
     }
+#endif
 
+#if !defined(HAL_BUILD_AP_PERIPH) || defined(HAL_PERIPH_ENABLE_MAG)
     const Compass &compass = AP::compass();
-    if (AP::compass().enabled()) {
+    if (AP::compass().available()) {
         control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_MAG;
         control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_3D_MAG;
     }
-    if (compass.enabled() && compass.healthy() && ahrs.use_compass()) {
+    if (compass.available() && compass.healthy()) {
         control_sensors_health |= MAV_SYS_STATUS_SENSOR_3D_MAG;
     }
+#endif
 
+#if !defined(HAL_BUILD_AP_PERIPH) || defined(HAL_PERIPH_ENABLE_BARO)
     const AP_Baro &barometer = AP::baro();
     control_sensors_present |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
     control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
     if (barometer.all_healthy()) {
         control_sensors_health |= MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE;
     }
+#endif
 
+#if !defined(HAL_BUILD_AP_PERIPH) || defined(HAL_PERIPH_ENABLE_GPS)
     const AP_GPS &gps = AP::gps();
     if (gps.status() > AP_GPS::NO_GPS) {
         control_sensors_present |= MAV_SYS_STATUS_SENSOR_GPS;
@@ -167,7 +200,9 @@ void GCS::update_sensor_status_flags()
     if (gps.is_healthy() && gps.status() >= min_status_for_gps_healthy()) {
         control_sensors_health |= MAV_SYS_STATUS_SENSOR_GPS;
     }
+#endif
 
+#if !defined(HAL_BUILD_AP_PERIPH) || defined(HAL_PERIPH_ENABLE_BATTERY)
     const AP_BattMonitor &battery = AP::battery();
     control_sensors_present |= MAV_SYS_STATUS_SENSOR_BATTERY;
     if (battery.num_instances() > 0) {
@@ -176,7 +211,9 @@ void GCS::update_sensor_status_flags()
     if (battery.healthy() && !battery.has_failsafed()) {
         control_sensors_health |= MAV_SYS_STATUS_SENSOR_BATTERY;
     }
+#endif
 
+#if !defined(HAL_BUILD_AP_PERIPH) || defined(HAL_PERIPH_ENABLE_AHRS)
     control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_GYRO;
     control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_ACCEL;
     if (!ins.calibrating()) {
@@ -189,24 +226,38 @@ void GCS::update_sensor_status_flags()
             control_sensors_health |= MAV_SYS_STATUS_SENSOR_3D_GYRO;
         }
     }
+#endif
 
+#if HAL_LOGGING_ENABLED
     const AP_Logger &logger = AP::logger();
-    if (logger.logging_present() || gps.logging_present()) {  // primary logging only (usually File)
+    bool logging_present = logger.logging_present();
+    bool logging_enabled = logger.logging_enabled();
+    bool logging_healthy = !logger.logging_failed();
+#if !defined(HAL_BUILD_AP_PERIPH) || defined(HAL_PERIPH_ENABLE_GPS)
+    // some GPS units do logging, so they have to be healthy too:
+    logging_present |= gps.logging_present();
+    logging_enabled |= gps.logging_enabled();
+    logging_healthy &= !gps.logging_failed();
+#endif
+    if (logging_present) {
         control_sensors_present |= MAV_SYS_STATUS_LOGGING;
     }
-    if (logger.logging_enabled() || gps.logging_enabled()) {
+    if (logging_enabled) {
         control_sensors_enabled |= MAV_SYS_STATUS_LOGGING;
     }
-    if (!logger.logging_failed() && !gps.logging_failed()) {
+    if (logging_healthy) {
         control_sensors_health |= MAV_SYS_STATUS_LOGGING;
     }
+#endif  // HAL_LOGGING_ENABLED
 
     // set motors outputs as enabled if safety switch is not disarmed (i.e. either NONE or ARMED)
+#if !defined(HAL_BUILD_AP_PERIPH)
     control_sensors_present |= MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS;
     if (hal.util->safety_switch_state() != AP_HAL::Util::SAFETY_DISARMED) {
         control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS;
     }
     control_sensors_health |= MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS;
+#endif
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     if (ahrs.get_ekf_type() == 10) {
@@ -216,6 +267,7 @@ void GCS::update_sensor_status_flags()
     }
 #endif
 
+#if !defined(HAL_BUILD_AP_PERIPH)
     const AC_Fence *fence = AP::fence();
     if (fence != nullptr) {
         if (fence->sys_status_enabled()) {
@@ -228,6 +280,23 @@ void GCS::update_sensor_status_flags()
             control_sensors_health |= MAV_SYS_STATUS_GEOFENCE;
         }
     }
+#endif
+
+    // airspeed
+#if AP_AIRSPEED_ENABLED
+    const AP_Airspeed *airspeed = AP_Airspeed::get_singleton();
+    if (airspeed && airspeed->enabled()) {
+        control_sensors_present |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+        const bool use = airspeed->use();
+        const bool enabled = AP::ahrs().airspeed_sensor_enabled();
+        if (use) {
+            control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+        }
+        if (airspeed->all_healthy() && (!use || enabled)) {
+            control_sensors_health |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+        }
+    }
+#endif
 
 #if HAL_VISUALODOM_ENABLED
     const AP_VisualOdom *visual_odom = AP::visualodom();
@@ -242,6 +311,7 @@ void GCS::update_sensor_status_flags()
 
     // give GCS status of prearm checks. This is enabled if any arming checks are enabled.
     // it is healthy if armed or checks are passing
+#if !defined(HAL_BUILD_AP_PERIPH)
     control_sensors_present |= MAV_SYS_STATUS_PREARM_CHECK;
     if (AP::arming().get_enabled_checks()) {
         control_sensors_enabled |= MAV_SYS_STATUS_PREARM_CHECK;
@@ -249,12 +319,18 @@ void GCS::update_sensor_status_flags()
             control_sensors_health |= MAV_SYS_STATUS_PREARM_CHECK;
         }
     }
+#endif
 
     update_vehicle_sensor_status_flags();
 }
 
 bool GCS::out_of_time() const
 {
+#if defined(HAL_BUILD_AP_PERIPH)
+    // we are never out of time for AP_Periph
+    // as we don't have concept of AP_Scheduler in AP_Periph
+    return false;
+#endif
     // while we are in the delay callback we are never out of time:
     if (hal.scheduler->in_delay_callback()) {
         return false;
@@ -272,7 +348,7 @@ bool GCS::out_of_time() const
     return true;
 }
 
-void gcs_out_of_space_to_send_count(mavlink_channel_t chan)
+void gcs_out_of_space_to_send(mavlink_channel_t chan)
 {
     gcs().chan(chan)->out_of_space_to_send();
 }

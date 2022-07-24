@@ -13,8 +13,10 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <AP_HAL/AP_HAL.h>
 #include "AP_Proximity_RangeFinder.h"
+
+#if HAL_PROXIMITY_ENABLED
+#include <AP_HAL/AP_HAL.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <AP_RangeFinder/AP_RangeFinder.h>
@@ -41,14 +43,21 @@ void AP_Proximity_RangeFinder::update(void)
         if (sensor->has_data()) {
             // check for horizontal range finders
             if (sensor->orientation() <= ROTATION_YAW_315) {
-                uint8_t sector = (uint8_t)sensor->orientation();
-                _angle[sector] = sector * 45;
-                _distance[sector] = sensor->distance_cm() * 0.01f;
+                const uint8_t sector = (uint8_t)sensor->orientation();
+                const float angle = sector * 45;
+                const AP_Proximity_Boundary_3D::Face face = boundary.get_face(angle);
+                // distance in meters
+                const float distance = sensor->distance();
                 _distance_min = sensor->min_distance_cm() * 0.01f;
                 _distance_max = sensor->max_distance_cm() * 0.01f;
-                _distance_valid[sector] = (_distance[sector] >= _distance_min) && (_distance[sector] <= _distance_max);
+                if ((distance <= _distance_max) && (distance >= _distance_min) && !ignore_reading(angle, distance, false)) {
+                    boundary.set_face_attributes(face, angle, distance);
+                    // update OA database
+                    database_push(angle, distance);
+                } else {
+                    boundary.reset_face(face);
+                }
                 _last_update_ms = now;
-                update_boundary_for_sector(sector, true);
             }
             // check upward facing range finder
             if (sensor->orientation() == ROTATION_PITCH_90) {
@@ -66,7 +75,8 @@ void AP_Proximity_RangeFinder::update(void)
     }
 
     // check for timeout and set health status
-    if ((_last_update_ms == 0) || (now - _last_update_ms > PROXIMITY_RANGEFIDER_TIMEOUT_MS)) {
+    if ((_last_update_ms == 0 || (now - _last_update_ms > PROXIMITY_RANGEFIDER_TIMEOUT_MS)) &&
+        (_last_upward_update_ms == 0 || (now - _last_upward_update_ms > PROXIMITY_RANGEFIDER_TIMEOUT_MS))) {
         set_status(AP_Proximity::Status::NoData);
     } else {
         set_status(AP_Proximity::Status::Good);
@@ -83,3 +93,5 @@ bool AP_Proximity_RangeFinder::get_upward_distance(float &distance) const
     }
     return false;
 }
+
+#endif // HAL_PROXIMITY_ENABLED

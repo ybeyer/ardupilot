@@ -54,18 +54,18 @@ SECTIONS
 
     constructors : ALIGN(4) SUBALIGN(4)
     {
-        __init_array_start = .;
+        __init_array_base__ = .;
         KEEP(*(SORT(.init_array.*)))
         KEEP(*(.init_array))
-        __init_array_end = .;
+        __init_array_end__ = .;
     } > flash
 
     destructors : ALIGN(4) SUBALIGN(4)
     {
-        __fini_array_start = .;
+        __fini_array_base__ = .;
         KEEP(*(.fini_array))
         KEEP(*(SORT(.fini_array.*)))
-        __fini_array_end = .;
+        __fini_array_end__ = .;
     } > flash
 
     .text : ALIGN(4) SUBALIGN(4)
@@ -138,25 +138,25 @@ SECTIONS
         . = ALIGN(4);
         PROVIDE(_textdata = LOADADDR(.data));
         PROVIDE(_data = .);
-        _textdata_start = LOADADDR(.data);
-        _data_start = .;
+        __textdata_base__ = LOADADDR(.data);
+        __data_base__ = .;
         *(.data)
         *(.data.*)
         *(.ramtext)
         . = ALIGN(4);
         PROVIDE(_edata = .);
-        _data_end = .;
+        __data_end__ = .;
     } > DATA_RAM AT > flash
 
     .bss (NOLOAD) : ALIGN(4)
     {
         . = ALIGN(4);
-        _bss_start = .;
+        __bss_base__ = .;
         *(.bss)
         *(.bss.*)
         *(COMMON)
         . = ALIGN(4);
-        _bss_end = .;
+        __bss_end__ = .;
         PROVIDE(end = .);
     } > BSS_RAM
 
@@ -192,4 +192,13 @@ SECTIONS
         . = ORIGIN(HEAP_RAM) + LENGTH(HEAP_RAM);
         __heap_end__ = .;
     } > HEAP_RAM
+
+    /* The crash log uses the unused part of a flash section.*/
+    .crash_log (NOLOAD) :
+    {
+        . = ALIGN(32);
+        __crash_log_base__ = .;
+        . = ORIGIN(flash) + LENGTH(flash);
+        __crash_log_end__ = .;
+    } > flash
 }

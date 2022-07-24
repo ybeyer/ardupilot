@@ -32,7 +32,7 @@ bool RF_LightWareSerial::check_synced()
         ssize_t n = read_from_autopilot(buffer, ARRAY_SIZE(buffer) - 1);
         if (n > 0) {
             if (!strncmp(buffer, "www\r\n", ARRAY_SIZE(buffer))) {
-                gcs().send_text(MAV_SEVERITY_INFO, "Slurped a sync thing\n");
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Slurped a sync thing\n");
                 synced = true;
             }
         }
@@ -50,5 +50,10 @@ void RF_LightWareSerial::update(float range)
 
 uint32_t RF_LightWareSerial::packet_for_alt(uint16_t alt_cm, uint8_t *buffer, uint8_t buflen)
 {
-    return snprintf((char*)buffer, buflen, "%f\r", alt_cm / 100.0f); // note tragic lack of snprintf return checking
+    if (alt_cm > 10000) {
+        // out-of-range-high
+        alt_cm = 13000;  // from datasheet
+    }
+
+    return snprintf((char*)buffer, buflen, "%0.2f\r", alt_cm / 100.0f); // note tragic lack of snprintf return checking
 }

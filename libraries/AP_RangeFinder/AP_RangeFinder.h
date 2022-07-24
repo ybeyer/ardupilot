@@ -15,15 +15,28 @@
 #pragma once
 
 #include <AP_Common/AP_Common.h>
-#include <AP_HAL/AP_HAL.h>
+#include <AP_HAL/AP_HAL_Boards.h>
+#include <AP_HAL/Semaphores.h>
 #include <AP_Param/AP_Param.h>
-#include <GCS_MAVLink/GCS.h>
+#include <GCS_MAVLink/GCS_MAVLink.h>
 #include <AP_MSP/msp.h>
 #include "AP_RangeFinder_Params.h"
 
+#ifndef AP_RANGEFINDER_ENABLED
+#define AP_RANGEFINDER_ENABLED 1
+#endif
+
+#ifndef AP_RANGEFINDER_BACKEND_DEFAULT_ENABLED
+#define AP_RANGEFINDER_BACKEND_DEFAULT_ENABLED AP_RANGEFINDER_ENABLED
+#endif
+
 // Maximum number of range finder instances available on this platform
-#ifndef RANGEFINDER_MAX_INSTANCES
-#define RANGEFINDER_MAX_INSTANCES 10
+#ifndef RANGEFINDER_MAX_INSTANCES 
+  #if AP_RANGEFINDER_ENABLED
+  #define RANGEFINDER_MAX_INSTANCES 10
+  #else
+  #define RANGEFINDER_MAX_INSTANCES 1
+  #endif
 #endif
 
 #define RANGEFINDER_GROUND_CLEARANCE_CM_DEFAULT 10
@@ -65,7 +78,7 @@ public:
         LWSER  = 8,
         BEBOP  = 9,
         MAVLink = 10,
-        ULANDING= 11,
+        USD1_Serial = 11,
         LEDDARONE = 12,
         MBSER  = 13,
         TRI2C  = 14,
@@ -87,7 +100,9 @@ public:
         HC_SR04 = 30,
         GYUS42v2 = 31,
         MSP = 32,
-        SITL = 100,
+        USD1_CAN = 33,
+        Benewake_CAN = 34,
+        SIM = 100,
     };
 
     enum class Function {
@@ -106,7 +121,7 @@ public:
 
     // The RangeFinder_State structure is filled in by the backend driver
     struct RangeFinder_State {
-        uint16_t distance_cm;           // distance: in cm
+        float distance_m;               // distance in meters
         uint16_t voltage_mv;            // voltage in millivolts, if applicable, otherwise 0
         enum RangeFinder::Status status; // sensor status
         uint8_t  range_valid_count;     // number of consecutive valid readings (maxes out at 10)
@@ -122,7 +137,12 @@ public:
 
     void set_log_rfnd_bit(uint32_t log_rfnd_bit) { _log_rfnd_bit = log_rfnd_bit; }
 
-    // Return the number of range finder instances
+    /*
+      Return the number of range finder instances. Note that if users
+      sets up rangefinders with a gap in the types then this is the
+      index of the maximum sensor ID plus one, so this gives the value
+      that should be used when iterating over all sensors
+    */
     uint8_t num_sensors(void) const {
         return num_instances;
     }
@@ -164,8 +184,8 @@ public:
     
     // methods to return a distance on a particular orientation from
     // any sensor which can current supply it
+    float distance_orient(enum Rotation orientation) const;
     uint16_t distance_cm_orient(enum Rotation orientation) const;
-    uint16_t voltage_mv_orient(enum Rotation orientation) const;
     int16_t max_distance_cm_orient(enum Rotation orientation) const;
     int16_t min_distance_cm_orient(enum Rotation orientation) const;
     int16_t ground_clearance_cm_orient(enum Rotation orientation) const;
@@ -175,6 +195,9 @@ public:
     uint8_t range_valid_count_orient(enum Rotation orientation) const;
     const Vector3f &get_pos_offset_orient(enum Rotation orientation) const;
     uint32_t last_reading_ms(enum Rotation orientation) const;
+
+    // get temperature reading in C.  returns true on success and populates temp argument
+    bool get_temp(enum Rotation orientation, float &temp) const;
 
     /*
       set an externally estimated terrain height. Used to enable power
@@ -204,10 +227,10 @@ private:
 
     void detect_instance(uint8_t instance, uint8_t& serial_instance);
 
-    bool _add_backend(AP_RangeFinder_Backend *driver);
+    bool _add_backend(AP_RangeFinder_Backend *driver, uint8_t instance, uint8_t serial_instance=0);
 
     uint32_t _log_rfnd_bit = -1;
-    void Log_RFND();
+    void Log_RFND() const;
 };
 
 namespace AP {

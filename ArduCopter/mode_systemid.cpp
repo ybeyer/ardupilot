@@ -69,7 +69,7 @@ ModeSystemId::ModeSystemId(void) : Mode()
     AP_Param::setup_object_defaults(this, var_info);
 }
 
-#define SYSTEM_ID_DELAY     1.0f      // speed below which it is always safe to switch to loiter
+#define SYSTEM_ID_DELAY     1.0f      // time in seconds waited after system id mode change for frequency sweep injection
 
 // systemId_init - initialise systemId controller
 bool ModeSystemId::init(bool ignore_checks)
@@ -95,11 +95,20 @@ bool ModeSystemId::init(bool ignore_checks)
     systemid_state = SystemIDModeState::SYSTEMID_STATE_TESTING;
     log_subsample = 0;
 
+    chirp_input.init(time_record, frequency_start, frequency_stop, time_fade_in, time_fade_out, time_const_freq);
+
     gcs().send_text(MAV_SEVERITY_INFO, "SystemID Starting: axis=%d", (unsigned)axis);
 
     copter.Log_Write_SysID_Setup(axis, waveform_magnitude, frequency_start, frequency_stop, time_fade_in, time_const_freq, time_record, time_fade_out);
 
     return true;
+}
+
+// systemId_exit - clean up systemId controller before exiting
+void ModeSystemId::exit()
+{
+    // reset the feedfoward enabled parameter to the initialized state
+    attitude_control->bf_feedforward(att_bf_feedforward);
 }
 
 // systemId_run - runs the systemId controller
@@ -114,7 +123,7 @@ void ModeSystemId::run()
     get_pilot_desired_lean_angles(target_roll, target_pitch, copter.aparm.angle_max, copter.aparm.angle_max);
 
     // get pilot's desired yaw rate
-    float target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->get_control_in());
+    float target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->norm_input_dz());
 
     if (!motors->armed()) {
         // Motors should be Stopped
@@ -131,7 +140,7 @@ void ModeSystemId::run()
     switch (motors->get_spool_state()) {
     case AP_Motors::SpoolState::SHUT_DOWN:
         // Motors Stopped
-        attitude_control->set_yaw_target_to_current_heading();
+        attitude_control->reset_yaw_target_and_rate();
         attitude_control->reset_rate_controller_I_terms();
         break;
 
@@ -140,8 +149,8 @@ void ModeSystemId::run()
         // Tradheli initializes targets when going from disarmed to armed state. 
         // init_targets_on_arming is always set true for multicopter.
         if (motors->init_targets_on_arming()) {
-            attitude_control->set_yaw_target_to_current_heading();
-            attitude_control->reset_rate_controller_I_terms();
+            attitude_control->reset_yaw_target_and_rate();
+            attitude_control->reset_rate_controller_I_terms_smoothly();
         }
         break;
 
@@ -172,22 +181,23 @@ void ModeSystemId::run()
     }
 
     waveform_time += G_Dt;
-    waveform_sample = waveform(waveform_time - SYSTEM_ID_DELAY);
+    waveform_sample = chirp_input.update(waveform_time - SYSTEM_ID_DELAY, waveform_magnitude);
+    waveform_freq_rads = chirp_input.get_frequency_rads();
 
     switch (systemid_state) {
         case SystemIDModeState::SYSTEMID_STATE_STOPPED:
+            attitude_control->bf_feedforward(att_bf_feedforward);
             break;
         case SystemIDModeState::SYSTEMID_STATE_TESTING:
-            attitude_control->bf_feedforward(att_bf_feedforward);
 
             if (copter.ap.land_complete) {
                 systemid_state = SystemIDModeState::SYSTEMID_STATE_STOPPED;
                 gcs().send_text(MAV_SEVERITY_INFO, "SystemID Stopped: Landed");
                 break;
             }
-            if (attitude_control->lean_angle()*100 > attitude_control->lean_angle_max()) {
+            if (attitude_control->lean_angle_deg()*100 > attitude_control->lean_angle_max_cd()) {
                 systemid_state = SystemIDModeState::SYSTEMID_STATE_STOPPED;
-                gcs().send_text(MAV_SEVERITY_INFO, "SystemID Stopped: lean=%f max=%f", (double)attitude_control->lean_angle(), (double)attitude_control->lean_angle_max());
+                gcs().send_text(MAV_SEVERITY_INFO, "SystemID Stopped: lean=%f max=%f", (double)attitude_control->lean_angle_deg(), (double)attitude_control->lean_angle_max_cd());
                 break;
             }
             if (waveform_time > SYSTEM_ID_DELAY + time_fade_in + time_const_freq + time_record + time_fade_out) {
@@ -273,17 +283,15 @@ void ModeSystemId::run()
 }
 
 // log system id and attitude
-void ModeSystemId::log_data()
+void ModeSystemId::log_data() const
 {
-    uint8_t index = copter.ahrs.get_primary_gyro_index();
     Vector3f delta_angle;
-    copter.ins.get_delta_angle(index, delta_angle);
-    float delta_angle_dt = copter.ins.get_delta_angle_dt(index);
+    float delta_angle_dt;
+    copter.ins.get_delta_angle(delta_angle, delta_angle_dt);
 
-    index = copter.ahrs.get_primary_accel_index();
     Vector3f delta_velocity;
-    copter.ins.get_delta_velocity(index, delta_velocity);
-    float delta_velocity_dt = copter.ins.get_delta_velocity_dt(index);
+    float delta_velocity_dt;
+    copter.ins.get_delta_velocity(delta_velocity, delta_velocity_dt);
 
     if (is_positive(delta_angle_dt) && is_positive(delta_velocity_dt)) {
         copter.Log_Write_SysID_Data(waveform_time, waveform_sample, waveform_freq_rads / (2 * M_PI), degrees(delta_angle.x / delta_angle_dt), degrees(delta_angle.y / delta_angle_dt), degrees(delta_angle.z / delta_angle_dt), delta_velocity.x / delta_velocity_dt, delta_velocity.y / delta_velocity_dt, delta_velocity.z / delta_velocity_dt);
@@ -291,45 +299,6 @@ void ModeSystemId::log_data()
 
     // Full rate logging of attitude, rate and pid loops
     copter.Log_Write_Attitude();
-}
-
-// init_test - initialises the test
-float ModeSystemId::waveform(float time)
-{
-    float wMin = 2 * M_PI * frequency_start;
-    float wMax = 2 * M_PI * frequency_stop;
-
-    float window;
-    float output;
-
-    float B = logf(wMax / wMin);
-
-    if (time <= 0.0f) {
-        window = 0.0f;
-    } else if (time <= time_fade_in) {
-        window = 0.5 - 0.5 * cosf(M_PI * time / time_fade_in);
-    } else if (time <= time_record - time_fade_out) {
-        window = 1.0;
-    } else if (time <= time_record) {
-        window = 0.5 - 0.5 * cosf(M_PI * (time - (time_record - time_fade_out)) / time_fade_out + M_PI);
-    } else {
-        window = 0.0;
-    }
-
-    if (time <= 0.0f) {
-        waveform_freq_rads = wMin;
-        output = 0.0f;
-    } else if (time <= time_const_freq) {
-        waveform_freq_rads = wMin;
-        output = window * waveform_magnitude * sinf(wMin * time - wMin * time_const_freq);
-    } else if (time <= time_record) {
-        waveform_freq_rads = wMin * expf(B * (time - time_const_freq) / (time_record - time_const_freq));
-        output = window * waveform_magnitude * sinf((wMin * (time_record - time_const_freq) / B) * (expf(B * (time - time_const_freq) / (time_record - time_const_freq)) - 1));
-    } else {
-        waveform_freq_rads = wMax;
-        output = 0.0f;
-    }
-    return output;
 }
 
 #endif

@@ -15,7 +15,6 @@
 #pragma once
 
 #include <AP_Common/AP_Common.h>
-#include <AP_HAL/AP_HAL.h>
 #include "AP_BattMonitor.h"
 
 class AP_BattMonitor_Backend
@@ -29,10 +28,13 @@ public:
     virtual ~AP_BattMonitor_Backend(void) {}
 
     // initialise
-    virtual void init() = 0;
+    virtual void init() {};
 
     // read the latest battery voltage
     virtual void read() = 0;
+
+    /// returns true if battery monitor instance provides time remaining info
+    virtual bool has_time_remaining() const { return false; }
 
     /// returns true if battery monitor instance provides consumed energy info
     virtual bool has_consumed_energy() const { return false; }
@@ -43,8 +45,12 @@ public:
     // returns true if battery monitor provides individual cell voltages
     virtual bool has_cell_voltages() const { return false; }
 
-    /// capacity_remaining_pct - returns the % battery capacity remaining (0 ~ 100)
-    uint8_t capacity_remaining_pct() const;
+    // returns true if battery monitor provides temperature
+    virtual bool has_temperature() const { return false; }
+
+    // capacity_remaining_pct - returns true if the battery % is available and writes to the percentage argument
+    // returns false if the battery is unhealthy, does not have current monitoring, or the pack_capacity is too small
+    virtual bool capacity_remaining_pct(uint8_t &percentage) const WARN_IF_UNUSED;
 
     // return true if cycle count can be provided and fills in cycles argument
     virtual bool get_cycle_count(uint16_t &cycles) const { return false; }
@@ -57,13 +63,24 @@ public:
     void update_resistance_estimate();
 
     // updates failsafe timers, and returns what failsafes are active
-    AP_BattMonitor::BatteryFailsafe update_failsafes(void);
+    virtual AP_BattMonitor::Failsafe update_failsafes(void);
 
     // returns false if we fail arming checks, in which case the buffer will be populated with a failure message
     bool arming_checks(char * buffer, size_t buflen) const;
 
     // reset remaining percentage to given value
     virtual bool reset_remaining(float percentage);
+
+    // return mavlink fault bitmask (see MAV_BATTERY_FAULT enum)
+    virtual uint32_t get_mavlink_fault_bitmask() const { return 0; }
+
+    // logging functions 
+    void Log_Write_BAT(const uint8_t instance, const uint64_t time_us) const;
+    void Log_Write_BCL(const uint8_t instance, const uint64_t time_us) const;
+
+    // amps: current (A)
+    // dt_us: time between samples (micro-seconds)
+    static float calculate_mah(float amps, float dt_us) { return (float) (amps * dt_us * AUS_TO_MAH); }
 
 protected:
     AP_BattMonitor                      &_mon;      // reference to front-end
@@ -72,6 +89,7 @@ protected:
 
     // checks what failsafes could be triggered
     void check_failsafe_types(bool &low_voltage, bool &low_capacity, bool &critical_voltage, bool &critical_capacity) const;
+    void update_consumed(AP_BattMonitor::BattMonitor_State &state, uint32_t dt_us);
 
 private:
     // resistance estimate

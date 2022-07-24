@@ -4,7 +4,7 @@
 
 #include "AP_Logger_MAVLink.h"
 
-#if LOGGER_MAVLINK_SUPPORT
+#if HAL_LOGGING_MAVLINK_ENABLED
 
 #include "LogStructure.h"
 
@@ -12,7 +12,7 @@
 
 #if REMOTE_LOG_DEBUGGING
 #include <stdio.h>
- # define Debug(fmt, args ...)  do {printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); hal.scheduler->delay(1); } while(0)
+ # define Debug(fmt, args ...)  do {fprintf(stderr, "%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); hal.scheduler->delay(1); } while(0)
 #else
  # define Debug(fmt, args ...)
 #endif
@@ -54,7 +54,7 @@ uint32_t AP_Logger_MAVLink::bufferspace_available() {
     return (_blockcount_free * 200 + remaining_space_in_current_block());
 }
 
-uint8_t AP_Logger_MAVLink::remaining_space_in_current_block() {
+uint8_t AP_Logger_MAVLink::remaining_space_in_current_block() const {
     // note that _current_block *could* be NULL ATM.
     return (MAVLINK_MSG_REMOTE_LOG_DATA_BLOCK_FIELD_DATA_LEN - _latest_block_len);
 }
@@ -274,9 +274,9 @@ void AP_Logger_MAVLink::remote_log_block_status_msg(const GCS_MAVLINK &link,
     if (!semaphore.take_nonblocking()) {
         return;
     }
-    if(packet.status == 0){
+    if(packet.status == MAV_REMOTE_LOG_DATA_BLOCK_NACK) {
         handle_retry(packet.seqno);
-    } else{
+    } else {
         handle_ack(link, msg, packet.seqno);
     }
     semaphore.give();
@@ -352,7 +352,7 @@ void AP_Logger_MAVLink::stats_log()
     Write_logger_MAV(*this);
 #if REMOTE_LOG_DEBUGGING
     printf("D:%d Retry:%d Resent:%d SF:%d/%d/%d SP:%d/%d/%d SS:%d/%d/%d SR:%d/%d/%d\n",
-           dropped,
+           _dropped,
            _blocks_retry.sent_count,
            stats.resends,
            stats.state_free_min,
@@ -524,6 +524,11 @@ void AP_Logger_MAVLink::periodic_10Hz(const uint32_t now)
 }
 void AP_Logger_MAVLink::periodic_1Hz()
 {
+    if (rate_limiter == nullptr && _front._params.mav_ratemax > 0) {
+        // setup rate limiting
+        rate_limiter = new AP_Logger_RateLimiter(_front, _front._params.mav_ratemax);
+    }
+
     if (_sending_to_client &&
         _last_response_time + 10000 < _last_send_time) {
         // other end appears to have timed out!
@@ -555,7 +560,7 @@ bool AP_Logger_MAVLink::send_log_block(struct dm_block &block)
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     // deliberately fail 10% of the time in SITL:
-    if (rand() < 0.1) {
+    if ((rand() % 100 + 1) < 10) {
         return false;
     }
 #endif
@@ -565,7 +570,6 @@ bool AP_Logger_MAVLink::send_log_block(struct dm_block &block)
 #endif
 
 // DM_packing: 267039 events, 0 overruns, 8440834us elapsed, 31us avg, min 31us max 32us 0.488us rms
-    hal.util->perf_begin(_perf_packing);
 
     mavlink_message_t msg;
     mavlink_status_t *chan_status = mavlink_get_channel_status(_link->get_chan());
@@ -579,8 +583,6 @@ bool AP_Logger_MAVLink::send_log_block(struct dm_block &block)
                                            _target_component_id,
                                            block.seqno,
                                            block.buf);
-
-    hal.util->perf_end(_perf_packing);
 
 #if DF_MAVLINK_DISABLE_INTERRUPTS
     hal.scheduler->restore_interrupts(istate);

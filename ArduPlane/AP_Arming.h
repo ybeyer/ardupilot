@@ -24,14 +24,17 @@ public:
     // var_info for holding Parameter information
     static const struct AP_Param::GroupInfo var_info[];
 
-    bool disarm(AP_Arming::Method method) override;
+    bool disarm(AP_Arming::Method method, bool do_disarm_checks=true) override;
     bool arm(AP_Arming::Method method, bool do_arming_checks=true) override;
 
     void update_soft_armed();
-    bool get_delay_arming() { return delay_arming; };
+    bool get_delay_arming() const { return delay_arming; };
 
 protected:
     bool ins_checks(bool report) override;
+
+    bool quadplane_checks(bool display_failure);
+    bool mission_checks(bool report) override;
 
 private:
     void change_arm_state(void);

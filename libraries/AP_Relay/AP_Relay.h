@@ -38,6 +38,9 @@ public:
     // toggle the relay status
     void        toggle(uint8_t instance);
 
+    // check settings are valid
+    bool arming_checks(size_t buflen, char *buffer) const;
+    
     static AP_Relay *get_singleton(void) {return singleton; }
 
     static const struct AP_Param::GroupInfo        var_info[];
@@ -47,6 +50,9 @@ private:
 
     AP_Int8 _pin[AP_RELAY_NUM_RELAYS];
     AP_Int8 _default;
+    uint8_t _pin_states;
+    uint8_t _last_logged_pin_states;
+    uint32_t _last_log_ms;
 
     void set(uint8_t instance, bool value);
 };

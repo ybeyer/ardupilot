@@ -66,44 +66,7 @@ void Sub::read_rangefinder()
 }
 
 // return true if rangefinder_alt can be used
-bool Sub::rangefinder_alt_ok()
+bool Sub::rangefinder_alt_ok() const
 {
     return (rangefinder_state.enabled && rangefinder_state.alt_healthy);
-}
-
-/*
-  update RPM sensors
- */
-#if RPM_ENABLED == ENABLED
-void Sub::rpm_update(void)
-{
-    rpm_sensor.update();
-    if (rpm_sensor.enabled(0) || rpm_sensor.enabled(1)) {
-        if (should_log(MASK_LOG_RCIN)) {
-            logger.Write_RPM(rpm_sensor);
-        }
-    }
-}
-#endif
-
-// initialise optical flow sensor
-#if OPTFLOW == ENABLED
-void Sub::init_optflow()
-{
-    // initialise optical flow sensor
-    optflow.init(MASK_LOG_OPTFLOW);
-}
-#endif      // OPTFLOW == ENABLED
-
-void Sub::accel_cal_update()
-{
-    if (hal.util->get_soft_armed()) {
-        return;
-    }
-    ins.acal_update();
-    // check if new trim values, and set them
-    float trim_roll, trim_pitch;
-    if (ins.get_new_trim(trim_roll, trim_pitch)) {
-        ahrs.set_trim(Vector3f(trim_roll, trim_pitch, 0));
-    }
 }

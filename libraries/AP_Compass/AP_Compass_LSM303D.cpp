@@ -124,7 +124,7 @@ extern const AP_HAL::HAL &hal;
 
 #define REG5_ENABLE_T           (1<<7)
 
-#define REG5_RES_HIGH_M         ((1<<6) | (1<<5))
+#define REG5_RES_HIGH_M         ((1<<6) | (1<<5) | (1<<7))
 #define REG5_RES_LOW_M          ((0<<6) | (0<<5))
 
 #define REG5_RATE_BITS_M        ((1<<4) | (1<<3) | (1<<2))
@@ -222,7 +222,7 @@ bool AP_Compass_LSM303D::_read_sample()
     } rx;
 
     if (_register_read(ADDR_CTRL_REG7) != _reg7_expected) {
-        hal.console->printf("LSM303D _read_data_transaction_accel: _reg7_expected unexpected\n");
+        DEV_PRINTF("LSM303D _read_data_transaction_accel: _reg7_expected unexpected\n");
         return false;
     }
 
@@ -316,7 +316,7 @@ bool AP_Compass_LSM303D::_hardware_init()
         }
     }
     if (tries == 5) {
-        hal.console->printf("Failed to boot LSM303D 5 times\n");
+        DEV_PRINTF("Failed to boot LSM303D 5 times\n");
         goto fail_tries;
     }
 
