@@ -5,11 +5,11 @@
 //
 // File: MatlabController.h
 //
-// Code generated for Simulink model 'MatlabController'.
+// Code generated for Simulink model 'ArduPlane_ManualMode'.
 //
-// Model version                  : 1.398
+// Model version                  : 1.407
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Fri Apr 23 12:15:54 2021
+// C/C++ source code generated on : Wed Jul 27 09:43:45 2022
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -21,14 +21,14 @@
 #ifndef RTW_HEADER_MatlabController_h_
 #define RTW_HEADER_MatlabController_h_
 #include "rtwtypes.h"
-#ifndef MatlabController_COMMON_INCLUDES_
-# define MatlabController_COMMON_INCLUDES_
+#ifndef ArduPlane_ManualMode_COMMON_INCLUDES_
+# define ArduPlane_ManualMode_COMMON_INCLUDES_
 #include "rtwtypes.h"
-#endif                                 // MatlabController_COMMON_INCLUDES_
+#endif                                 // ArduPlane_ManualMode_COMMON_INCLUDES_
 
 // Macros for accessing real-time model data structure
-#ifndef DEFINED_TYPEDEF_FOR_cmdBus_
-#define DEFINED_TYPEDEF_FOR_cmdBus_
+#ifndef DEFINED_TYPEDEF_FOR_dtoSglFlt_cmdBus_
+#define DEFINED_TYPEDEF_FOR_dtoSglFlt_cmdBus_
 
 typedef struct {
   real32_T roll;
@@ -37,13 +37,16 @@ typedef struct {
   real32_T thr;
   real32_T s_Kg_init[3];
   real32_T yaw_init;
-  real32_T RC1_pwm;
-} cmdBus;
+  uint16_T mission_change;
+  real32_T waypoints[40];
+  uint16_T num_waypoints;
+  real32_T RC_pwm[16];
+} dtoSglFlt_cmdBus;
 
 #endif
 
-#ifndef DEFINED_TYPEDEF_FOR_measureBus_
-#define DEFINED_TYPEDEF_FOR_measureBus_
+#ifndef DEFINED_TYPEDEF_FOR_dtoSgl_measureBus_
+#define DEFINED_TYPEDEF_FOR_dtoSgl_measureBus_
 
 typedef struct {
   real32_T omega_Kb[3];
@@ -54,7 +57,7 @@ typedef struct {
   real32_T s_Kg[3];
   real32_T lla[3];
   real32_T rangefinder[6];
-} measureBus;
+} dtoSgl_measureBus;
 
 #endif
 
@@ -65,8 +68,8 @@ typedef const struct tag_ConstB {
 
 // External inputs (root inport signals with default storage)
 typedef struct {
-  cmdBus cmd;                          // '<Root>/cmd'
-  measureBus measure;                  // '<Root>/measure'
+  dtoSglFlt_cmdBus cmd;                // '<Root>/cmd'
+  dtoSgl_measureBus measure;           // '<Root>/measure'
 } ExtU;
 
 // External outputs (root outports fed by signals with default storage)
@@ -78,7 +81,7 @@ typedef struct {
 
 extern const ConstB rtConstB;          // constant block i/o
 
-// Class declaration for model MatlabController
+// Class declaration for model ArduPlane_ManualMode
 class MatlabControllerClass {
   // public data and function members
  public:
@@ -124,11 +127,11 @@ class MatlabControllerClass {
 //
 //  Here is the system hierarchy for this model
 //
-//  '<Root>' : 'MatlabController'
-//  '<S1>'   : 'MatlabController/Actuator muxer'
-//  '<S2>'   : 'MatlabController/dummy test controller'
-//  '<S3>'   : 'MatlabController/log muxer'
-//  '<S4>'   : 'MatlabController/dummy test controller/MATLAB Function'
+//  '<Root>' : 'ArduPlane_ManualMode'
+//  '<S1>'   : 'ArduPlane_ManualMode/Actuator Muxer ArduPlane'
+//  '<S2>'   : 'ArduPlane_ManualMode/dummy test controller'
+//  '<S3>'   : 'ArduPlane_ManualMode/log muxer'
+//  '<S4>'   : 'ArduPlane_ManualMode/dummy test controller/MATLAB Function'
 
 #endif                                 // RTW_HEADER_MatlabController_h_
 

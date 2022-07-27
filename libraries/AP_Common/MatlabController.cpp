@@ -5,11 +5,11 @@
 //
 // File: MatlabController.cpp
 //
-// Code generated for Simulink model 'MatlabController'.
+// Code generated for Simulink model 'ArduPlane_ManualMode'.
 //
-// Model version                  : 1.398
+// Model version                  : 1.407
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Fri Apr 23 12:15:54 2021
+// C/C++ source code generated on : Wed Jul 27 09:43:45 2022
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -23,19 +23,30 @@
 // Model step function
 void MatlabControllerClass::step()
 {
+  real_T y[8];
+  int32_T i;
+
   // MATLAB Function: '<S2>/MATLAB Function' incorporates:
   //   Inport: '<Root>/cmd'
   //   Inport: '<Root>/measure'
-  //   Outport: '<Root>/channels'
 
-  rtY.channels[0] = rtU.cmd.roll;
-  rtY.channels[1] = rtU.cmd.pitch;
-  rtY.channels[2] = rtU.cmd.thr;
-  rtY.channels[3] = rtU.cmd.yaw;
-  rtY.channels[4] = rtU.measure.rangefinder[0];
-  rtY.channels[5] = rtU.measure.rangefinder[1];
-  rtY.channels[6] = rtU.measure.rangefinder[2];
-  rtY.channels[7] = rtU.measure.rangefinder[3];
+  y[0] = rtU.cmd.roll;
+  y[1] = rtU.cmd.pitch;
+  y[2] = rtU.cmd.thr;
+  y[3] = rtU.cmd.yaw;
+  y[4] = rtU.measure.rangefinder[0];
+  y[5] = rtU.measure.rangefinder[1];
+  y[6] = rtU.measure.rangefinder[2];
+  y[7] = rtU.measure.rangefinder[3];
+
+  // Outport: '<Root>/channels' incorporates:
+  //   MATLAB Function: '<S2>/MATLAB Function'
+
+  for (i = 0; i < 8; i++) {
+    rtY.channels[i] = (real32_T)y[i];
+  }
+
+  // End of Outport: '<Root>/channels'
 
   // Outport: '<Root>/logs' incorporates:
   //   Inport: '<Root>/cmd'

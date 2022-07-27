@@ -137,6 +137,7 @@ public:
     friend class Tiltrotor;
     friend class SLT_Transition;
     friend class Tailsitter_Transition;
+    friend class AP_Mission; //befriending AP_Mission to get the waypoint update trigger 
 
     friend class Mode;
     friend class ModeCircle;
