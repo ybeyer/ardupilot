@@ -1,15 +1,15 @@
 //
-// Sponsored License - for use in support of a program or activity
-// sponsored by MathWorks.  Not for government, commercial or other
-// non-sponsored organizational use.
+// Academic License - for use in teaching, academic research, and meeting
+// course requirements at degree granting institutions only.  Not for
+// government, commercial, or other organizational use.
 //
 // File: rtwtypes.h
 //
-// Code generated for Simulink model 'ArduPlane_ManualMode'.
+// Code generated for Simulink model 'EasyGlider_ManualMode_with_waypoints_and_sysID'.
 //
-// Model version                  : 1.407
+// Model version                  : 1.464
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Wed Jul 27 09:43:45 2022
+// C/C++ source code generated on : Thu Aug 11 17:08:25 2022
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -75,6 +75,82 @@ typedef unsigned long long ulonglong_T;
 typedef char char_T;
 typedef unsigned char uchar_T;
 typedef char_T byte_T;
+
+//===========================================================================*
+//  Complex number type definitions                                           *
+// ===========================================================================
+#define CREAL_T
+
+typedef struct {
+  real32_T re;
+  real32_T im;
+} creal32_T;
+
+typedef struct {
+  real64_T re;
+  real64_T im;
+} creal64_T;
+
+typedef struct {
+  real_T re;
+  real_T im;
+} creal_T;
+
+#define CINT8_T
+
+typedef struct {
+  int8_T re;
+  int8_T im;
+} cint8_T;
+
+#define CUINT8_T
+
+typedef struct {
+  uint8_T re;
+  uint8_T im;
+} cuint8_T;
+
+#define CINT16_T
+
+typedef struct {
+  int16_T re;
+  int16_T im;
+} cint16_T;
+
+#define CUINT16_T
+
+typedef struct {
+  uint16_T re;
+  uint16_T im;
+} cuint16_T;
+
+#define CINT32_T
+
+typedef struct {
+  int32_T re;
+  int32_T im;
+} cint32_T;
+
+#define CUINT32_T
+
+typedef struct {
+  uint32_T re;
+  uint32_T im;
+} cuint32_T;
+
+#define CINT64_T
+
+typedef struct {
+  int64_T re;
+  int64_T im;
+} cint64_T;
+
+#define CUINT64_T
+
+typedef struct {
+  uint64_T re;
+  uint64_T im;
+} cuint64_T;
 
 //=======================================================================*
 //  Min and Max:                                                          *

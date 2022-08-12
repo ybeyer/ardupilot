@@ -12,6 +12,8 @@ bool ModeCustom::_enter()
 void ModeCustom::update()
 {
 
+    uint32_t time_beg = AP_HAL::micros();
+
     // get pilot inputs
     float tr_max_inv = 1.0 / 4500;
     float roll_out_high = plane.channel_roll->get_control_in();
@@ -25,6 +27,7 @@ void ModeCustom::update()
 
     // get rangefinder distance in cm (if sensor with orientation is avail.)
 
+    
     float rangefinder_dist[6];
     rangefinder_dist[0] = plane.rangefinder.distance_cm_orient((Rotation)1);
     rangefinder_dist[1] = plane.rangefinder.distance_cm_orient((Rotation)2);
@@ -33,7 +36,8 @@ void ModeCustom::update()
     rangefinder_dist[4] = plane.rangefinder.distance_cm_orient((Rotation)5);
     rangefinder_dist[5] = plane.rangefinder.distance_cm_orient((Rotation)6);
 
-    int   RNGFND_num_sensors = plane.rangefinder.num_sensors();
+    // int RNGFND_num_sensors = plane.rangefinder.num_sensors();
+    
 
       // get measured inputs
     Vector3f angular_velocity_Kb = plane.ahrs.get_gyro();
@@ -55,13 +59,14 @@ void ModeCustom::update()
     Vector3f velocity_NED;
     if(!plane.ahrs.get_velocity_NED(velocity_NED))
     {
-        velocity_NED[0] = 0;
+        velocity_NED[0] = 0;      
         velocity_NED[1] = 0;
         velocity_NED[2] = 0;
     }
 
     Vector3f position_NED;
-    if(!plane.ahrs.get_relative_position_NED_home(position_NED))
+    //if(!plane.ahrs.get_relative_position_NED_home(position_NED))
+    if(!plane.ahrs.get_relative_position_NED_origin(position_NED))
     {
         position_NED[0] = 0;
         position_NED[1] = 0;
@@ -76,7 +81,8 @@ void ModeCustom::update()
     rtU_.cmd.pitch = pitch_out;
     rtU_.cmd.yaw   = yaw_out;
     rtU_.cmd.thr   = throttle_control;
-     for (int i=0;i<16;i++) {
+
+    for (int i=0;i<16;i++) {
         rtU_.cmd.RC_pwm[i] = plane.g2.rc_channels.channel(i)->get_radio_in();
     }
 
@@ -111,15 +117,16 @@ void ModeCustom::update()
 
     // assign or update waypoints
     // overwrite all custom controller waypoints with 5m above home position
-    for (int k=0;k<max_num_of_matlab_waypoints;k++){
+    for (int k = 0; k < max_num_of_matlab_waypoints; k++){
         rtU_.cmd.waypoints[4*k]   = 0.0f;
         rtU_.cmd.waypoints[4*k+1] = 0.0f;
         rtU_.cmd.waypoints[4*k+2] = -5.0f;
         rtU_.cmd.waypoints[4*k+3] = 0.0f;
     }
-    int wp_count=0;
+
+    int wp_count = 0;
     // start with index j=1 because 1st Ardupilot waypoint is always home position
-    for (int j=1;j<max_num_of_ardupilot_waypoints&&j<numberOfNavCommands;j++){
+    for (int j=1 ; (j < max_num_of_ardupilot_waypoints) && ( j <= numberOfNavCommands) ; j++){
         // assign only waypoints that are no "ghost waypoints", see declaration of waypoints
         if (abs(waypoints[j][0]) + abs(waypoints[j][1]) + abs(waypoints[j][2]) >= 0.01f){
             rtU_.cmd.waypoints[4*wp_count]   = waypoints[j][0]*0.01f; // convert cm to m
@@ -128,7 +135,7 @@ void ModeCustom::update()
             rtU_.cmd.waypoints[4*wp_count+3] = waypoints[j][3]; // target velocity in m/s
             wp_count++;
         }
-        if (wp_count>=max_num_of_matlab_waypoints){
+        if (wp_count >= max_num_of_matlab_waypoints){
             // if the maximum number of waypoints that can be send to the matlab controler is reached break
             break;
         }
@@ -137,35 +144,11 @@ void ModeCustom::update()
     rtU_.cmd.mission_change = updated_waypoints; // setting the waypoints updated flag
     updated_waypoints = false;
 
-
-
-
-
     // get controller outputs struct
+    // ToDo: Use Pointer for rtU_ and rtY_ because coping all data in every step is NOT necessary, this will save a lot of memory for the waypoints and some cpu time.
     custom_controller.rtU = rtU_;
     custom_controller.step(); //run a step in controller.
     ExtY rtY_ = custom_controller.rtY;
-
-    // log data
-    AP::logger().Write(
-        "ML", "TimeUS,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15",
-        "Qfffffffffffffff",
-        AP_HAL::micros64(),
-        (double)custom_controller.rtY.logs[0],
-        (double)custom_controller.rtY.logs[1],
-        (double)custom_controller.rtY.logs[2],
-        (double)custom_controller.rtY.logs[3],
-        (double)custom_controller.rtY.logs[4],
-        (double)custom_controller.rtY.logs[5],
-        (double)custom_controller.rtY.logs[6],
-        (double)custom_controller.rtY.logs[7],
-        (double)custom_controller.rtY.logs[8],
-        (double)custom_controller.rtY.logs[9],
-        (double)custom_controller.rtY.logs[10],
-        (double)custom_controller.rtY.logs[11],
-        (double)custom_controller.rtY.logs[12],
-        (double)custom_controller.rtY.logs[13],
-        (double)custom_controller.rtY.logs[14]);
 
     // send controller outputs to channels and set PWMs
     for (uint8_t i=0; i<8; i++) {
@@ -205,15 +188,51 @@ void ModeCustom::update()
 
     counter++;
 
-    if (now - last_print >= 100000 /* 100ms : 10hz */) {
+    uint32_t modecustom_duration_us = AP_HAL::micros() - time_beg;
 
-       GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "%d: distance_cm %f %f %f %f %f %f \n",
-        RNGFND_num_sensors,
-        rangefinder_dist[0], rangefinder_dist[1], rangefinder_dist[2],
-        rangefinder_dist[3], rangefinder_dist[4], rangefinder_dist[5]);
-        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Servo PWM: %f %f %f %f %f %f %f %f \n",
-         rtY_.channels[0], rtY_.channels[1], rtY_.channels[2], rtY_.channels[3],
-         rtY_.channels[4], rtY_.channels[5], rtY_.channels[6], rtY_.channels[7]);
+    // Log the execution time and report the maximum
+    static uint32_t modecustom_max_us = 0;
+    if(modecustom_duration_us > modecustom_max_us) 
+        modecustom_max_us = modecustom_duration_us;
+
+     // log data
+    AP::logger().Write(
+        "ML", "TimeUS,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15",
+        "Qfffffffffffffff",
+        AP_HAL::micros64(),
+        (double)modecustom_duration_us,
+        //(double)custom_controller.rtY.logs[0],
+        (double)custom_controller.rtY.logs[1],
+        (double)custom_controller.rtY.logs[2],
+        (double)custom_controller.rtY.logs[3],
+        (double)custom_controller.rtY.logs[4],
+        (double)custom_controller.rtY.logs[5],
+        (double)custom_controller.rtY.logs[6],
+        (double)custom_controller.rtY.logs[7],
+        (double)custom_controller.rtY.logs[8],
+        (double)custom_controller.rtY.logs[9],
+        (double)custom_controller.rtY.logs[10],
+        (double)custom_controller.rtY.logs[11],
+        (double)custom_controller.rtY.logs[12],
+        (double)custom_controller.rtY.logs[13],
+        (double)custom_controller.rtY.logs[14]);    
+    
+
+    if ((now - last_print >= 1e6) || (rtU_.cmd.mission_change == 1) /* 1000 ms : 1.0 hz */ ) {
+
+        /*GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "%d: distance_cm %f %f %f %f %f %f \n",
+            RNGFND_num_sensors,
+            rangefinder_dist[0], rangefinder_dist[1], rangefinder_dist[2],
+            rangefinder_dist[3], rangefinder_dist[4], rangefinder_dist[5]);*/
+
+        /*GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Servo PWM: %f %f %f %f %f %f %f %f \n",
+            rtY_.channels[0], rtY_.channels[1], rtY_.channels[2], rtY_.channels[3],
+            rtY_.channels[4], rtY_.channels[5], rtY_.channels[6], rtY_.channels[7]);
+            */
+
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Time in us: %d, max: %d Logs: %f %f %f %f %f %f  \n", (int)modecustom_duration_us, (int)modecustom_max_us,
+                custom_controller.rtY.logs[9], custom_controller.rtY.logs[10], custom_controller.rtY.logs[11], custom_controller.rtY.logs[12], custom_controller.rtY.logs[13], custom_controller.rtY.logs[14]);
+            
 
         last_print = now;
         counter = 0;
