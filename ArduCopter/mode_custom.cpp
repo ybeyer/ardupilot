@@ -10,9 +10,7 @@ void ModeCustom::override_cntrl_params()
 
 }
 
-/*
- * Init and run calls for stabilize flight mode
- */
+// init custom flight mode
 bool ModeCustom::init(bool ignore_checks)
 {
     override_cntrl_params();
@@ -39,15 +37,9 @@ bool ModeCustom::init(bool ignore_checks)
     return true;
 }
 
-// stabilize_run - runs the main stabilize controller
-// should be called at 100hz or more
+// run custom flight mode
 void ModeCustom::run()
 {
-    // apply simple mode transform to pilot inputs
-    update_simple_mode();
-
-
-    // Begin custom code
 
     // Get stick inputs, -1 ... 1
     int16_t tr_max = 4500;
@@ -61,9 +53,6 @@ void ModeCustom::run()
     // get pilot's desired yaw rate
     float yaw_out_high = channel_yaw->get_control_in();
     float yaw_out = yaw_out_high / tr_max;
-   
-  
-
     
     // Get measured values
     // Retrieve quaternion vehicle attitude
@@ -78,11 +67,16 @@ void ModeCustom::run()
         velocity_NED[1] = 0;
         velocity_NED[2] = 0;
     }
-    // gcs().send_text(MAV_SEVERITY_DEBUG, "u %5.3f", (double)velocity[0]);
 
     Vector3f Omega_Kb_filt = ahrs_.get_gyro_latest();
 
-    // gcs().send_text(MAV_SEVERITY_DEBUG, "q %5.3f", (double)rates[0]);
+    /* Info: gyro scaling is hard coded based on AP_InertialSensor::register_gyro in AP_InertialSensor.cpp.
+    The scaling is applied in AP_InertialSensor_Backend::_notify_new_gyro_raw_sample in
+    AP_InertialSensor_Backend.cpp. However, the variable gyro_filtered is overwritten during filtering.
+    It seems that there is no non-filtered scaled angular velocity available as member variable.
+    That is why the scaling is applied here.) */
+    Vector3f Omega_Kb_raw = AP::ins().get_raw_gyro() / (INT16_MAX/radians(2000));
+
     float roll_angle = attitude_vehicle_quat.get_euler_roll();
     float pitch_angle = attitude_vehicle_quat.get_euler_pitch();
     float yaw_angle = attitude_vehicle_quat.get_euler_yaw();
@@ -93,14 +87,9 @@ void ModeCustom::run()
         position_NED[1] = 0;
         position_NED[2] = 0;
     }
-    // end custom code
 
-    // convert pilot input to lean angles
-    // float target_roll, target_pitch;
-    // get_pilot_desired_lean_angles(target_roll, target_pitch, copter.aparm.angle_max, copter.aparm.angle_max);
-    // get pilot's desired yaw rate
-    // float target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->get_control_in());
 
+    // To do: spool states are currently based on copy from mode_stabilize
     if (!motors->armed()) {
         // Motors should be Stopped
         motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::SHUT_DOWN);
@@ -110,41 +99,27 @@ void ModeCustom::run()
     } else {
         motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
     }
-
+    // To do: spool states are currently based on copy from mode_stabilize
     switch (motors->get_spool_state()) {
     case AP_Motors::SpoolState::SHUT_DOWN:
         // Motors Stopped
-        attitude_control->reset_yaw_target_and_rate();
-        attitude_control->reset_rate_controller_I_terms();
+        // To do!
         break;
     case AP_Motors::SpoolState::GROUND_IDLE:
         // Landed
-        attitude_control->reset_yaw_target_and_rate();
-        attitude_control->reset_rate_controller_I_terms();
+        // To do!
         break;
     case AP_Motors::SpoolState::THROTTLE_UNLIMITED:
         // clear landing flag above zero throttle
-        if (!motors->limit.throttle_lower) {
-            set_land_complete(false);
-        }
-        break;
+        // To do!
     case AP_Motors::SpoolState::SPOOLING_UP:
     case AP_Motors::SpoolState::SPOOLING_DOWN:
         // do nothing
+        // To do!
         break;
     }
 
-    // call attitude controller
-    //attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(target_roll, target_pitch, target_yaw_rate);
-
-    // output pilot's throttle
-    //attitude_control->set_throttle_out(get_pilot_desired_throttle(),
-    //                                   true,
-    //                                   g.throttle_filt);
-
-
-    // BEGIN NEW CODE
-
+    // assign commanded controller inputs to cmd struct
     ExtU rtU_;
     ExtY rtY_;
 
@@ -188,13 +163,7 @@ void ModeCustom::run()
     updated_waypoints = false;
 
 
-    // Info: gyro scaling is hard coded based on AP_InertialSensor::register_gyro in AP_InertialSensor.cpp.
-    // The scaling is applied in AP_InertialSensor_Backend::_notify_new_gyro_raw_sample in
-    // AP_InertialSensor_Backend.cpp. However, the variable gyro_filtered is overwritten during filtering.
-    // It seems that there is no non-filtered scaled angular velocity available as member variable.
-    // That is why the scaling is applied here.)
-    Vector3f Omega_Kb_raw = AP::ins().get_raw_gyro() / (INT16_MAX/radians(2000));
-
+    // assign measured controller inputs to measure struct
     rtU_.measure.omega_Kb[0] = Omega_Kb_filt[0];
     rtU_.measure.omega_Kb[1] = Omega_Kb_filt[1];
     rtU_.measure.omega_Kb[2] = Omega_Kb_filt[2];
@@ -221,14 +190,16 @@ void ModeCustom::run()
     rtU_.measure.lla[1] = copter.current_loc.lng;
     rtU_.measure.lla[2] = copter.current_loc.alt;
     
+    // run Simulink controller
     custom_controller.rtU = rtU_;
     custom_controller.step();
     rtY_ = custom_controller.rtY;
 
-    // real32_T u1 = rtY_.u[0];
-    // gcs().send_text(MAV_SEVERITY_DEBUG, "u1 %5.3f", u1);
-    //Example of sending the rotation rates omega_Kb to simulink (uncomment the following line and define Custom_Matlab_Output in mode.h)
-    //socket_debug.sendto(&rtU_.measure, sizeof(rtU_.measure), _debug_address, _debug_port); 
+    // DEBUGGING:
+    // Send measure bus to Simulink (uncomment line 3 in mode.h)
+    #ifdef Custom_Matlab_Output
+        socket_debug.sendto(&rtU_.measure, sizeof(rtU_.measure), _debug_address, _debug_port); 
+    #endif
 
     // log data
     AP::logger().Write(
