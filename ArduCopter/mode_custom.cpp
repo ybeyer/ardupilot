@@ -87,6 +87,12 @@ void ModeCustom::run()
         position_NED[1] = 0;
         position_NED[2] = 0;
     }
+    Vector3f position_NED_origin;
+    if (!ahrs_.get_relative_position_NED_origin(position_NED_origin)) {
+        position_NED_origin[0] = 0;
+        position_NED_origin[1] = 0;
+        position_NED_origin[2] = 0;
+    }
 
 
     // To do: spool states are currently based on copy from mode_stabilize
@@ -186,6 +192,9 @@ void ModeCustom::run()
     rtU_.measure.s_Kg[0] = position_NED[0];
     rtU_.measure.s_Kg[1] = position_NED[1];
     rtU_.measure.s_Kg[2] = position_NED[2];
+    rtU_.measure.s_Kg_origin[0] = position_NED[0];
+    rtU_.measure.s_Kg_origin[1] = position_NED_origin[1];
+    rtU_.measure.s_Kg_origin[2] = position_NED_origin[2];
     rtU_.measure.lla[0] = copter.current_loc.lat;
     rtU_.measure.lla[1] = copter.current_loc.lng;
     rtU_.measure.lla[2] = copter.current_loc.alt;

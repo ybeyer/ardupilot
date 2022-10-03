@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'ArduCopter_TemplateController'.
 //
-// Model version                  : 1.388
+// Model version                  : 1.389
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Mon Sep 19 11:19:36 2022
+// C/C++ source code generated on : Mon Oct  3 14:52:41 2022
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -56,6 +56,7 @@ typedef struct {
   real32_T a_Kg[3];
   real32_T V_Kg[3];
   real32_T s_Kg[3];
+  real32_T s_Kg_origin[3];
   real32_T lla[3];
   real32_T rangefinder[6];
 } measureBus;
