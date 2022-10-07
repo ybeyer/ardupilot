@@ -819,10 +819,10 @@ class chibios(Board):
 
         # make board name available for USB IDs
         env.CHIBIOS_BOARD_NAME = 'HAL_BOARD_NAME="%s"' % self.name
-        env.HAL_MAX_STACK_FRAME_SIZE = 'HAL_MAX_STACK_FRAME_SIZE=%d' % 10350 # set per Wframe-larger-than, ensure its same
+        env.HAL_MAX_STACK_FRAME_SIZE = 'HAL_MAX_STACK_FRAME_SIZE=%d' % 1300 # set per Wframe-larger-than, ensure its same
         env.CFLAGS += cfg.env.CPU_FLAGS + [
             '-Wlogical-op',
-            '-Wframe-larger-than=10350',
+            '-Wframe-larger-than=1300',
             '-fsingle-precision-constant',
             '-Wno-attributes',
             '-fno-exceptions',
