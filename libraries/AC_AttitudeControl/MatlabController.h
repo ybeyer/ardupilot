@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'ArduCopter_TemplateController'.
 //
-// Model version                  : 1.389
+// Model version                  : 1.388
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Mon Oct  3 14:52:41 2022
+// C/C++ source code generated on : Sat Oct  8 13:50:48 2022
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -63,12 +63,34 @@ typedef struct {
 
 #endif
 
+#ifndef DEFINED_TYPEDEF_FOR_logBus_
+#define DEFINED_TYPEDEF_FOR_logBus_
+
+typedef struct {
+  real32_T signals[14];
+  uint8_T num_signals;
+  uint8_T signal_names[42];
+  uint8_T batch_name[4];
+} logBus;
+
+#endif
+
 // Constant parameters (default storage)
 typedef struct {
   // Computed Parameter: Constant_Value
   //  Referenced by: '<S2>/Constant'
 
   real32_T Constant_Value[8];
+
+  // Pooled Parameter (Expression: signal_names_1D)
+  //  Referenced by:
+  //    '<S4>/signal names'
+  //    '<S5>/signal names'
+  //    '<S6>/signal names'
+  //    '<S7>/signal names'
+  //    '<S8>/signal names'
+
+  uint8_T pooled1[42];
 } ConstP;
 
 // External inputs (root inport signals with default storage)
@@ -80,7 +102,7 @@ typedef struct {
 // External outputs (root outports fed by signals with default storage)
 typedef struct {
   real32_T u[8];                       // '<Root>/u'
-  real32_T logs[15];                   // '<Root>/logs'
+  logBus logs[5];                      // '<Root>/logs'
 } ExtY;
 
 // Constant parameters (default storage)
@@ -130,6 +152,11 @@ class MatlabControllerClass {
 //  '<S1>'   : 'ArduCopter_TemplateController/Actuator muxer'
 //  '<S2>'   : 'ArduCopter_TemplateController/dummy test controller'
 //  '<S3>'   : 'ArduCopter_TemplateController/log muxer'
+//  '<S4>'   : 'ArduCopter_TemplateController/log muxer/log muxer core1'
+//  '<S5>'   : 'ArduCopter_TemplateController/log muxer/log muxer core2'
+//  '<S6>'   : 'ArduCopter_TemplateController/log muxer/log muxer core3'
+//  '<S7>'   : 'ArduCopter_TemplateController/log muxer/log muxer core4'
+//  '<S8>'   : 'ArduCopter_TemplateController/log muxer/log muxer core5'
 
 #endif                                 // RTW_HEADER_MatlabController_h_
 
