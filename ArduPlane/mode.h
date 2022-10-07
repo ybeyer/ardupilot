@@ -335,7 +335,7 @@ public:
 protected:
 
     bool _enter() override;
-    static const int max_num_of_matlab_waypoints = 6;
+    static const int max_num_of_matlab_waypoints = 10;
     // Ardupilot contains ghost waypoints
     // (home position and velocity of previous waypoint),
     // this is the max size

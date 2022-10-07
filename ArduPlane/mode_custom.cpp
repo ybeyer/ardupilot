@@ -12,6 +12,8 @@ bool ModeCustom::_enter()
 void ModeCustom::update()
 {
 
+    uint32_t time_beg = AP_HAL::micros();
+
     // get pilot inputs
     float tr_max_inv = 1.0 / 4500;
     float roll_out_high = plane.channel_roll->get_control_in();
@@ -33,7 +35,8 @@ void ModeCustom::update()
     rangefinder_dist[4] = plane.rangefinder.distance_cm_orient((Rotation)5);
     rangefinder_dist[5] = plane.rangefinder.distance_cm_orient((Rotation)6);
 
-    int   RNGFND_num_sensors = plane.rangefinder.num_sensors();
+    // int RNGFND_num_sensors = plane.rangefinder.num_sensors();
+    
 
       // get measured inputs
     Vector3f angular_velocity_Kb = plane.ahrs.get_gyro();
@@ -61,7 +64,8 @@ void ModeCustom::update()
     }
 
     Vector3f position_NED;
-    if(!plane.ahrs.get_relative_position_NED_home(position_NED))
+    //if(!plane.ahrs.get_relative_position_NED_home(position_NED))
+    if(!plane.ahrs.get_relative_position_NED_origin(position_NED))
     {
         position_NED[0] = 0;
         position_NED[1] = 0;
@@ -119,7 +123,7 @@ void ModeCustom::update()
     }
     int wp_count=0;
     // start with index j=1 because 1st Ardupilot waypoint is always home position
-    for (int j=1;j<max_num_of_ardupilot_waypoints&&j<numberOfNavCommands;j++){
+    for (int j=1;(j<max_num_of_ardupilot_waypoints)&&(j<numberOfNavCommands);j++){
         // assign only waypoints that are no "ghost waypoints", see declaration of waypoints
         if (abs(waypoints[j][0]) + abs(waypoints[j][1]) + abs(waypoints[j][2]) >= 0.01f){
             rtU_.cmd.waypoints[4*wp_count]   = waypoints[j][0]*0.01f; // convert cm to m
@@ -137,11 +141,8 @@ void ModeCustom::update()
     rtU_.cmd.mission_change = updated_waypoints; // setting the waypoints updated flag
     updated_waypoints = false;
 
-
-
-
-
     // get controller outputs struct
+    // ToDo: Use Pointer for rtU_ and rtY_ because coping all data in every step is NOT necessary, this will save a lot of memory for the waypoints and some cpu time.
     custom_controller.rtU = rtU_;
     custom_controller.step(); //run a step in controller.
     ExtY rtY_ = custom_controller.rtY;
@@ -205,16 +206,24 @@ void ModeCustom::update()
 
     counter++;
 
-    if (now - last_print >= 100000 /* 100ms : 10hz */) {
+    uint32_t modecustom_duration_us = AP_HAL::micros() - time_beg;
 
-       GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "%d: distance_cm %f %f %f %f %f %f \n",
-        RNGFND_num_sensors,
-        rangefinder_dist[0], rangefinder_dist[1], rangefinder_dist[2],
-        rangefinder_dist[3], rangefinder_dist[4], rangefinder_dist[5]);
-        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Servo PWM: %f %f %f %f %f %f %f %f \n",
-         rtY_.channels[0], rtY_.channels[1], rtY_.channels[2], rtY_.channels[3],
-         rtY_.channels[4], rtY_.channels[5], rtY_.channels[6], rtY_.channels[7]);
+    // Log the execution time and report the maximum
+    static uint32_t modecustom_max_us = 0;
+    if(modecustom_duration_us > modecustom_max_us) 
+        modecustom_max_us = modecustom_duration_us;
+    AP::logger().Write(
+        "MLPM", "TimeUS,dtUS",
+        "Qf",
+        AP_HAL::micros64(),
+        (double)modecustom_duration_us);    
+    
 
+    if ((now - last_print >= 1e6) || (rtU_.cmd.mission_change == 1) /* 1000 ms : 1.0 hz */ ) {
+
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Time in us: %d, max: %d Logs: %f %f %f %f %f %f  \n", (int)modecustom_duration_us, (int)modecustom_max_us,
+                custom_controller.rtY.logs[9], custom_controller.rtY.logs[10], custom_controller.rtY.logs[11], custom_controller.rtY.logs[12], custom_controller.rtY.logs[13], custom_controller.rtY.logs[14]);
+            
         last_print = now;
         counter = 0;
     }
