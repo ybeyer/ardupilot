@@ -1,7 +1,7 @@
 //
-// Sponsored License - for use in support of a program or activity
-// sponsored by MathWorks.  Not for government, commercial or other
-// non-sponsored organizational use.
+// Academic License - for use in teaching, academic research, and meeting
+// course requirements at degree granting institutions only.  Not for
+// government, commercial, or other organizational use.
 //
 // File: rtwtypes.h
 //
@@ -9,7 +9,7 @@
 //
 // Model version                  : 1.407
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Wed Jul 27 09:43:45 2022
+// C/C++ source code generated on : Sat Oct  8 13:33:22 2022
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)

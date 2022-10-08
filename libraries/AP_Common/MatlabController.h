@@ -1,7 +1,7 @@
 //
-// Sponsored License - for use in support of a program or activity
-// sponsored by MathWorks.  Not for government, commercial or other
-// non-sponsored organizational use.
+// Academic License - for use in teaching, academic research, and meeting
+// course requirements at degree granting institutions only.  Not for
+// government, commercial, or other organizational use.
 //
 // File: MatlabController.h
 //
@@ -9,7 +9,7 @@
 //
 // Model version                  : 1.407
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Wed Jul 27 09:43:45 2022
+// C/C++ source code generated on : Sat Oct  8 13:33:22 2022
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -27,8 +27,8 @@
 #endif                                 // ArduPlane_ManualMode_COMMON_INCLUDES_
 
 // Macros for accessing real-time model data structure
-#ifndef DEFINED_TYPEDEF_FOR_dtoSglFlt_cmdBus_
-#define DEFINED_TYPEDEF_FOR_dtoSglFlt_cmdBus_
+#ifndef DEFINED_TYPEDEF_FOR_cmdBus_
+#define DEFINED_TYPEDEF_FOR_cmdBus_
 
 typedef struct {
   real32_T roll;
@@ -41,23 +41,37 @@ typedef struct {
   real32_T waypoints[40];
   uint16_T num_waypoints;
   real32_T RC_pwm[16];
-} dtoSglFlt_cmdBus;
+} cmdBus;
 
 #endif
 
-#ifndef DEFINED_TYPEDEF_FOR_dtoSgl_measureBus_
-#define DEFINED_TYPEDEF_FOR_dtoSgl_measureBus_
+#ifndef DEFINED_TYPEDEF_FOR_measureBus_
+#define DEFINED_TYPEDEF_FOR_measureBus_
 
 typedef struct {
+  real32_T Omega_Kb_raw[3];
   real32_T omega_Kb[3];
   real32_T EulerAngles[3];
   real32_T q_bg[4];
   real32_T a_Kg[3];
   real32_T V_Kg[3];
   real32_T s_Kg[3];
+  real32_T s_Kg_origin[3];
   real32_T lla[3];
   real32_T rangefinder[6];
-} dtoSgl_measureBus;
+} measureBus;
+
+#endif
+
+#ifndef DEFINED_TYPEDEF_FOR_logBus_
+#define DEFINED_TYPEDEF_FOR_logBus_
+
+typedef struct {
+  real32_T signals[14];
+  uint8_T num_signals;
+  uint8_T signal_names[42];
+  uint8_T batch_name[4];
+} logBus;
 
 #endif
 
@@ -66,20 +80,36 @@ typedef const struct tag_ConstB {
   uint16_T DataTypeConversion1[8];     // '<S1>/Data Type Conversion1'
 } ConstB;
 
+// Constant parameters (default storage)
+typedef struct {
+  // Pooled Parameter (Expression: signal_names_1D)
+  //  Referenced by:
+  //    '<S5>/signal names'
+  //    '<S6>/signal names'
+  //    '<S7>/signal names'
+  //    '<S8>/signal names'
+  //    '<S9>/signal names'
+
+  uint8_T pooled1[42];
+} ConstP;
+
 // External inputs (root inport signals with default storage)
 typedef struct {
-  dtoSglFlt_cmdBus cmd;                // '<Root>/cmd'
-  dtoSgl_measureBus measure;           // '<Root>/measure'
+  cmdBus cmd;                          // '<Root>/cmd'
+  measureBus measure;                  // '<Root>/measure'
 } ExtU;
 
 // External outputs (root outports fed by signals with default storage)
 typedef struct {
   real32_T channels[8];                // '<Root>/channels'
-  real32_T logs[15];                   // '<Root>/logs'
+  logBus logs[5];                      // '<Root>/logs'
   uint16_T function_channels[8];       // '<Root>/function_channels'
 } ExtY;
 
 extern const ConstB rtConstB;          // constant block i/o
+
+// Constant parameters (default storage)
+extern const ConstP rtConstP;
 
 // Class declaration for model ArduPlane_ManualMode
 class MatlabControllerClass {
@@ -132,6 +162,11 @@ class MatlabControllerClass {
 //  '<S2>'   : 'ArduPlane_ManualMode/dummy test controller'
 //  '<S3>'   : 'ArduPlane_ManualMode/log muxer'
 //  '<S4>'   : 'ArduPlane_ManualMode/dummy test controller/MATLAB Function'
+//  '<S5>'   : 'ArduPlane_ManualMode/log muxer/log muxer core1'
+//  '<S6>'   : 'ArduPlane_ManualMode/log muxer/log muxer core2'
+//  '<S7>'   : 'ArduPlane_ManualMode/log muxer/log muxer core3'
+//  '<S8>'   : 'ArduPlane_ManualMode/log muxer/log muxer core4'
+//  '<S9>'   : 'ArduPlane_ManualMode/log muxer/log muxer core5'
 
 #endif                                 // RTW_HEADER_MatlabController_h_
 

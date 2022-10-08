@@ -5,6 +5,14 @@
 bool ModeCustom::_enter()
 {
     custom_controller.initialize(); 
+
+    // init logging
+    // without calling step() the log data is not initialized (to do)
+    custom_controller.step();
+    set_log_labels(custom_controller.rtY.logs);
+    set_log_batch_names(custom_controller.rtY.logs);
+    custom_controller.initialize();
+
     return true;
 }
 
@@ -45,13 +53,6 @@ void ModeCustom::update()
     // bool a = plane.ahrs.get_quaternion(attitude_vehicle_quat);
     // gcs().send_text(MAV_SEVERITY_DEBUG, "a %d", (int8_t)a);
     // gcs().send_text(MAV_SEVERITY_DEBUG, "test %5.3f %5.3f %5.3f %5.3f", (double)attitude_vehicle_quat[0], (double)attitude_vehicle_quat[1], attitude_vehicle_quat[2], attitude_vehicle_quat[3]);
-
-    AP::logger().Write("QUAT", "TimeUS,q0,q1,q2,q3", "Qffff",
-                                        AP_HAL::micros64(),
-                                        (double)attitude_vehicle_quat[0],
-                                        (double)attitude_vehicle_quat[1],
-                                        (double)attitude_vehicle_quat[2],
-                                        (double)attitude_vehicle_quat[3]);
 
     Vector3f acc_NED = plane.ahrs.get_accel_ef_blended();
 
@@ -147,26 +148,16 @@ void ModeCustom::update()
     custom_controller.step(); //run a step in controller.
     ExtY rtY_ = custom_controller.rtY;
 
-    // log data
-    AP::logger().Write(
-        "ML", "TimeUS,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15",
-        "Qfffffffffffffff",
-        AP_HAL::micros64(),
-        (double)custom_controller.rtY.logs[0],
-        (double)custom_controller.rtY.logs[1],
-        (double)custom_controller.rtY.logs[2],
-        (double)custom_controller.rtY.logs[3],
-        (double)custom_controller.rtY.logs[4],
-        (double)custom_controller.rtY.logs[5],
-        (double)custom_controller.rtY.logs[6],
-        (double)custom_controller.rtY.logs[7],
-        (double)custom_controller.rtY.logs[8],
-        (double)custom_controller.rtY.logs[9],
-        (double)custom_controller.rtY.logs[10],
-        (double)custom_controller.rtY.logs[11],
-        (double)custom_controller.rtY.logs[12],
-        (double)custom_controller.rtY.logs[13],
-        (double)custom_controller.rtY.logs[14]);
+    // log signals    
+    for (int i=0;i<num_log_batches;i++) {
+        char label[label_length[i]+1];
+        get_log_label(i+1, label);
+        char batch_name[batch_name_length[i]+1];
+        get_log_batch_name(i+1, batch_name);
+        write_log_custom(batch_name, label,
+            custom_controller.rtY.logs[i].signals,
+            custom_controller.rtY.logs[i].num_signals);
+    }
 
     // send controller outputs to channels and set PWMs
     for (uint8_t i=0; i<8; i++) {
@@ -221,8 +212,7 @@ void ModeCustom::update()
 
     if ((now - last_print >= 1e6) || (rtU_.cmd.mission_change == 1) /* 1000 ms : 1.0 hz */ ) {
 
-        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Time in us: %d, max: %d Logs: %f %f %f %f %f %f  \n", (int)modecustom_duration_us, (int)modecustom_max_us,
-                custom_controller.rtY.logs[9], custom_controller.rtY.logs[10], custom_controller.rtY.logs[11], custom_controller.rtY.logs[12], custom_controller.rtY.logs[13], custom_controller.rtY.logs[14]);
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Time in us: %d, max: %d  \n", (int)modecustom_duration_us, (int)modecustom_max_us);
             
         last_print = now;
         counter = 0;
@@ -248,5 +238,96 @@ void ModeCustom::add_speed(uint16_T index, float V_k){ //adding a new 'waypoint'
         waypoints[index-1][3] = V_k;
     }
     numberOfNavCommands = index;
+}
 
-} 
+void ModeCustom::set_log_batch_names(logBus logs[]) {
+    for (int i=0;i<num_log_batches;i++) {
+        memcpy(&(batch_name_full[i][0]), &(logs[i].batch_name), max_batch_name_length);
+        batch_name_length[i]=max_batch_name_length;
+        for (int j=0;j<max_batch_name_length;j++) {
+            if (batch_name_full[i][j] == 1) {
+                batch_name_length[i] -= 1;
+            }
+        }
+    }
+};
+
+void ModeCustom::set_log_labels(logBus logs[]){
+    signal_name_t current_name_int;
+    int signal_name_length;
+    for (int i=0;i<num_log_batches;i++) {
+        uint8_t *log_names_in = logs[i].signal_names;
+        memcpy(&(label_full[i][0]), &("TimeUS"), 6);
+        label_length[i]=6;
+        for (int j=0;j<logs[i].num_signals;j++) {
+            signal_name_length = max_signal_name_length;
+            memcpy(&(label_full[i][label_length[i]]),&(","),1);
+            label_length[i] += 1;
+            extract_one_signal_name(log_names_in, j+1, current_name_int);
+            for (int k=0;k<max_signal_name_length;k++) {
+                if (current_name_int[k]==1) {
+                    signal_name_length -= 1;
+                }
+            }
+            memcpy(&(label_full[i][label_length[i]]),&current_name_int,signal_name_length);
+            label_length[i] += signal_name_length;
+        }
+    }
+};
+
+void ModeCustom::write_log_custom(const char *name, const char *labels, float *sf, int size) {
+    double s[size];
+    for (int i=0; i<size; i++) {
+        s[i] = (double)sf[i];
+    }
+    if (size==0) {
+        return;
+    } else if (size==1) {
+        AP::logger().Write(name, labels,"Qf",AP_HAL::micros64(),s[0]);
+    } else if (size==2) {
+        AP::logger().Write(name, labels,"Qff",AP_HAL::micros64(),s[0],s[1]);
+    } else if (size==3) {
+        AP::logger().Write(name, labels,"Qfff",AP_HAL::micros64(),s[0],s[1],s[2]);
+    } else if (size==4) {
+        AP::logger().Write(name, labels,"Qffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3]);
+    } else if (size==5) {
+        AP::logger().Write(name, labels,"Qfffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4]);
+    } else if (size==6) {
+        AP::logger().Write(name, labels,"Qffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5]);
+    } else if (size==7) {
+        AP::logger().Write(name, labels,"Qfffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6]);
+    } else if (size==8) {
+        AP::logger().Write(name, labels,"Qffffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7]);
+    } else if (size==9) {
+        AP::logger().Write(name, labels,"Qfffffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8]);
+    } else if (size==10) {
+        AP::logger().Write(name, labels,"Qffffffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9]);
+    } else if (size==11) {
+        AP::logger().Write(name, labels,"Qfffffffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10]);
+    } else if (size==12) {
+        AP::logger().Write(name, labels,"Qffffffffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10],s[11]);
+    } else if (size==13) {
+        AP::logger().Write(name, labels,"Qfffffffffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10],s[11],s[12]);
+    } else if (size==14) {
+        AP::logger().Write(name, labels,"Qffffffffffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10],s[11],s[12],s[13]);
+    } else if (size==15) {
+        AP::logger().Write(name, labels,"Qfffffffffffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10],s[11],s[12],s[13],s[14]);
+    }
+};
+
+void ModeCustom::extract_one_signal_name(uint8_t log_names_int[], int number, signal_name_t &log_name){
+    int idx = (number-1)*max_signal_name_length;
+    for (int i=0;i<max_signal_name_length;i++) {
+        log_name[i] = log_names_int[idx+i];
+    }
+};
+
+void ModeCustom::get_log_label(int batch_number, char *label) {
+    memcpy(label,&(label_full[batch_number-1]),label_length[batch_number-1]+1);
+    label[label_length[batch_number-1]]=0;
+};
+
+void ModeCustom::get_log_batch_name(int batch_number, char *name) {
+    memcpy(name,&(batch_name_full[batch_number-1]),batch_name_length[batch_number-1]+1);
+    name[batch_name_length[batch_number-1]]=0;
+};

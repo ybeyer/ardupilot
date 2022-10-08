@@ -343,7 +343,31 @@ protected:
     int numberOfNavCommands = 0;
     float waypoints[max_num_of_ardupilot_waypoints][4];
     // will be set true in case of mission update through function mission_updated
-    bool updated_waypoints = false;  
+    bool updated_waypoints = false;
+
+    // custom logging
+    static const int num_log_batches = 5;
+    static const int max_num_signals_per_batch = 14;
+    static const int max_signal_name_length = 3;
+    static const int max_batch_name_length = 4;
+    typedef uint8_t signal_name_t[max_signal_name_length];
+    char label_full[num_log_batches][6+max_num_signals_per_batch*(max_signal_name_length+1)+1];
+    int label_length[num_log_batches];
+    char batch_name_full[num_log_batches][max_batch_name_length];
+    int batch_name_length[num_log_batches];
+    // log labels (e.g. "TimeUS,s1,s2,s3") are passed to AP::logger().Write(…)
+    void set_log_labels(logBus logs[]);
+    // log batch names (e.g. "ML1" or "MLXY") are passed to AP::logger().Write(…)
+    void set_log_batch_names(logBus logs[]);
+    // wrapper of AP::logger().Write() for use of arrays (implementaion does not look good but there is probably no simpler alternative)
+    void write_log_custom(const char *name, const char *labels, float *signals, int size);
+    // signal names are part of the label (e.g. "s1" or "s2" or "s3")
+    void extract_one_signal_name(uint8_t log_names_int[], int number, signal_name_t &log_name);
+    // extract a label with its actual size
+    void get_log_label(int batch_number, char *label);
+    // extract batch name with its actual size
+    void get_log_batch_name(int batch_number, char *name);
+
 };
 
 class ModeRTL : public Mode
