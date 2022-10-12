@@ -100,6 +100,7 @@ void ModeCustom::run()
         position_NED_origin[1] = 0;
         position_NED_origin[2] = 0;
     }
+    float voltage = copter.battery.voltage;
 
 
     // To do: spool states are currently based on copy from mode_stabilize
@@ -205,6 +206,7 @@ void ModeCustom::run()
     rtU_.measure.lla[0] = copter.current_loc.lat;
     rtU_.measure.lla[1] = copter.current_loc.lng;
     rtU_.measure.lla[2] = copter.current_loc.alt;
+    rtU_.measure.V_bat = voltage;
     
     // run Simulink controller
     custom_controller.rtU = rtU_;
