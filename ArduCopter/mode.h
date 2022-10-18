@@ -1432,7 +1432,7 @@ private:
     bool updated_waypoints = false;
 
     // custom logging
-    static const int num_log_batches = 5;
+    static const int num_log_batches = sizeof(log_config)/sizeof(log_config[0]);
     static const int max_num_signals_per_batch = 14;
     static const int max_signal_name_length = 3;
     static const int max_batch_name_length = 4;
@@ -1441,14 +1441,19 @@ private:
     int label_length[num_log_batches];
     char batch_name_full[num_log_batches][max_batch_name_length];
     int batch_name_length[num_log_batches];
-    // log labels (e.g. "TimeUS,s1,s2,s3") are passed to AP::logger().Write(…)
-    void set_log_labels(logBus logs[]);
-    // log batch names (e.g. "ML1" or "MLXY") are passed to AP::logger().Write(…)
-    void set_log_batch_names(logBus logs[]);
+    int log_signal_idx_cumsum[num_log_batches];
+    // log initialization function
+    void log_setup(const logConfigBus log_config_in[]);
+    // set log labels (e.g. "TimeUS,s1,s2,s3") that are passed to AP::logger().Write(…)
+    void set_log_labels(const logConfigBus log_config[]);
+    // set log batch names (e.g. "ML1" or "MLXY") that are passed to AP::logger().Write(…)
+    void set_log_batch_names(const logConfigBus log_config[]);
+    // set auxilliary cumulative index that is needed to pick the log signals from the log signals array
+    void set_log_signal_idx_cumsum(const logConfigBus log_config[]);
     // wrapper of AP::logger().Write() for use of arrays (implementaion does not look good but there is probably no simpler alternative)
     void write_log_custom(const char *name, const char *labels, float *signals, int size);
     // signal names are part of the label (e.g. "s1" or "s2" or "s3")
-    void extract_one_signal_name(uint8_t log_names_int[], int number, signal_name_t &log_name);
+    void extract_one_signal_name(const uint8_t log_names_int[], int number, signal_name_t &log_name);
     // extract a label with its actual size
     void get_log_label(int batch_number, char *label);
     // extract batch name with its actual size

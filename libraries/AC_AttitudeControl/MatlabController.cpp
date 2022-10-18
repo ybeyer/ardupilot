@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'ArduCopter_TemplateController'.
 //
-// Model version                  : 1.388
+// Model version                  : 1.390
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Sat Oct  8 13:50:48 2022
+// C/C++ source code generated on : Tue Oct 18 18:48:13 2022
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -20,167 +20,68 @@
 //
 #include "MatlabController.h"
 
+// Exported data definition
+
+// Const memory section
+// Definition for custom storage class: Const
+const logConfigBus log_config[5] = { {
+    14U,
+
+    { 115U, 49U, 1U, 115U, 50U, 1U, 115U, 51U, 1U, 115U, 52U, 1U, 115U, 53U, 1U,
+      115U, 54U, 1U, 115U, 55U, 1U, 115U, 56U, 1U, 115U, 57U, 1U, 115U, 49U, 48U,
+      115U, 49U, 49U, 115U, 49U, 50U, 115U, 49U, 51U, 115U, 49U, 52U },
+
+    { 77U, 76U, 49U, 0U }
+  }, { 1U,
+    { 115U, 49U, 1U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U,
+      0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U,
+      0U, 0U, 0U, 0U, 0U },
+
+    { 77U, 76U, 50U, 0U }
+  }, { 0U,
+    { 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U,
+      0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U,
+      0U, 0U, 0U, 0U },
+
+    { 77U, 76U, 51U, 0U }
+  }, { 0U,
+    { 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U,
+      0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U,
+      0U, 0U, 0U, 0U },
+
+    { 77U, 76U, 52U, 0U }
+  }, { 0U,
+    { 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U,
+      0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U,
+      0U, 0U, 0U, 0U },
+
+    { 77U, 76U, 53U, 0U }
+  } } ;
+
 // Model step function
 void MatlabControllerClass::step()
 {
-  int32_T i;
-
-  // SignalConversion: '<S3>/Signal Conversion2' incorporates:
-  //   Constant: '<S4>/num signals'
+  // Outport: '<Root>/logs' incorporates:
   //   Inport: '<Root>/cmd'
   //   Inport: '<Root>/measure'
-  //   Outport: '<Root>/logs'
+  //   MATLAB Function: '<S3>/Auxiliary function to define log_config in generated C++ code'
+  //   SignalConversion: '<S4>/TmpSignal ConversionAt SFunction Inport2'
 
-  rtY.logs[0].signals[0] = rtU.cmd.roll;
-  rtY.logs[0].signals[1] = rtU.cmd.pitch;
-  rtY.logs[0].signals[2] = rtU.cmd.yaw;
-  rtY.logs[0].signals[3] = rtU.cmd.thr;
-  rtY.logs[0].signals[4] = rtU.measure.omega_Kb[0];
-  rtY.logs[0].signals[7] = rtU.measure.EulerAngles[0];
-  rtY.logs[0].signals[10] = rtU.measure.V_Kg[0];
-  rtY.logs[0].signals[5] = rtU.measure.omega_Kb[1];
-  rtY.logs[0].signals[8] = rtU.measure.EulerAngles[1];
-  rtY.logs[0].signals[11] = rtU.measure.V_Kg[1];
-  rtY.logs[0].signals[6] = rtU.measure.omega_Kb[2];
-  rtY.logs[0].signals[9] = rtU.measure.EulerAngles[2];
-  rtY.logs[0].signals[12] = rtU.measure.V_Kg[2];
-  rtY.logs[0].signals[13] = 0.0F;
-  rtY.logs[0].num_signals = 14U;
-  rtY.logs[0].batch_name[0] = 77U;
-  rtY.logs[0].batch_name[1] = 76U;
-  rtY.logs[0].batch_name[2] = 49U;
-  rtY.logs[0].batch_name[3] = 1U;
-
-  // SignalConversion: '<S3>/Signal Conversion1' incorporates:
-  //   Constant: '<S5>/num signals'
-  //   Outport: '<Root>/logs'
-
-  rtY.logs[1].signals[0] = 0.0F;
-  rtY.logs[1].signals[1] = 0.0F;
-  rtY.logs[1].signals[2] = 0.0F;
-  rtY.logs[1].signals[3] = 0.0F;
-  rtY.logs[1].signals[4] = 0.0F;
-  rtY.logs[1].signals[5] = 0.0F;
-  rtY.logs[1].signals[6] = 0.0F;
-  rtY.logs[1].signals[7] = 0.0F;
-  rtY.logs[1].signals[8] = 0.0F;
-  rtY.logs[1].signals[9] = 0.0F;
-  rtY.logs[1].signals[10] = 0.0F;
-  rtY.logs[1].signals[11] = 0.0F;
-  rtY.logs[1].signals[12] = 0.0F;
-  rtY.logs[1].signals[13] = 0.0F;
-  rtY.logs[1].num_signals = 1U;
-  rtY.logs[1].batch_name[0] = 77U;
-  rtY.logs[1].batch_name[1] = 76U;
-  rtY.logs[1].batch_name[2] = 50U;
-  rtY.logs[1].batch_name[3] = 1U;
-
-  // SignalConversion: '<S3>/Signal Conversion' incorporates:
-  //   Constant: '<S6>/num signals'
-  //   Outport: '<Root>/logs'
-
-  rtY.logs[2].signals[0] = 0.0F;
-  rtY.logs[2].signals[1] = 0.0F;
-  rtY.logs[2].signals[2] = 0.0F;
-  rtY.logs[2].signals[3] = 0.0F;
-  rtY.logs[2].signals[4] = 0.0F;
-  rtY.logs[2].signals[5] = 0.0F;
-  rtY.logs[2].signals[6] = 0.0F;
-  rtY.logs[2].signals[7] = 0.0F;
-  rtY.logs[2].signals[8] = 0.0F;
-  rtY.logs[2].signals[9] = 0.0F;
-  rtY.logs[2].signals[10] = 0.0F;
-  rtY.logs[2].signals[11] = 0.0F;
-  rtY.logs[2].signals[12] = 0.0F;
-  rtY.logs[2].signals[13] = 0.0F;
-  rtY.logs[2].num_signals = 0U;
-  rtY.logs[2].batch_name[0] = 77U;
-  rtY.logs[2].batch_name[1] = 76U;
-  rtY.logs[2].batch_name[2] = 51U;
-  rtY.logs[2].batch_name[3] = 1U;
-
-  // SignalConversion: '<S3>/Signal Conversion3' incorporates:
-  //   Constant: '<S7>/num signals'
-  //   Outport: '<Root>/logs'
-
-  rtY.logs[3].signals[0] = 0.0F;
-  rtY.logs[3].signals[1] = 0.0F;
-  rtY.logs[3].signals[2] = 0.0F;
-  rtY.logs[3].signals[3] = 0.0F;
-  rtY.logs[3].signals[4] = 0.0F;
-  rtY.logs[3].signals[5] = 0.0F;
-  rtY.logs[3].signals[6] = 0.0F;
-  rtY.logs[3].signals[7] = 0.0F;
-  rtY.logs[3].signals[8] = 0.0F;
-  rtY.logs[3].signals[9] = 0.0F;
-  rtY.logs[3].signals[10] = 0.0F;
-  rtY.logs[3].signals[11] = 0.0F;
-  rtY.logs[3].signals[12] = 0.0F;
-  rtY.logs[3].signals[13] = 0.0F;
-  rtY.logs[3].num_signals = 0U;
-  rtY.logs[3].batch_name[0] = 77U;
-  rtY.logs[3].batch_name[1] = 76U;
-  rtY.logs[3].batch_name[2] = 52U;
-  rtY.logs[3].batch_name[3] = 1U;
-
-  // SignalConversion: '<S3>/Signal Conversion4' incorporates:
-  //   Constant: '<S8>/num signals'
-  //   Outport: '<Root>/logs'
-
-  rtY.logs[4].signals[0] = 0.0F;
-  rtY.logs[4].signals[1] = 0.0F;
-  rtY.logs[4].signals[2] = 0.0F;
-  rtY.logs[4].signals[3] = 0.0F;
-  rtY.logs[4].signals[4] = 0.0F;
-  rtY.logs[4].signals[5] = 0.0F;
-  rtY.logs[4].signals[6] = 0.0F;
-  rtY.logs[4].signals[7] = 0.0F;
-  rtY.logs[4].signals[8] = 0.0F;
-  rtY.logs[4].signals[9] = 0.0F;
-  rtY.logs[4].signals[10] = 0.0F;
-  rtY.logs[4].signals[11] = 0.0F;
-  rtY.logs[4].signals[12] = 0.0F;
-  rtY.logs[4].signals[13] = 0.0F;
-  rtY.logs[4].num_signals = 0U;
-  for (i = 0; i < 42; i++) {
-    // SignalConversion: '<S3>/Signal Conversion2' incorporates:
-    //   Constant: '<S4>/signal names'
-    //   Outport: '<Root>/logs'
-
-    rtY.logs[0].signal_names[i] = rtConstP.pooled1[i];
-
-    // SignalConversion: '<S3>/Signal Conversion1' incorporates:
-    //   Constant: '<S5>/signal names'
-    //   Outport: '<Root>/logs'
-
-    rtY.logs[1].signal_names[i] = rtConstP.pooled1[i];
-
-    // SignalConversion: '<S3>/Signal Conversion' incorporates:
-    //   Constant: '<S6>/signal names'
-    //   Outport: '<Root>/logs'
-
-    rtY.logs[2].signal_names[i] = rtConstP.pooled1[i];
-
-    // SignalConversion: '<S3>/Signal Conversion3' incorporates:
-    //   Constant: '<S7>/signal names'
-    //   Outport: '<Root>/logs'
-
-    rtY.logs[3].signal_names[i] = rtConstP.pooled1[i];
-
-    // SignalConversion: '<S3>/Signal Conversion4' incorporates:
-    //   Constant: '<S8>/signal names'
-    //   Outport: '<Root>/logs'
-
-    rtY.logs[4].signal_names[i] = rtConstP.pooled1[i];
-  }
-
-  // SignalConversion: '<S3>/Signal Conversion4' incorporates:
-  //   Outport: '<Root>/logs'
-
-  rtY.logs[4].batch_name[0] = 77U;
-  rtY.logs[4].batch_name[1] = 76U;
-  rtY.logs[4].batch_name[2] = 53U;
-  rtY.logs[4].batch_name[3] = 1U;
+  rtY.logs[0] = rtU.cmd.roll;
+  rtY.logs[1] = rtU.cmd.pitch;
+  rtY.logs[2] = rtU.cmd.yaw;
+  rtY.logs[3] = rtU.cmd.thr;
+  rtY.logs[4] = rtU.measure.omega_Kb[0];
+  rtY.logs[7] = rtU.measure.EulerAngles[0];
+  rtY.logs[10] = rtU.measure.V_Kg[0];
+  rtY.logs[5] = rtU.measure.omega_Kb[1];
+  rtY.logs[8] = rtU.measure.EulerAngles[1];
+  rtY.logs[11] = rtU.measure.V_Kg[1];
+  rtY.logs[6] = rtU.measure.omega_Kb[2];
+  rtY.logs[9] = rtU.measure.EulerAngles[2];
+  rtY.logs[12] = rtU.measure.V_Kg[2];
+  rtY.logs[13] = 0.0F;
+  rtY.logs[14] = 0.0F;
 }
 
 // Model initialize function
