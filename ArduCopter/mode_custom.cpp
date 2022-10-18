@@ -96,7 +96,7 @@ void ModeCustom::run()
         position_NED_origin[1] = 0;
         position_NED_origin[2] = 0;
     }
-    float voltage = copter.battery.voltage;
+    float voltage = copter.battery.voltage();
 
 
     // To do: spool states are currently based on copy from mode_stabilize
