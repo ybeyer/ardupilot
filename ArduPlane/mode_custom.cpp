@@ -6,12 +6,8 @@ bool ModeCustom::_enter()
 {
     custom_controller.initialize(); 
 
-    // init logging
-    // without calling step() the log data is not initialized (to do)
-    custom_controller.step();
-    set_log_labels(custom_controller.rtY.logs);
-    set_log_batch_names(custom_controller.rtY.logs);
-    custom_controller.initialize();
+    // init custom logging
+    log_setup(log_config);
 
     return true;
 }
@@ -148,15 +144,15 @@ void ModeCustom::update()
     custom_controller.step(); //run a step in controller.
     ExtY rtY_ = custom_controller.rtY;
 
-    // log signals    
+    // log signals
     for (int i=0;i<num_log_batches;i++) {
         char label[label_length[i]+1];
         get_log_label(i+1, label);
         char batch_name[batch_name_length[i]+1];
         get_log_batch_name(i+1, batch_name);
         write_log_custom(batch_name, label,
-            custom_controller.rtY.logs[i].signals,
-            custom_controller.rtY.logs[i].num_signals);
+            &custom_controller.rtY.logs[log_signal_idx_cumsum[i]],
+            log_config[i].num_signals);
     }
 
     // send controller outputs to channels and set PWMs
@@ -240,38 +236,51 @@ void ModeCustom::add_speed(uint16_T index, float V_k){ //adding a new 'waypoint'
     numberOfNavCommands = index;
 }
 
-void ModeCustom::set_log_batch_names(logBus logs[]) {
+void ModeCustom::log_setup(const logConfigBus log_config_in[]) {
+    set_log_batch_names(log_config_in);
+    set_log_labels(log_config_in);
+    set_log_signal_idx_cumsum(log_config_in);
+};
+
+void ModeCustom::set_log_batch_names(const logConfigBus log_config_in[]) {
     for (int i=0;i<num_log_batches;i++) {
-        memcpy(&(batch_name_full[i][0]), &(logs[i].batch_name), max_batch_name_length);
+        memcpy(&(batch_name_full[i][0]), &(log_config_in[i].batch_name), max_batch_name_length);
         batch_name_length[i]=max_batch_name_length;
         for (int j=0;j<max_batch_name_length;j++) {
             if (batch_name_full[i][j] == 1) {
-                batch_name_length[i] -= 1;
+                batch_name_length[i] --;
             }
         }
     }
 };
 
-void ModeCustom::set_log_labels(logBus logs[]){
+void ModeCustom::set_log_labels(const logConfigBus log_config_in[]){
     signal_name_t current_name_int;
     int signal_name_length;
     for (int i=0;i<num_log_batches;i++) {
-        uint8_t *log_names_in = logs[i].signal_names;
+        const uint8_t *log_names_in = log_config_in[i].signal_names;
         memcpy(&(label_full[i][0]), &("TimeUS"), 6);
         label_length[i]=6;
-        for (int j=0;j<logs[i].num_signals;j++) {
+        for (int j=0;j<log_config_in[i].num_signals;j++) {
             signal_name_length = max_signal_name_length;
             memcpy(&(label_full[i][label_length[i]]),&(","),1);
-            label_length[i] += 1;
+            label_length[i] ++;
             extract_one_signal_name(log_names_in, j+1, current_name_int);
             for (int k=0;k<max_signal_name_length;k++) {
                 if (current_name_int[k]==1) {
-                    signal_name_length -= 1;
+                    signal_name_length --;
                 }
             }
             memcpy(&(label_full[i][label_length[i]]),&current_name_int,signal_name_length);
             label_length[i] += signal_name_length;
         }
+    }
+};
+
+void ModeCustom::set_log_signal_idx_cumsum(const logConfigBus log_config_in[]){
+    log_signal_idx_cumsum[0] = 0;
+    for (int i=1;i<num_log_batches;i++) {
+        log_signal_idx_cumsum[i] = log_signal_idx_cumsum[i-1] + log_config_in[i-1].num_signals;
     }
 };
 
@@ -315,7 +324,7 @@ void ModeCustom::write_log_custom(const char *name, const char *labels, float *s
     }
 };
 
-void ModeCustom::extract_one_signal_name(uint8_t log_names_int[], int number, signal_name_t &log_name){
+void ModeCustom::extract_one_signal_name(const uint8_t log_names_int[], int number, signal_name_t &log_name){
     int idx = (number-1)*max_signal_name_length;
     for (int i=0;i<max_signal_name_length;i++) {
         log_name[i] = log_names_int[idx+i];

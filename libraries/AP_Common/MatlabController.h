@@ -5,11 +5,11 @@
 //
 // File: MatlabController.h
 //
-// Code generated for Simulink model 'ArduPlane_ManualMode'.
+// Code generated for Simulink model 'ArduPlane_TemplateController'.
 //
-// Model version                  : 1.407
+// Model version                  : 1.410
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Sat Oct  8 13:33:22 2022
+// C/C++ source code generated on : Tue Oct 18 19:51:49 2022
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -21,10 +21,10 @@
 #ifndef RTW_HEADER_MatlabController_h_
 #define RTW_HEADER_MatlabController_h_
 #include "rtwtypes.h"
-#ifndef ArduPlane_ManualMode_COMMON_INCLUDES_
-# define ArduPlane_ManualMode_COMMON_INCLUDES_
+#ifndef ArduPlane_TemplateController_COMMON_INCLUDES_
+# define ArduPlane_TemplateController_COMMON_INCLUDES_
 #include "rtwtypes.h"
-#endif                                 // ArduPlane_ManualMode_COMMON_INCLUDES_
+#endif                                 // ArduPlane_TemplateController_COMMON_INCLUDES_ 
 
 // Macros for accessing real-time model data structure
 #ifndef DEFINED_TYPEDEF_FOR_cmdBus_
@@ -59,19 +59,19 @@ typedef struct {
   real32_T s_Kg_origin[3];
   real32_T lla[3];
   real32_T rangefinder[6];
+  real32_T V_bat;
 } measureBus;
 
 #endif
 
-#ifndef DEFINED_TYPEDEF_FOR_logBus_
-#define DEFINED_TYPEDEF_FOR_logBus_
+#ifndef DEFINED_TYPEDEF_FOR_logConfigBus_
+#define DEFINED_TYPEDEF_FOR_logConfigBus_
 
 typedef struct {
-  real32_T signals[14];
   uint8_T num_signals;
   uint8_T signal_names[42];
   uint8_T batch_name[4];
-} logBus;
+} logConfigBus;
 
 #endif
 
@@ -79,19 +79,6 @@ typedef struct {
 typedef const struct tag_ConstB {
   uint16_T DataTypeConversion1[8];     // '<S1>/Data Type Conversion1'
 } ConstB;
-
-// Constant parameters (default storage)
-typedef struct {
-  // Pooled Parameter (Expression: signal_names_1D)
-  //  Referenced by:
-  //    '<S5>/signal names'
-  //    '<S6>/signal names'
-  //    '<S7>/signal names'
-  //    '<S8>/signal names'
-  //    '<S9>/signal names'
-
-  uint8_T pooled1[42];
-} ConstP;
 
 // External inputs (root inport signals with default storage)
 typedef struct {
@@ -102,16 +89,19 @@ typedef struct {
 // External outputs (root outports fed by signals with default storage)
 typedef struct {
   real32_T channels[8];                // '<Root>/channels'
-  logBus logs[5];                      // '<Root>/logs'
+  real32_T logs[15];                   // '<Root>/logs'
   uint16_T function_channels[8];       // '<Root>/function_channels'
 } ExtY;
 
 extern const ConstB rtConstB;          // constant block i/o
 
-// Constant parameters (default storage)
-extern const ConstP rtConstP;
+// Exported data declaration
 
-// Class declaration for model ArduPlane_ManualMode
+// Const memory section
+// Declaration for custom storage class: Const
+extern const logConfigBus log_config[5];
+
+// Class declaration for model ArduPlane_TemplateController
 class MatlabControllerClass {
   // public data and function members
  public:
@@ -157,16 +147,12 @@ class MatlabControllerClass {
 //
 //  Here is the system hierarchy for this model
 //
-//  '<Root>' : 'ArduPlane_ManualMode'
-//  '<S1>'   : 'ArduPlane_ManualMode/Actuator Muxer ArduPlane'
-//  '<S2>'   : 'ArduPlane_ManualMode/dummy test controller'
-//  '<S3>'   : 'ArduPlane_ManualMode/log muxer'
-//  '<S4>'   : 'ArduPlane_ManualMode/dummy test controller/MATLAB Function'
-//  '<S5>'   : 'ArduPlane_ManualMode/log muxer/log muxer core1'
-//  '<S6>'   : 'ArduPlane_ManualMode/log muxer/log muxer core2'
-//  '<S7>'   : 'ArduPlane_ManualMode/log muxer/log muxer core3'
-//  '<S8>'   : 'ArduPlane_ManualMode/log muxer/log muxer core4'
-//  '<S9>'   : 'ArduPlane_ManualMode/log muxer/log muxer core5'
+//  '<Root>' : 'ArduPlane_TemplateController'
+//  '<S1>'   : 'ArduPlane_TemplateController/Actuator Muxer ArduPlane'
+//  '<S2>'   : 'ArduPlane_TemplateController/dummy test controller'
+//  '<S3>'   : 'ArduPlane_TemplateController/log muxer'
+//  '<S4>'   : 'ArduPlane_TemplateController/dummy test controller/MATLAB Function'
+//  '<S5>'   : 'ArduPlane_TemplateController/log muxer/Auxiliary function to define log_config in generated C++ code'
 
 #endif                                 // RTW_HEADER_MatlabController_h_
 
