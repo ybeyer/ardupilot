@@ -80,6 +80,12 @@ void ModeCustom::run()
     That is why the scaling is applied here.) */
     Vector3f Omega_Kb_raw = AP::ins().get_raw_gyro() / (INT16_MAX/radians(2000));
 
+    // accel_ef_blended is acceleration at IMU position
+    // https://ardupilot.org/copter/docs/common-sensor-offset-compensation.html
+    Vector3f accel_ef_at_imu = ahrs_.get_accel_ef_blended();
+    Vector3f imu_pos_offset = AP::ins().get_imu_pos_offset(AP::ins().get_primary_accel());
+    Vector3f accel_ef_at_cog = imu_accel_to_cog_accel(  accel_ef_at_imu, imu_pos_offset, Omega_Kb_raw,
+                                                        ahrs_.get_rotation_body_to_ned() );
     float roll_angle = attitude_vehicle_quat.get_euler_roll();
     float pitch_angle = attitude_vehicle_quat.get_euler_pitch();
     float yaw_angle = attitude_vehicle_quat.get_euler_yaw();
@@ -187,9 +193,9 @@ void ModeCustom::run()
     rtU_.measure.EulerAngles[0] = roll_angle;
     rtU_.measure.EulerAngles[1] = pitch_angle;
     rtU_.measure.EulerAngles[2] = yaw_angle;
-    rtU_.measure.a_Kg[0] = ahrs_.get_accel_ef_blended().x;
-    rtU_.measure.a_Kg[1] = ahrs_.get_accel_ef_blended().y;
-    rtU_.measure.a_Kg[2] = ahrs_.get_accel_ef_blended().z;
+    rtU_.measure.a_Kg[0] = accel_ef_at_cog.x;
+    rtU_.measure.a_Kg[1] = accel_ef_at_cog.y;
+    rtU_.measure.a_Kg[2] = accel_ef_at_cog.z;
     rtU_.measure.V_Kg[0] = velocity_NED[0];
     rtU_.measure.V_Kg[1] = velocity_NED[1];
     rtU_.measure.V_Kg[2] = velocity_NED[2];
@@ -351,4 +357,28 @@ void ModeCustom::get_log_label(int batch_number, char *label) {
 void ModeCustom::get_log_batch_name(int batch_number, char *name) {
     memcpy(name,&(batch_name_full[batch_number-1]),batch_name_length[batch_number-1]+1);
     name[batch_name_length[batch_number-1]]=0;
+};
+
+Vector3f ModeCustom::imu_accel_to_cog_accel(Vector3f accel_ef_at_imu,Vector3f imu_offset,Vector3f Omega_Kb,Matrix3f M_gb){
+    Vector3f accel_ef_at_cog;
+    Vector3f Delta_accel_frd;
+    Vector3f Delta_accel_ef;
+    float p = Omega_Kb[0];
+    float q = Omega_Kb[1];
+    float r = Omega_Kb[2];
+    float x = AP::ins().get_imu_pos_offset().x;
+    float y = AP::ins().get_imu_pos_offset().y;
+    float z = AP::ins().get_imu_pos_offset().z;
+    // neglect (presumably noisy) angular acceleration influence - this could be tested and added in the future
+    float dot_p = 0;
+    float dot_q = 0;
+    float dot_r = 0;
+    // Brockhaus (2011). Flugregelung, Eq. (2.6.12)
+    Delta_accel_frd[0] = dot_q*z-dot_r*y + q*p*y-q*q*x-r*r*x+r*p*z;
+    Delta_accel_frd[1] = dot_r*x-dot_p*z + r*q*z-r*r*y-p*p*y+p*q*x;
+    Delta_accel_frd[2] = dot_p*y-dot_q*x + p*r*x-p*p*z-q*q*z+q*r*y;
+    // from forward-right-down frame (frd) to earth-fixed frame (ef)
+    Delta_accel_ef = M_gb * Delta_accel_frd;
+    accel_ef_at_cog = accel_ef_at_imu - Delta_accel_ef;
+    return accel_ef_at_cog;
 };

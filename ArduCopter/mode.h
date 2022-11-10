@@ -1458,6 +1458,8 @@ private:
     void get_log_label(int batch_number, char *label);
     // extract batch name with its actual size
     void get_log_batch_name(int batch_number, char *name);
+
+    Vector3f imu_accel_to_cog_accel(Vector3f accel_ef_at_imu, Vector3f imu_offset, Vector3f Omega_Kb, Matrix3f M_bg);
 };
 
 #if FRAME_CONFIG == HELI_FRAME
