@@ -146,11 +146,7 @@ void ModeCustom::update()
 
     // log signals
     for (int i=0;i<num_log_batches;i++) {
-        char label[label_length[i]+1];
-        get_log_label(i+1, label);
-        char batch_name[batch_name_length[i]+1];
-        get_log_batch_name(i+1, batch_name);
-        write_log_custom(batch_name, label,
+        write_log_custom(batch_name_full[i], label_full[i],
             &custom_controller.rtY.logs[log_signal_idx_cumsum[i]],
             log_config[i].num_signals);
     }
