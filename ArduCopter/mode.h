@@ -1454,10 +1454,6 @@ private:
     void write_log_custom(const char *name, const char *labels, float *signals, int size);
     // signal names are part of the label (e.g. "s1" or "s2" or "s3")
     void extract_one_signal_name(const uint8_t log_names_int[], int number, signal_name_t &log_name);
-    // extract a label with its actual size
-    void get_log_label(int batch_number, char *label);
-    // extract batch name with its actual size
-    void get_log_batch_name(int batch_number, char *name);
 
     Vector3f imu_accel_to_cog_accel(Vector3f accel_ef_at_imu, Vector3f imu_offset, Vector3f Omega_Kb, Matrix3f M_bg);
 };

@@ -228,11 +228,7 @@ void ModeCustom::run()
     // log signals
     uint32_t time_log = AP_HAL::micros();
     for (int i=0;i<num_log_batches;i++) {
-        char label[label_length[i]+1];
-        get_log_label(i+1, label);
-        char batch_name[batch_name_length[i]+1];
-        get_log_batch_name(i+1, batch_name);
-        write_log_custom(batch_name, label,
+        write_log_custom(batch_name_full[i], label_full[i],
             &custom_controller.rtY.logs[log_signal_idx_cumsum[i]],
             log_config[i].num_signals);
     }
@@ -248,10 +244,9 @@ void ModeCustom::run()
     // Log the execution times    
     AP::logger().Write(
         "MLPM", "TimeUS,TimeTotalUS,TimeStepUS,TimeLogUS",
-        "Qfff",
-        AP_HAL::micros64(),
-        (double)time_total, (double)time_step, (double)time_log );    
-    
+        "QQQQ",
+        AP_HAL::micros64(), time_total, time_step, time_log );    
+
 }
 
 void ModeCustom::add_waypoint(uint16_T index,Vector3f location){
@@ -363,16 +358,6 @@ void ModeCustom::extract_one_signal_name(const uint8_t log_names_int[], int numb
     for (int i=0;i<max_signal_name_length;i++) {
         log_name[i] = log_names_int[idx+i];
     }
-};
-
-void ModeCustom::get_log_label(int batch_number, char *label) {
-    memcpy(label,&(label_full[batch_number-1]),label_length[batch_number-1]+1);
-    label[label_length[batch_number-1]]=0;
-};
-
-void ModeCustom::get_log_batch_name(int batch_number, char *name) {
-    memcpy(name,&(batch_name_full[batch_number-1]),batch_name_length[batch_number-1]+1);
-    name[batch_name_length[batch_number-1]]=0;
 };
 
 Vector3f ModeCustom::imu_accel_to_cog_accel(Vector3f accel_ef_at_imu,Vector3f imu_offset,Vector3f Omega_Kb,Matrix3f M_gb){
