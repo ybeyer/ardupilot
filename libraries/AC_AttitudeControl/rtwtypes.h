@@ -5,14 +5,14 @@
 //
 // File: rtwtypes.h
 //
-// Code generated for Simulink model 'ArduCopter_TemplateController'.
+// Code generated for Simulink model 'ArduCopter_MinnieLoiterFtc'.
 //
-// Model version                  : 1.390
+// Model version                  : 1.410
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Tue Oct 18 18:48:13 2022
+// C/C++ source code generated on : Sat Nov 12 15:27:04 2022
 //
 // Target selection: ert.tlc
-// Embedded hardware selection: Intel->x86-64 (Linux 64)
+// Embedded hardware selection: ARM Compatible->ARM 7
 // Code generation objectives:
 //    1. Execution efficiency
 //    2. RAM efficiency
@@ -35,10 +35,10 @@
 
 //=======================================================================*
 //  Target hardware information
-//    Device type: Intel->x86-64 (Linux 64)
+//    Device type: ARM Compatible->ARM 7
 //    Number of bits:     char:   8    short:   16    int:  32
-//                        long:  64    long long:  64
-//                        native word size:  64
+//                        long:  32
+//                        native word size:  32
 //    Byte ordering: LittleEndian
 //    Signed integer division rounds to: Zero
 //    Shift right on a signed integer as arithmetic shift: on
@@ -56,14 +56,12 @@ typedef short int16_T;
 typedef unsigned short uint16_T;
 typedef int int32_T;
 typedef unsigned int uint32_T;
-typedef long int64_T;
-typedef unsigned long uint64_T;
 typedef float real32_T;
 typedef double real64_T;
 
 //===========================================================================*
 //  Generic type definitions: boolean_T, char_T, byte_T, int_T, uint_T,       *
-//                            real_T, time_T, ulong_T, ulonglong_T.           *
+//                            real_T, time_T, ulong_T.                        *
 // ===========================================================================
 typedef double real_T;
 typedef double time_T;
@@ -71,7 +69,6 @@ typedef unsigned char boolean_T;
 typedef int int_T;
 typedef unsigned int uint_T;
 typedef unsigned long ulong_T;
-typedef unsigned long long ulonglong_T;
 typedef char char_T;
 typedef unsigned char uchar_T;
 typedef char_T byte_T;
@@ -90,9 +87,6 @@ typedef char_T byte_T;
 #define MAX_int32_T                    ((int32_T)(2147483647))
 #define MIN_int32_T                    ((int32_T)(-2147483647-1))
 #define MAX_uint32_T                   ((uint32_T)(0xFFFFFFFFU))
-#define MAX_int64_T                    ((int64_T)(9223372036854775807L))
-#define MIN_int64_T                    ((int64_T)(-9223372036854775807L-1L))
-#define MAX_uint64_T                   ((uint64_T)(0xFFFFFFFFFFFFFFFFUL))
 
 // Block D-Work pointer type
 typedef void * pointer_T;
