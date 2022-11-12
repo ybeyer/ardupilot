@@ -44,6 +44,8 @@ bool ModeCustom::init(bool ignore_checks)
 void ModeCustom::run()
 {
 
+    uint32_t time_total = AP_HAL::micros();
+
     // Get stick inputs, -1 ... 1
     int16_t tr_max = 4500;
     // fetch roll and pitch inputs
@@ -212,7 +214,9 @@ void ModeCustom::run()
     
     // run Simulink controller
     custom_controller.rtU = rtU_;
+    uint32_t time_step = AP_HAL::micros();
     custom_controller.step();
+    time_step = AP_HAL::micros() - time_step;
     rtY_ = custom_controller.rtY;
 
     // DEBUGGING:
@@ -222,6 +226,7 @@ void ModeCustom::run()
     #endif
 
     // log signals
+    uint32_t time_log = AP_HAL::micros();
     for (int i=0;i<num_log_batches;i++) {
         char label[label_length[i]+1];
         get_log_label(i+1, label);
@@ -231,11 +236,22 @@ void ModeCustom::run()
             &custom_controller.rtY.logs[log_signal_idx_cumsum[i]],
             log_config[i].num_signals);
     }
+    time_log = AP_HAL::micros() - time_log;
 
     // set outputs in the same order as Simulink
     for (int i=0;i<8;i++) {
         motors->set_custom_input( i, rtY_.u[i] );
     }
+
+    time_total = AP_HAL::micros() - time_total;
+
+    // Log the execution times    
+    AP::logger().Write(
+        "MLPM", "TimeUS,TimeTotalUS,TimeStepUS,TimeLogUS",
+        "Qfff",
+        AP_HAL::micros64(),
+        (double)time_total, (double)time_step, (double)time_log );    
+    
 }
 
 void ModeCustom::add_waypoint(uint16_T index,Vector3f location){
