@@ -211,6 +211,17 @@ void ModeCustom::run()
     rtU_.measure.lla[1] = copter.current_loc.lng;
     rtU_.measure.lla[2] = copter.current_loc.alt;
     rtU_.measure.V_bat = voltage;
+
+    // assign motor RPM
+    bool is_omega_mot_found = false;
+    for (int i=0;i<4;i++) {
+        is_omega_mot_found = AP::esc_telem().get_raw_rpm(i,rtU_.measure.omega_mot[i]);
+        if (!is_omega_mot_found) {
+            rtU_.measure.omega_mot[i] = -1.0f;
+         } else {
+             rtU_.measure.omega_mot[i] *= 2*3.14159/60;
+        }
+    }
     
     // run Simulink controller
     custom_controller.rtU = rtU_;

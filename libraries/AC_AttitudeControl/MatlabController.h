@@ -9,7 +9,7 @@
 //
 // Model version                  : 1.390
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Tue Oct 18 18:48:13 2022
+// C/C++ source code generated on : Wed Nov 23 14:41:21 2022
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -60,6 +60,7 @@ typedef struct {
   real32_T lla[3];
   real32_T rangefinder[6];
   real32_T V_bat;
+  real32_T omega_mot[4];
 } measureBus;
 
 #endif
