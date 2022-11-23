@@ -947,14 +947,15 @@ void NavEKF3_core::calcOutputStates()
         timeDelay = MAX(timeDelay, dtIMUavg);
         ftype errorGain = 0.5f / timeDelay;
 
+        // reduce error gain to allow for stable spinning in case of rotor failures
+        ftype redFactor = 1.0f;
+        if (dal.ins().get_gyro().length() > 4.0f) {
+            redFactor = pow(2.0f,-600*deltaAngErr.length());
+        };
+
         // calculate a correction to the delta angle
         // that will cause the INS to track the EKF quaternions
-        if (deltaAngErr.length()<0.05f) {
-            delAngCorrection = deltaAngErr * errorGain * dtIMUavg;
-        } else {
-            // reduce error gain to allow for stable spinning in case of rotor failures
-            delAngCorrection = deltaAngErr * errorGain * dtIMUavg * 0.01f;
-        }
+        delAngCorrection = deltaAngErr * errorGain * redFactor * dtIMUavg;
         
         // calculate velocity and position tracking errors
         Vector3F velErr = (stateStruct.velocity - outputDataDelayed.velocity);
