@@ -42,13 +42,17 @@ void ModeCustom::update()
     // int RNGFND_num_sensors = plane.rangefinder.num_sensors();
     
 
-      // get measured inputs
+    // get measured inputs
     Vector3f angular_velocity_Kb = plane.ahrs.get_gyro();
 
     Quaternion attitude_vehicle_quat;
-    // bool a = plane.ahrs.get_quaternion(attitude_vehicle_quat);
-    // gcs().send_text(MAV_SEVERITY_DEBUG, "a %d", (int8_t)a);
-    // gcs().send_text(MAV_SEVERITY_DEBUG, "test %5.3f %5.3f %5.3f %5.3f", (double)attitude_vehicle_quat[0], (double)attitude_vehicle_quat[1], attitude_vehicle_quat[2], attitude_vehicle_quat[3]);
+    if(!plane.ahrs.get_quaternion(attitude_vehicle_quat))
+    {
+        attitude_vehicle_quat[0] = 1;
+        attitude_vehicle_quat[1] = 0;
+        attitude_vehicle_quat[2] = 0;
+        attitude_vehicle_quat[3] = 0;
+    }
 
     Vector3f acc_NED = plane.ahrs.get_accel_ef_blended();
 
