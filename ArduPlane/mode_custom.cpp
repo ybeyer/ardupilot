@@ -330,13 +330,3 @@ void ModeCustom::extract_one_signal_name(const uint8_t log_names_int[], int numb
         log_name[i] = log_names_int[idx+i];
     }
 };
-
-void ModeCustom::get_log_label(int batch_number, char *label) {
-    memcpy(label,&(label_full[batch_number-1]),label_length[batch_number-1]+1);
-    label[label_length[batch_number-1]]=0;
-};
-
-void ModeCustom::get_log_batch_name(int batch_number, char *name) {
-    memcpy(name,&(batch_name_full[batch_number-1]),batch_name_length[batch_number-1]+1);
-    name[batch_name_length[batch_number-1]]=0;
-};
