@@ -1,5 +1,7 @@
 #pragma once
 
+// #define Custom_Matlab_Output //define for the custom simulink output
+
 #include <AP_Param/AP_Param.h>
 #include <AP_Common/Location.h>
 #include <stdint.h>
@@ -8,6 +10,9 @@
 #include <AP_Vehicle/ModeReason.h>
 #include "quadplane.h"
 #include <AP_Common/MatlabController.h>
+#ifdef Custom_Matlab_Output
+    #include <AP_HAL/utility/Socket.h>
+#endif
 
 class AC_PosControl;
 class AC_AttitudeControl_Multi;
@@ -141,6 +146,11 @@ protected:
 #endif
 
     MatlabControllerClass custom_controller;
+#ifdef Custom_Matlab_Output
+    SocketAPM socket_debug; //
+    const char *_debug_address = "127.0.0.1";
+    int _debug_port = 9004;
+#endif
 };
 
 

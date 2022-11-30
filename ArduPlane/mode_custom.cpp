@@ -148,6 +148,12 @@ void ModeCustom::update()
     custom_controller.step(); //run a step in controller.
     ExtY rtY_ = custom_controller.rtY;
 
+    // DEBUGGING:
+    // Send measure bus to Simulink (uncomment line 3 in mode.h)
+    #ifdef Custom_Matlab_Output
+        socket_debug.sendto(&rtU_.measure, sizeof(rtU_.measure), _debug_address, _debug_port); 
+    #endif
+
     // log signals
     for (int i=0;i<num_log_batches;i++) {
         write_log_custom(batch_name_full[i], label_full[i],
