@@ -79,63 +79,63 @@ void ModeCustom::update()
 
 
     // assign commanded and measured values to controller inputs struct
-    ExtU rtU_;
-    memset(&rtU_, 0, sizeof(rtU_));
+    ExtU *rtU_ = &(custom_controller.rtU);
+    memset(rtU_, 0, sizeof(ExtU));
 
-    rtU_.cmd.roll  = roll_out;
-    rtU_.cmd.pitch = pitch_out;
-    rtU_.cmd.yaw   = yaw_out;
-    rtU_.cmd.thr   = throttle_control;
+    rtU_->cmd.roll  = roll_out;
+    rtU_->cmd.pitch = pitch_out;
+    rtU_->cmd.yaw   = yaw_out;
+    rtU_->cmd.thr   = throttle_control;
      for (int i=0;i<16;i++) {
-        rtU_.cmd.RC_pwm[i] = plane.g2.rc_channels.channel(i)->get_radio_in();
+        rtU_->cmd.RC_pwm[i] = plane.g2.rc_channels.channel(i)->get_radio_in();
     }
 
-    rtU_.measure.omega_Kb[0] = Omega_Kb_raw[0];
-    rtU_.measure.omega_Kb[1] = Omega_Kb_raw[1];
-    rtU_.measure.omega_Kb[2] = Omega_Kb_raw[2];
-    rtU_.measure.q_bg[0] = attitude_vehicle_quat[0];
-    rtU_.measure.q_bg[1] = attitude_vehicle_quat[1];
-    rtU_.measure.q_bg[2] = attitude_vehicle_quat[2];
-    rtU_.measure.q_bg[3] = attitude_vehicle_quat[3];
-    rtU_.measure.EulerAngles[0] = plane.ahrs.roll;
-    rtU_.measure.EulerAngles[1] = plane.ahrs.pitch;
-    rtU_.measure.EulerAngles[2] = plane.ahrs.yaw;
-    rtU_.measure.a_Kg[0] = acc_NED[0];
-    rtU_.measure.a_Kg[1] = acc_NED[1];
-    rtU_.measure.a_Kg[2] = acc_NED[2];
-    rtU_.measure.V_Kg[0] = velocity_NED[0];
-    rtU_.measure.V_Kg[1] = velocity_NED[1];
-    rtU_.measure.V_Kg[2] = velocity_NED[2];
-    rtU_.measure.s_Kg[0] = position_NED[0];
-    rtU_.measure.s_Kg[1] = position_NED[1];
-    rtU_.measure.s_Kg[2] = position_NED[2];
-    rtU_.measure.lla[0] = plane.current_loc.lat;
-    rtU_.measure.lla[1] = plane.current_loc.lng;
-    rtU_.measure.lla[2] = plane.current_loc.alt;
-    rtU_.measure.rangefinder[0] = rangefinder_dist[0];
-    rtU_.measure.rangefinder[1] = rangefinder_dist[1];
-    rtU_.measure.rangefinder[2] = rangefinder_dist[2];
-    rtU_.measure.rangefinder[3] = rangefinder_dist[3];
-    rtU_.measure.rangefinder[4] = rangefinder_dist[4];
-    rtU_.measure.rangefinder[5] = rangefinder_dist[5];
+    rtU_->measure.omega_Kb[0] = Omega_Kb_raw[0];
+    rtU_->measure.omega_Kb[1] = Omega_Kb_raw[1];
+    rtU_->measure.omega_Kb[2] = Omega_Kb_raw[2];
+    rtU_->measure.q_bg[0] = attitude_vehicle_quat[0];
+    rtU_->measure.q_bg[1] = attitude_vehicle_quat[1];
+    rtU_->measure.q_bg[2] = attitude_vehicle_quat[2];
+    rtU_->measure.q_bg[3] = attitude_vehicle_quat[3];
+    rtU_->measure.EulerAngles[0] = plane.ahrs.roll;
+    rtU_->measure.EulerAngles[1] = plane.ahrs.pitch;
+    rtU_->measure.EulerAngles[2] = plane.ahrs.yaw;
+    rtU_->measure.a_Kg[0] = acc_NED[0];
+    rtU_->measure.a_Kg[1] = acc_NED[1];
+    rtU_->measure.a_Kg[2] = acc_NED[2];
+    rtU_->measure.V_Kg[0] = velocity_NED[0];
+    rtU_->measure.V_Kg[1] = velocity_NED[1];
+    rtU_->measure.V_Kg[2] = velocity_NED[2];
+    rtU_->measure.s_Kg[0] = position_NED[0];
+    rtU_->measure.s_Kg[1] = position_NED[1];
+    rtU_->measure.s_Kg[2] = position_NED[2];
+    rtU_->measure.lla[0] = plane.current_loc.lat;
+    rtU_->measure.lla[1] = plane.current_loc.lng;
+    rtU_->measure.lla[2] = plane.current_loc.alt;
+    rtU_->measure.rangefinder[0] = rangefinder_dist[0];
+    rtU_->measure.rangefinder[1] = rangefinder_dist[1];
+    rtU_->measure.rangefinder[2] = rangefinder_dist[2];
+    rtU_->measure.rangefinder[3] = rangefinder_dist[3];
+    rtU_->measure.rangefinder[4] = rangefinder_dist[4];
+    rtU_->measure.rangefinder[5] = rangefinder_dist[5];
 
     // assign or update waypoints
     // overwrite all custom controller waypoints with 5m above home position
     for (int k=0;k<max_num_of_matlab_waypoints;k++){
-        rtU_.cmd.waypoints[4*k]   = 0.0f;
-        rtU_.cmd.waypoints[4*k+1] = 0.0f;
-        rtU_.cmd.waypoints[4*k+2] = -5.0f;
-        rtU_.cmd.waypoints[4*k+3] = 0.0f;
+        rtU_->cmd.waypoints[4*k]   = 0.0f;
+        rtU_->cmd.waypoints[4*k+1] = 0.0f;
+        rtU_->cmd.waypoints[4*k+2] = -5.0f;
+        rtU_->cmd.waypoints[4*k+3] = 0.0f;
     }
     int wp_count=0;
     // start with index j=1 because 1st Ardupilot waypoint is always home position
     for (int j=1;(j<max_num_of_ardupilot_waypoints)&&(j<numberOfNavCommands);j++){
         // assign only waypoints that are no "ghost waypoints", see declaration of waypoints
         if (abs(waypoints[j][0]) + abs(waypoints[j][1]) + abs(waypoints[j][2]) >= 0.01f){
-            rtU_.cmd.waypoints[4*wp_count]   = waypoints[j][0]*0.01f; // convert cm to m
-            rtU_.cmd.waypoints[4*wp_count+1] = waypoints[j][1]*0.01f; // convert cm to m
-            rtU_.cmd.waypoints[4*wp_count+2] = waypoints[j][2]*0.01f; // convert cm to m
-            rtU_.cmd.waypoints[4*wp_count+3] = waypoints[j][3]; // target velocity in m/s
+            rtU_->cmd.waypoints[4*wp_count]   = waypoints[j][0]*0.01f; // convert cm to m
+            rtU_->cmd.waypoints[4*wp_count+1] = waypoints[j][1]*0.01f; // convert cm to m
+            rtU_->cmd.waypoints[4*wp_count+2] = waypoints[j][2]*0.01f; // convert cm to m
+            rtU_->cmd.waypoints[4*wp_count+3] = waypoints[j][3]; // target velocity in m/s
             wp_count++;
         }
         if (wp_count>=max_num_of_matlab_waypoints){
@@ -143,15 +143,13 @@ void ModeCustom::update()
             break;
         }
     }
-    rtU_.cmd.num_waypoints = wp_count;  //setting the actual number of valid waypoints
-    rtU_.cmd.mission_change = updated_waypoints; // setting the waypoints updated flag
+    rtU_->cmd.num_waypoints = wp_count;  //setting the actual number of valid waypoints
+    rtU_->cmd.mission_change = updated_waypoints; // setting the waypoints updated flag
     updated_waypoints = false;
 
     // get controller outputs struct
-    // ToDo: Use Pointer for rtU_ and rtY_ because coping all data in every step is NOT necessary, this will save a lot of memory for the waypoints and some cpu time.
-    custom_controller.rtU = rtU_;
     custom_controller.step(); //run a step in controller.
-    ExtY rtY_ = custom_controller.rtY;
+    ExtY *rtY_ = &(custom_controller.rtY);
 
     // DEBUGGING:
     // Send all inputs of custom controller to Simulink (uncomment line 3 in mode.h)
@@ -169,7 +167,7 @@ void ModeCustom::update()
 
     // send controller outputs to channels and set PWMs
     for (uint8_t i=0; i<8; i++) {
-        SRV_Channel::Aux_servo_function_t function_i = (SRV_Channel::Aux_servo_function_t)rtY_.function_channels[i];
+        SRV_Channel::Aux_servo_function_t function_i = (SRV_Channel::Aux_servo_function_t)rtY_->function_channels[i];
 
         if(function_i == SRV_Channel::Aux_servo_function_t::k_none){
             continue;  
@@ -183,12 +181,12 @@ void ModeCustom::update()
                 }
             }
             else{
-                SRV_Channels::set_output_norm(function_i, rtY_.channels[i]);
+                SRV_Channels::set_output_norm(function_i, rtY_->channels[i]);
             }
         }
         else
         {
-             SRV_Channels::set_output_norm(function_i, rtY_.channels[i]);
+             SRV_Channels::set_output_norm(function_i, rtY_->channels[i]);
         }
     }
     // plot rangefinder distance in cm for debugging
@@ -218,7 +216,7 @@ void ModeCustom::update()
         (double)modecustom_duration_us);    
     
 
-    if ((now - last_print >= 1e6) || (rtU_.cmd.mission_change == 1) /* 1000 ms : 1.0 hz */ ) {
+    if ((now - last_print >= 1e6) || (rtU_->cmd.mission_change == 1) /* 1000 ms : 1.0 hz */ ) {
 
         GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Time in us: %d, max: %d  \n", (int)modecustom_duration_us, (int)modecustom_max_us);
             
