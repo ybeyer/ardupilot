@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'EasyGlider_ManualMode_with_waypoints_and_sysID'.
 //
-// Model version                  : 1.464
+// Model version                  : 1.471
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Thu Aug 11 17:08:25 2022
+// C/C++ source code generated on : Wed Aug 24 12:11:04 2022
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -59,6 +59,8 @@ typedef struct {
   real32_T s_Kg[3];
   real32_T lla[3];
   real32_T rangefinder[6];
+  real32_T a_bg[3];
+  real32_T airspeed;
 } dtoSgl_measureBus;
 
 #endif
@@ -190,21 +192,24 @@ typedef struct tag_sJCxfmxS8gBOONUZjbjUd9E sJCxfmxS8gBOONUZjbjUd9E;
 
 // Block signals and states (default storage) for system '<Root>'
 typedef struct {
-  dtoSgl_trajectoryStructBus UnitDelay_DSTATE;// '<S9>/Unit Delay'
+  dtoSgl_trajectoryStructBus UnitDelay_DSTATE;// '<S8>/Unit Delay'
   real32_T VectorConcatenate[4];       // '<S7>/Vector Concatenate'
   real32_T DiscreteTimeIntegrator1_DSTATE[3];// '<S7>/Discrete-Time Integrator1' 
-  real32_T Memory2_PreviousInput[300]; // '<S9>/Memory2'
-  real32_T Memory1_PreviousInput[4];   // '<S9>/Memory1'
-  real32_T Memory_PreviousInput[6];    // '<S9>/Memory'
+  real32_T Memory2_PreviousInput[300]; // '<S8>/Memory2'
+  real32_T Memory1_PreviousInput[4];   // '<S8>/Memory1'
+  real32_T Memory_PreviousInput[6];    // '<S8>/Memory'
   real32_T Delay1_DSTATE;              // '<S6>/Delay1'
   real32_T Delay_DSTATE;               // '<S6>/Delay'
-  real32_T DiscreteTimeIntegratory_DSTATE;// '<S19>/Discrete-Time Integrator y'
-  real32_T DiscreteTimeIntegratory_dt_DSTA;// '<S19>/Discrete-Time Integrator y_dt' 
-  real32_T DiscreteTimeIntegrator_DSTATE;// '<S7>/Discrete-Time Integrator'
-  boolean_T DelayInput1_DSTATE;        // '<S26>/Delay Input1'
+  real32_T DiscreteTimeIntegratory_DSTATE;// '<S21>/Discrete-Time Integrator y'
+  real32_T DiscreteTimeIntegratory_dt_DSTA;// '<S21>/Discrete-Time Integrator y_dt' 
+  real32_T DiscreteTimeIntegratory_dt_DS_c;// '<S20>/Discrete-Time Integrator y_dt' 
+  real32_T DiscreteTimeIntegrator_DSTATE;// '<S18>/Discrete-Time Integrator'
+  real32_T DiscreteTimeIntegratory_DSTAT_f;// '<S20>/Discrete-Time Integrator y' 
+  boolean_T DelayInput1_DSTATE;        // '<S22>/Delay Input1'
   boolean_T UnitDelay_DSTATE_l;        // '<S6>/Unit Delay'
-  boolean_T DelayInput1_DSTATE_e;      // '<S15>/Delay Input1'
-  boolean_T Memory_PreviousInput_i;    // '<S17>/Memory'
+  boolean_T DelayInput1_DSTATE_e;      // '<S14>/Delay Input1'
+  boolean_T Relay_Mode;                // '<S2>/Relay'
+  boolean_T Memory_PreviousInput_i;    // '<S16>/Memory'
 } DW;
 
 // Invariant block signals (default storage)
@@ -216,15 +221,15 @@ typedef const struct tag_ConstB {
 typedef struct {
   // Pooled Parameter (Mixed Expressions)
   //  Referenced by:
-  //    '<S9>/Constant1'
-  //    '<S9>/Unit Delay'
+  //    '<S8>/Constant1'
+  //    '<S8>/Unit Delay'
 
   dtoSgl_trajectoryStructBus pooled3;
 
   // Expression: signals
   //  Referenced by: '<S6>/Constant2'
 
-  real32_T Constant2_Value[6009];
+  real32_T Constant2_Value[531];
 
   // Computed Parameter: Constant1_Value
   //  Referenced by: '<S4>/Constant1'
@@ -232,7 +237,7 @@ typedef struct {
   real32_T Constant1_Value[9];
 
   // Computed Parameter: Logic_table
-  //  Referenced by: '<S17>/Logic'
+  //  Referenced by: '<S16>/Logic'
 
   boolean_T Logic_table[16];
 } ConstP;
@@ -324,13 +329,13 @@ class MatlabControllerClass {
 //-
 //  These blocks were eliminated from the model due to optimizations:
 //
-//  Block '<S9>/Display1' : Unused code path elimination
-//  Block '<S9>/Display2' : Unused code path elimination
+//  Block '<S8>/Display1' : Unused code path elimination
+//  Block '<S8>/Display2' : Unused code path elimination
 //  Block '<S1>/Data Type Conversion' : Eliminate redundant data type conversion
 //  Block '<S2>/Data Type Conversion1' : Eliminate redundant data type conversion
-//  Block '<S7>/Gain3' : Eliminated nontunable gain of 1
-//  Block '<S7>/Gain4' : Eliminated nontunable gain of 1
-//  Block '<S19>/Saturation' : Eliminated Saturate block
+//  Block '<S20>/Saturation' : Eliminated Saturate block
+//  Block '<S21>/2*d//omega' : Eliminated nontunable gain of 1
+//  Block '<S21>/Saturation' : Eliminated Saturate block
 
 
 //-
@@ -355,28 +360,24 @@ class MatlabControllerClass {
 //  '<S5>'   : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/MATLAB Function'
 //  '<S6>'   : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Subsystem1'
 //  '<S7>'   : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Subsystem2'
-//  '<S8>'   : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Trajectory from Waypoints'
-//  '<S9>'   : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Trajectory from Waypoints1'
-//  '<S10>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/rad2deg'
-//  '<S11>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/rad2deg1'
-//  '<S12>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/trajGetMatch'
-//  '<S13>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Attitude and Height Estimation from Distance Measurements/MATLAB Function'
-//  '<S14>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Attitude and Height Estimation from Distance Measurements/Normalize Vector'
-//  '<S15>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Subsystem1/Detect Rise Positive'
-//  '<S16>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Subsystem1/MATLAB Function'
-//  '<S17>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Subsystem1/Subsystem'
-//  '<S18>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Subsystem1/Detect Rise Positive/Positive'
-//  '<S19>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Subsystem2/PT2 discrete with saturation'
-//  '<S20>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Subsystem2/deg2rad'
-//  '<S21>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Trajectory from Waypoints/Detect Rise Positive'
-//  '<S22>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Trajectory from Waypoints/Subsystem2'
-//  '<S23>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Trajectory from Waypoints/pad_waypoints'
-//  '<S24>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Trajectory from Waypoints/Detect Rise Positive/Positive'
-//  '<S25>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Trajectory from Waypoints/Subsystem2/trajFromWaypoints'
-//  '<S26>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Trajectory from Waypoints1/Detect Rise Positive'
-//  '<S27>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Trajectory from Waypoints1/pad_waypoints'
-//  '<S28>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Trajectory from Waypoints1/trajFromWaypoints'
-//  '<S29>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Trajectory from Waypoints1/Detect Rise Positive/Positive'
+//  '<S8>'   : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Trajectory from Waypoints1'
+//  '<S9>'   : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/rad2deg'
+//  '<S10>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/rad2deg1'
+//  '<S11>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/trajGetMatch'
+//  '<S12>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Attitude and Height Estimation from Distance Measurements/MATLAB Function'
+//  '<S13>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Attitude and Height Estimation from Distance Measurements/Normalize Vector'
+//  '<S14>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Subsystem1/Detect Rise Positive'
+//  '<S15>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Subsystem1/MATLAB Function'
+//  '<S16>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Subsystem1/Subsystem'
+//  '<S17>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Subsystem1/Detect Rise Positive/Positive'
+//  '<S18>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Subsystem2/Subsystem'
+//  '<S19>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Subsystem2/deg2rad'
+//  '<S20>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Subsystem2/Subsystem/PT2 discrete with saturation'
+//  '<S21>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Subsystem2/Subsystem/PT2 discrete with saturation1'
+//  '<S22>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Trajectory from Waypoints1/Detect Rise Positive'
+//  '<S23>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Trajectory from Waypoints1/pad_waypoints'
+//  '<S24>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Trajectory from Waypoints1/trajFromWaypoints'
+//  '<S25>'  : 'EasyGlider_ManualMode_with_waypoints_and_sysID/dummy test controller/Trajectory from Waypoints1/Detect Rise Positive/Positive'
 
 #endif                                 // RTW_HEADER_MatlabController_h_
 

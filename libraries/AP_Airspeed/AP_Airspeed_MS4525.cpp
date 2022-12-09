@@ -100,7 +100,7 @@ found_sensor:
     // drop to 2 retries for runtime
     _dev->set_retries(2);
     
-    _dev->register_periodic_callback(20000,
+    _dev->register_periodic_callback(5000,
                                      FUNCTOR_BIND_MEMBER(&AP_Airspeed_MS4525::_timer, void));
     return true;
 }
@@ -240,7 +240,7 @@ void AP_Airspeed_MS4525::_timer()
         _measure();
         return;
     }
-    if ((AP_HAL::millis() - _measurement_started_ms) > 10) {
+    if ((AP_HAL::millis() - _measurement_started_ms) > 5) {
         _collect();
         // start a new measurement
         _measure();

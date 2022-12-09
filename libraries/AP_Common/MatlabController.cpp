@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'EasyGlider_ManualMode_with_waypoints_and_sysID'.
 //
-// Model version                  : 1.464
+// Model version                  : 1.471
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Thu Aug 11 17:08:25 2022
+// C/C++ source code generated on : Wed Aug 24 12:11:04 2022
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -39,7 +39,7 @@ real32_T rt_roundf(real32_T u)
   return y;
 }
 
-// Function for MATLAB Function: '<S9>/trajFromWaypoints'
+// Function for MATLAB Function: '<S8>/trajFromWaypoints'
 void MatlabControllerClass::trajSectionGetPos(const real32_T traj_section_pos_x
   [6], const real32_T traj_section_pos_y[6], const real32_T traj_section_pos_z[6],
   real_T varargin_1, real32_T pos[3])
@@ -62,7 +62,7 @@ void MatlabControllerClass::trajSectionGetPos(const real32_T traj_section_pos_x
   pos[2] = pz;
 }
 
-// Function for MATLAB Function: '<S9>/trajFromWaypoints'
+// Function for MATLAB Function: '<S8>/trajFromWaypoints'
 void MatlabControllerClass::polyder_a(const real32_T u[6], real32_T a_data[],
   int32_T a_size[2])
 {
@@ -87,7 +87,7 @@ void MatlabControllerClass::polyder_a(const real32_T u[6], real32_T a_data[],
   }
 }
 
-// Function for MATLAB Function: '<S9>/trajFromWaypoints'
+// Function for MATLAB Function: '<S8>/trajFromWaypoints'
 real32_T MatlabControllerClass::polyVal(const real32_T p_data[], const int32_T
   p_size[2], real_T x)
 {
@@ -105,7 +105,7 @@ real32_T MatlabControllerClass::polyVal(const real32_T p_data[], const int32_T
   return y;
 }
 
-// Function for MATLAB Function: '<S9>/trajFromWaypoints'
+// Function for MATLAB Function: '<S8>/trajFromWaypoints'
 void MatlabControllerClass::trajSetArcLength(dtoSgl_trajectoryStructBus *traj)
 {
   real_T total_arc_length;
@@ -211,7 +211,7 @@ void MatlabControllerClass::trajSetArcLength(dtoSgl_trajectoryStructBus *traj)
   traj->arc_length = (real32_T)total_arc_length;
 }
 
-// Function for MATLAB Function: '<S9>/trajFromWaypoints'
+// Function for MATLAB Function: '<S8>/trajFromWaypoints'
 void MatlabControllerClass::polyder(const real_T u_data[], const int32_T u_size
   [2], real_T a_data[], int32_T a_size[2])
 {
@@ -258,7 +258,7 @@ void MatlabControllerClass::polyder(const real_T u_data[], const int32_T u_size
   }
 }
 
-// Function for MATLAB Function: '<S9>/trajFromWaypoints'
+// Function for MATLAB Function: '<S8>/trajFromWaypoints'
 void MatlabControllerClass::multAx(const real32_T j[3], const real_T k[6], const
   real_T Ajk[18], const real32_T x_data[], real32_T b_data[], real_T dim)
 {
@@ -308,7 +308,7 @@ void MatlabControllerClass::multAx(const real32_T j[3], const real_T k[6], const
   }
 }
 
-// Function for MATLAB Function: '<S9>/trajFromWaypoints'
+// Function for MATLAB Function: '<S8>/trajFromWaypoints'
 void MatlabControllerClass::__anon_fcn_a(real32_T num_of_splines, real32_T cycle,
   const real32_T x_data[], const int32_T *x_size, real32_T varargout_1_data[],
   int32_T *varargout_1_size)
@@ -688,7 +688,7 @@ void MatlabControllerClass::__anon_fcn_a(real32_T num_of_splines, real32_T cycle
   }
 }
 
-// Function for MATLAB Function: '<S9>/trajFromWaypoints'
+// Function for MATLAB Function: '<S8>/trajFromWaypoints'
 real32_T MatlabControllerClass::norm(const real32_T x_data[], const int32_T
   *x_size)
 {
@@ -724,7 +724,7 @@ real32_T MatlabControllerClass::norm(const real32_T x_data[], const int32_T
   return y;
 }
 
-// Function for MATLAB Function: '<S9>/trajFromWaypoints'
+// Function for MATLAB Function: '<S8>/trajFromWaypoints'
 void MatlabControllerClass::__anon_fcn(real32_T num_of_splines, real32_T cycle,
   const real32_T x_data[], const int32_T *x_size, real32_T varargout_1_data[],
   int32_T *varargout_1_size)
@@ -981,7 +981,7 @@ void MatlabControllerClass::__anon_fcn(real32_T num_of_splines, real32_T cycle,
   }
 }
 
-// Function for MATLAB Function: '<S9>/trajFromWaypoints'
+// Function for MATLAB Function: '<S8>/trajFromWaypoints'
 real32_T MatlabControllerClass::norm_d(const real32_T x[2])
 {
   real32_T y;
@@ -1011,7 +1011,7 @@ real32_T MatlabControllerClass::norm_d(const real32_T x[2])
   return scale * std::sqrt(y);
 }
 
-// Function for MATLAB Function: '<S9>/trajFromWaypoints'
+// Function for MATLAB Function: '<S8>/trajFromWaypoints'
 void MatlabControllerClass::ladac_lsqr_iterate(const real32_T
   A_tunableEnvironment[3], real32_T x_data[], int32_T *x_size, real32_T w_data[],
   int32_T *w_size, real32_T u_data[], int32_T *u_size, real32_T v_data[],
@@ -1117,7 +1117,7 @@ void MatlabControllerClass::ladac_lsqr_iterate(const real32_T
   }
 }
 
-// Function for MATLAB Function: '<S9>/trajFromWaypoints'
+// Function for MATLAB Function: '<S8>/trajFromWaypoints'
 void MatlabControllerClass::polyInterpolationb(const real32_T points_data[],
   const int32_T points_size[2], real32_T cycle, real32_T b_data[], int32_T
   *b_size, real32_T *num_of_splines)
@@ -1174,7 +1174,7 @@ void MatlabControllerClass::polyInterpolationb(const real32_T points_data[],
   }
 }
 
-// Function for MATLAB Function: '<S9>/trajFromWaypoints'
+// Function for MATLAB Function: '<S8>/trajFromWaypoints'
 void MatlabControllerClass::ladac_lsqr_init(const real32_T A_tunableEnvironment
   [3], const real32_T b_data[], const int32_T *b_size, real32_T x_data[],
   int32_T *x_size, real32_T w_data[], int32_T *w_size, real32_T u_data[],
@@ -1598,6 +1598,7 @@ void MatlabControllerClass::step()
 {
   dtoSgl_trajectoryStructBus traj;
   uint16_T num_wp;
+  real32_T degree;
   real32_T state;
   real32_T b_size;
   real32_T axis_sel;
@@ -1610,11 +1611,12 @@ void MatlabControllerClass::step()
   real32_T v_data[60];
   real32_T tunableEnvironment[3];
   real_T b_section_idx;
+  real32_T px;
   boolean_T rtb_Compare;
   real32_T rtb_state_vec[6];
   real32_T rtb_Gain[16];
   boolean_T rtb_Compare_l;
-  real32_T rtb_Add;
+  real32_T rtb_Add_b;
   real32_T rtb_uvwxb[300];
   real32_T rtb_MathFunction[3];
   int32_T i;
@@ -1629,39 +1631,37 @@ void MatlabControllerClass::step()
   real32_T rtb_AnormAlfaRhoPhi_idx_2;
   real32_T rtb_AnormAlfaRhoPhi_idx_3;
   real32_T rtb_Switch_i_idx_3;
-  real32_T rtb_Switch_i_idx_0;
-  real32_T rtb_Switch_i_idx_1;
   real32_T rtb_Switch_i_idx_2;
   uint16_T varargin_1_idx_1;
   const dtoSgl_trajectoryStructBus *rtb_Switch_0;
 
-  // Memory: '<S9>/Memory2'
+  // Memory: '<S8>/Memory2'
   memcpy(&rtb_uvwxb[0], &rtDW.Memory2_PreviousInput[0], 300U * sizeof(real32_T));
 
-  // RelationalOperator: '<S29>/Compare' incorporates:
-  //   Constant: '<S29>/Constant'
+  // RelationalOperator: '<S25>/Compare' incorporates:
+  //   Constant: '<S25>/Constant'
   //   Inport: '<Root>/cmd'
 
   rtb_Compare = (rtU.cmd.mission_change > 0);
 
-  // Memory: '<S9>/Memory1'
+  // Memory: '<S8>/Memory1'
   rtb_AnormAlfaRhoPhi_idx_0 = rtDW.Memory1_PreviousInput[0];
   rtb_AnormAlfaRhoPhi_idx_1 = rtDW.Memory1_PreviousInput[1];
   rtb_AnormAlfaRhoPhi_idx_2 = rtDW.Memory1_PreviousInput[2];
   rtb_AnormAlfaRhoPhi_idx_3 = rtDW.Memory1_PreviousInput[3];
 
-  // MATLAB Function: '<S9>/trajFromWaypoints' incorporates:
+  // MATLAB Function: '<S8>/trajFromWaypoints' incorporates:
   //   Constant: '<S2>/Constant2'
-  //   Constant: '<S9>/Constant1'
+  //   Constant: '<S8>/Constant1'
   //   Inport: '<Root>/cmd'
-  //   Memory: '<S9>/Memory'
-  //   Memory: '<S9>/Memory1'
-  //   Memory: '<S9>/Memory2'
-  //   RelationalOperator: '<S26>/FixPt Relational Operator'
-  //   UnitDelay: '<S26>/Delay Input1'
-  //   UnitDelay: '<S9>/Unit Delay'
+  //   Memory: '<S8>/Memory'
+  //   Memory: '<S8>/Memory1'
+  //   Memory: '<S8>/Memory2'
+  //   RelationalOperator: '<S22>/FixPt Relational Operator'
+  //   UnitDelay: '<S22>/Delay Input1'
+  //   UnitDelay: '<S8>/Unit Delay'
   //
-  //  Block description for '<S26>/Delay Input1':
+  //  Block description for '<S22>/Delay Input1':
   //
   //   Store in Global RAM
 
@@ -1670,7 +1670,7 @@ void MatlabControllerClass::step()
   rtb_state_vec[1] = rtDW.Memory_PreviousInput[1];
   axis_sel = rtDW.Memory_PreviousInput[2];
   num_of_splines = rtDW.Memory_PreviousInput[3];
-  rtb_Add = rtDW.Memory_PreviousInput[4];
+  px = rtDW.Memory_PreviousInput[4];
   residuum = rtDW.Memory_PreviousInput[5];
   b_size = rt_roundf(rtDW.UnitDelay_DSTATE.num_sections_max);
   if (b_size < 65536.0F) {
@@ -1695,7 +1695,7 @@ void MatlabControllerClass::step()
   if (((int32_T)rtb_Compare > (int32_T)rtDW.DelayInput1_DSTATE) &&
       (rtDW.Memory_PreviousInput[0] == 0.0F) && (rtDW.Memory_PreviousInput[2] ==
        0.0F)) {
-    rtb_Add = 0.0F;
+    px = 0.0F;
     traj = rtConstP.pooled3;
     axis_sel = 1.0F;
     rtb_state_vec[0] = 0.0F;
@@ -1926,7 +1926,7 @@ void MatlabControllerClass::step()
   } else {
     if (rtDW.Memory_PreviousInput[2] == 4.0F) {
       trajSetArcLength(&traj);
-      rtb_Add = 1.0F;
+      px = 1.0F;
       axis_sel = 0.0F;
       rtb_state_vec[0] = 0.0F;
     }
@@ -1934,7 +1934,7 @@ void MatlabControllerClass::step()
 
   rtb_state_vec[2] = axis_sel;
   rtb_state_vec[3] = num_of_splines;
-  rtb_state_vec[4] = rtb_Add;
+  rtb_state_vec[4] = px;
   rtb_state_vec[5] = residuum;
 
   // Gain: '<Root>/Gain' incorporates:
@@ -1947,114 +1947,160 @@ void MatlabControllerClass::step()
 
   // End of Gain: '<Root>/Gain'
 
-  // Switch: '<S9>/Switch' incorporates:
-  //   Constant: '<S9>/Constant1'
-  //   MATLAB Function: '<S9>/trajFromWaypoints'
+  // Switch: '<S8>/Switch' incorporates:
+  //   Constant: '<S8>/Constant1'
+  //   MATLAB Function: '<S8>/trajFromWaypoints'
 
-  if (rtb_Add >= 1.0F) {
+  if (px >= 1.0F) {
     rtb_Switch_0 = &traj;
   } else {
     rtb_Switch_0 = (&rtConstP.pooled3);
   }
 
-  // End of Switch: '<S9>/Switch'
+  // End of Switch: '<S8>/Switch'
 
   // MATLAB Function: '<S2>/trajGetMatch' incorporates:
   //   Inport: '<Root>/measure'
 
-  trajGetMatchEnhanced(rtb_Switch_0, rtU.measure.s_Kg, &b_size, &axis_sel,
-                       &rtb_Add);
-  b_section_idx = b_size;
-  if ((b_size > rtb_Switch_0->num_sections_set) || (b_size < 1.0F)) {
+  trajGetMatchEnhanced(rtb_Switch_0, rtU.measure.s_Kg, &px, &b_size,
+                       &num_of_splines);
+  b_section_idx = px;
+  if ((px > rtb_Switch_0->num_sections_set) || (px < 1.0F)) {
     b_section_idx = 1.0;
   }
 
-  b_size = rtb_Switch_0->sections[(int32_T)b_section_idx - 1].pos_x[0];
-  axis_sel = rtb_Switch_0->sections[(int32_T)b_section_idx - 1].pos_y[0];
-  num_of_splines = rtb_Switch_0->sections[(int32_T)b_section_idx - 1].pos_z[0];
+  px = rtb_Switch_0->sections[(int32_T)b_section_idx - 1].pos_x[0];
+  b_size = rtb_Switch_0->sections[(int32_T)b_section_idx - 1].pos_y[0];
+  axis_sel = rtb_Switch_0->sections[(int32_T)b_section_idx - 1].pos_z[0];
   for (i = 0; i < 5; i++) {
-    b_size = rtb_Add * b_size + rtb_Switch_0->sections[(int32_T)b_section_idx -
-      1].pos_x[i + 1];
-    axis_sel = rtb_Add * axis_sel + rtb_Switch_0->sections[(int32_T)
+    px = num_of_splines * px + rtb_Switch_0->sections[(int32_T)b_section_idx - 1]
+      .pos_x[i + 1];
+    b_size = num_of_splines * b_size + rtb_Switch_0->sections[(int32_T)
       b_section_idx - 1].pos_y[i + 1];
-    num_of_splines = rtb_Add * num_of_splines + rtb_Switch_0->sections[(int32_T)
+    axis_sel = num_of_splines * axis_sel + rtb_Switch_0->sections[(int32_T)
       b_section_idx - 1].pos_z[i + 1];
   }
 
-  // Saturate: '<S2>/Saturation1'
-  if (rtb_Gain[5] > 1.0F) {
-    rtb_Add = 1.0F;
-  } else if (rtb_Gain[5] < 0.0F) {
-    rtb_Add = 0.0F;
+  // Relay: '<S2>/Relay'
+  if (rtb_Gain[7] >= 0.7F) {
+    rtDW.Relay_Mode = true;
   } else {
-    rtb_Add = rtb_Gain[5];
+    if (rtb_Gain[7] <= 0.3F) {
+      rtDW.Relay_Mode = false;
+    }
   }
 
-  // RelationalOperator: '<S18>/Compare' incorporates:
-  //   Constant: '<S18>/Constant'
+  // Saturate: '<S2>/Saturation1'
+  if (rtb_Gain[5] > 1.0F) {
+    num_of_splines = 1.0F;
+  } else if (rtb_Gain[5] < 0.0F) {
+    num_of_splines = 0.0F;
+  } else {
+    num_of_splines = rtb_Gain[5];
+  }
+
+  // RelationalOperator: '<S17>/Compare' incorporates:
+  //   Constant: '<S17>/Constant'
   //   DataTypeConversion: '<S6>/Data Type Conversion1'
 
-  rtb_Compare_l = (rtb_Add != 0.0F);
+  rtb_Compare_l = (num_of_splines != 0.0F);
 
   // Saturate: '<S2>/Saturation1'
   if (rtb_Gain[5] > 1.0F) {
-    rtb_Add = 1.0F;
+    num_of_splines = 1.0F;
   } else if (rtb_Gain[5] < 0.0F) {
-    rtb_Add = 0.0F;
+    num_of_splines = 0.0F;
   } else {
-    rtb_Add = rtb_Gain[5];
+    num_of_splines = rtb_Gain[5];
   }
 
-  // CombinatorialLogic: '<S17>/Logic' incorporates:
+  // CombinatorialLogic: '<S16>/Logic' incorporates:
   //   DataTypeConversion: '<S6>/Data Type Conversion1'
   //   Logic: '<S6>/NOT'
   //   Logic: '<S6>/OR'
-  //   Memory: '<S17>/Memory'
-  //   RelationalOperator: '<S15>/FixPt Relational Operator'
-  //   UnitDelay: '<S15>/Delay Input1'
+  //   Memory: '<S16>/Memory'
+  //   RelationalOperator: '<S14>/FixPt Relational Operator'
+  //   UnitDelay: '<S14>/Delay Input1'
   //   UnitDelay: '<S6>/Unit Delay'
   //
-  //  Block description for '<S15>/Delay Input1':
+  //  Block description for '<S14>/Delay Input1':
   //
   //   Store in Global RAM
 
-  loop_ub = (int32_T)(((((uint32_T)(rtDW.UnitDelay_DSTATE_l || (rtb_Add == 0.0F))
-    << 1) + ((int32_T)rtb_Compare_l > (int32_T)rtDW.DelayInput1_DSTATE_e)) << 1)
-                      + rtDW.Memory_PreviousInput_i);
+  loop_ub = (int32_T)(((((uint32_T)(rtDW.UnitDelay_DSTATE_l || (num_of_splines ==
+    0.0F)) << 1) + ((int32_T)rtb_Compare_l > (int32_T)rtDW.DelayInput1_DSTATE_e))
+                       << 1) + rtDW.Memory_PreviousInput_i);
+
+  // Delay: '<S6>/Delay' incorporates:
+  //   CombinatorialLogic: '<S16>/Logic'
+
+  if (rtConstP.Logic_table[(uint32_T)loop_ub]) {
+    rtDW.Delay_DSTATE = 1.0F;
+  }
+
+  // Sum: '<S6>/Add' incorporates:
+  //   Delay: '<S6>/Delay'
+  //   Delay: '<S6>/Delay1'
+
+  num_of_splines = rtDW.Delay1_DSTATE + rtDW.Delay_DSTATE;
 
   // Outputs for Enabled SubSystem: '<S2>/Subsystem2' incorporates:
   //   EnablePort: '<S7>/Enable'
 
-  // Delay: '<S6>/Delay' incorporates:
-  //   CombinatorialLogic: '<S17>/Logic'
+  // Logic: '<S2>/AND' incorporates:
+  //   CombinatorialLogic: '<S16>/Logic'
+  //   Relay: '<S2>/Relay'
 
-  if (rtConstP.Logic_table[(uint32_T)loop_ub]) {
-    rtDW.Delay_DSTATE = 1.0F;
-
-    // Sum: '<S7>/Sum3' incorporates:
+  if (rtConstP.Logic_table[(uint32_T)loop_ub] && rtDW.Relay_Mode) {
+    // Sum: '<S21>/Sum2' incorporates:
     //   Constant: '<S7>/Constant'
-    //   DiscreteIntegrator: '<S19>/Discrete-Time Integrator y'
+    //   DiscreteIntegrator: '<S21>/Discrete-Time Integrator y'
+    //   DiscreteIntegrator: '<S21>/Discrete-Time Integrator y_dt'
+    //   Sum: '<S21>/Sum3'
 
-    residuum = 14.0F - rtDW.DiscreteTimeIntegratory_DSTATE;
+    degree = 14.0F - (rtDW.DiscreteTimeIntegratory_DSTATE +
+                      rtDW.DiscreteTimeIntegratory_dt_DSTA);
+
+    // DiscreteIntegrator: '<S20>/Discrete-Time Integrator y_dt'
+    state = rtDW.DiscreteTimeIntegratory_dt_DS_c;
+
+    // Sum: '<S18>/Add' incorporates:
+    //   DiscreteIntegrator: '<S20>/Discrete-Time Integrator y'
+    //   DiscreteIntegrator: '<S21>/Discrete-Time Integrator y'
+
+    rtb_Add_b = rtDW.DiscreteTimeIntegratory_DSTATE -
+      rtDW.DiscreteTimeIntegratory_DSTAT_f;
+
+    // Sum: '<S18>/Sum2' incorporates:
+    //   DiscreteIntegrator: '<S18>/Discrete-Time Integrator'
+    //   DiscreteIntegrator: '<S20>/Discrete-Time Integrator y_dt'
+    //   DiscreteIntegrator: '<S21>/Discrete-Time Integrator y_dt'
+    //   Gain: '<S18>/Gain3'
+    //   Gain: '<S18>/Gain5'
+    //   Sum: '<S18>/Add1'
+
+    rtDW.VectorConcatenate[3] = ((rtDW.DiscreteTimeIntegratory_dt_DSTA -
+      rtDW.DiscreteTimeIntegratory_dt_DS_c) * 0.02F + 0.15F * rtb_Add_b) +
+      rtDW.DiscreteTimeIntegrator_DSTATE;
 
     // Saturate: '<S7>/Saturation' incorporates:
     //   Gain: '<S7>/Gain6'
     //   Inport: '<Root>/cmd'
 
-    state = 45.0F * rtU.cmd.roll;
-    if (state > 45.0F) {
-      state = 45.0F;
+    residuum = 45.0F * rtU.cmd.roll;
+    if (residuum > 45.0F) {
+      residuum = 45.0F;
     } else {
-      if (state < -45.0F) {
-        state = -45.0F;
+      if (residuum < -45.0F) {
+        residuum = -45.0F;
       }
     }
 
     // Sum: '<S7>/Sum4' incorporates:
-    //   Gain: '<S20>/deg2rad'
+    //   Gain: '<S19>/deg2rad'
     //   Inport: '<Root>/measure'
 
-    state = rtU.measure.EulerAngles[0] - 0.0174532924F * state;
+    residuum = rtU.measure.EulerAngles[0] - 0.0174532924F * residuum;
 
     // Sum: '<S7>/Sum' incorporates:
     //   DiscreteIntegrator: '<S7>/Discrete-Time Integrator1'
@@ -2062,33 +2108,41 @@ void MatlabControllerClass::step()
     //   Inport: '<Root>/measure'
 
     rtDW.VectorConcatenate[0] = ((0.0F - 0.25F * rtU.measure.omega_Kb[0]) -
-      state) - rtDW.DiscreteTimeIntegrator1_DSTATE[0];
+      residuum) - rtDW.DiscreteTimeIntegrator1_DSTATE[0];
 
-    // Update for DiscreteIntegrator: '<S7>/Discrete-Time Integrator1' incorporates:
+    // Sum: '<S7>/Sum1' incorporates:
     //   Inport: '<Root>/measure'
-    //   Sum: '<S7>/Sum1'
 
-    rtDW.DiscreteTimeIntegrator1_DSTATE[0] += (rtU.measure.omega_Kb[0] + state) *
-      0.0025F;
+    residuum += rtU.measure.omega_Kb[0];
+
+    // Update for DiscreteIntegrator: '<S7>/Discrete-Time Integrator1'
+    rtDW.DiscreteTimeIntegrator1_DSTATE[0] += 0.0025F * residuum;
+    if (rtDW.DiscreteTimeIntegrator1_DSTATE[0] >= 1.0F) {
+      rtDW.DiscreteTimeIntegrator1_DSTATE[0] = 1.0F;
+    } else {
+      if (rtDW.DiscreteTimeIntegrator1_DSTATE[0] <= -1.0F) {
+        rtDW.DiscreteTimeIntegrator1_DSTATE[0] = -1.0F;
+      }
+    }
 
     // Saturate: '<S7>/Saturation' incorporates:
     //   Gain: '<S7>/Gain6'
     //   Inport: '<Root>/cmd'
 
-    state = 45.0F * rtU.cmd.pitch;
-    if (state > 45.0F) {
-      state = 45.0F;
+    residuum = 45.0F * rtU.cmd.pitch;
+    if (residuum > 45.0F) {
+      residuum = 45.0F;
     } else {
-      if (state < -45.0F) {
-        state = -45.0F;
+      if (residuum < -45.0F) {
+        residuum = -45.0F;
       }
     }
 
     // Sum: '<S7>/Sum4' incorporates:
-    //   Gain: '<S20>/deg2rad'
+    //   Gain: '<S19>/deg2rad'
     //   Inport: '<Root>/measure'
 
-    state = rtU.measure.EulerAngles[1] - 0.0174532924F * state;
+    residuum = rtU.measure.EulerAngles[1] - 0.0174532924F * residuum;
 
     // Sum: '<S7>/Sum' incorporates:
     //   DiscreteIntegrator: '<S7>/Discrete-Time Integrator1'
@@ -2096,88 +2150,92 @@ void MatlabControllerClass::step()
     //   Inport: '<Root>/measure'
 
     rtDW.VectorConcatenate[1] = ((0.0F - 0.25F * rtU.measure.omega_Kb[1]) -
-      state) - rtDW.DiscreteTimeIntegrator1_DSTATE[1];
+      residuum) - rtDW.DiscreteTimeIntegrator1_DSTATE[1];
 
-    // Update for DiscreteIntegrator: '<S7>/Discrete-Time Integrator1' incorporates:
+    // Sum: '<S7>/Sum1' incorporates:
     //   Inport: '<Root>/measure'
-    //   Sum: '<S7>/Sum1'
 
-    rtDW.DiscreteTimeIntegrator1_DSTATE[1] += (rtU.measure.omega_Kb[1] + state) *
-      0.0025F;
+    residuum += rtU.measure.omega_Kb[1];
+
+    // Update for DiscreteIntegrator: '<S7>/Discrete-Time Integrator1'
+    rtDW.DiscreteTimeIntegrator1_DSTATE[1] += 0.0025F * residuum;
+    if (rtDW.DiscreteTimeIntegrator1_DSTATE[1] >= 1.0F) {
+      rtDW.DiscreteTimeIntegrator1_DSTATE[1] = 1.0F;
+    } else {
+      if (rtDW.DiscreteTimeIntegrator1_DSTATE[1] <= -1.0F) {
+        rtDW.DiscreteTimeIntegrator1_DSTATE[1] = -1.0F;
+      }
+    }
 
     // Sum: '<S7>/Sum' incorporates:
+    //   DiscreteIntegrator: '<S7>/Discrete-Time Integrator1'
     //   Gain: '<S7>/Gain'
     //   Inport: '<Root>/measure'
 
-    rtDW.VectorConcatenate[2] = 0.0F - 0.25F * rtU.measure.omega_Kb[2];
+    rtDW.VectorConcatenate[2] = (0.0F - 0.25F * rtU.measure.omega_Kb[2]) -
+      rtDW.DiscreteTimeIntegrator1_DSTATE[2];
 
-    // Update for DiscreteIntegrator: '<S7>/Discrete-Time Integrator1' incorporates:
-    //   Inport: '<Root>/measure'
-    //   Sum: '<S7>/Sum1'
-    //   Sum: '<S7>/Sum4'
+    // Update for DiscreteIntegrator: '<S7>/Discrete-Time Integrator1'
+    if (rtDW.DiscreteTimeIntegrator1_DSTATE[2] >= 1.0F) {
+      rtDW.DiscreteTimeIntegrator1_DSTATE[2] = 1.0F;
+    } else {
+      if (rtDW.DiscreteTimeIntegrator1_DSTATE[2] <= -1.0F) {
+        rtDW.DiscreteTimeIntegrator1_DSTATE[2] = -1.0F;
+      }
+    }
 
-    rtDW.DiscreteTimeIntegrator1_DSTATE[2] += (rtU.measure.omega_Kb[2] +
-      rtU.measure.EulerAngles[2]) * 0.0025F;
-
-    // Sum: '<S19>/Sum2' incorporates:
-    //   DiscreteIntegrator: '<S19>/Discrete-Time Integrator y'
-    //   DiscreteIntegrator: '<S19>/Discrete-Time Integrator y_dt'
-    //   DotProduct: '<S2>/Dot Product'
-    //   Gain: '<S19>/2*d//omega'
-    //   Inport: '<Root>/measure'
-    //   Sqrt: '<S2>/Sqrt'
-    //   Sum: '<S19>/Sum3'
-
-    state = std::sqrt((rtU.measure.V_Kg[0] * rtU.measure.V_Kg[0] +
-                       rtU.measure.V_Kg[1] * rtU.measure.V_Kg[1]) +
-                      rtU.measure.V_Kg[2] * rtU.measure.V_Kg[2]) - (0.2F *
-      rtDW.DiscreteTimeIntegratory_dt_DSTA + rtDW.DiscreteTimeIntegratory_DSTATE);
-
-    // Sum: '<S7>/Sum2' incorporates:
-    //   Constant: '<S7>/Constant'
-    //   DiscreteIntegrator: '<S19>/Discrete-Time Integrator y'
-    //   DiscreteIntegrator: '<S19>/Discrete-Time Integrator y_dt'
-    //   DiscreteIntegrator: '<S7>/Discrete-Time Integrator'
-    //   Gain: '<S7>/Gain5'
-
-    rtDW.VectorConcatenate[3] = ((14.0F - rtDW.DiscreteTimeIntegratory_DSTATE) -
-      0.25F * rtDW.DiscreteTimeIntegratory_dt_DSTA) +
-      rtDW.DiscreteTimeIntegrator_DSTATE;
-
-    // Update for DiscreteIntegrator: '<S19>/Discrete-Time Integrator y' incorporates:
-    //   DiscreteIntegrator: '<S19>/Discrete-Time Integrator y_dt'
+    // Update for DiscreteIntegrator: '<S21>/Discrete-Time Integrator y' incorporates:
+    //   DiscreteIntegrator: '<S21>/Discrete-Time Integrator y_dt'
 
     rtDW.DiscreteTimeIntegratory_DSTATE += 0.0025F *
       rtDW.DiscreteTimeIntegratory_dt_DSTA;
 
-    // Update for DiscreteIntegrator: '<S19>/Discrete-Time Integrator y_dt' incorporates:
-    //   Gain: '<S19>/omega^2'
+    // Update for DiscreteIntegrator: '<S21>/Discrete-Time Integrator y_dt' incorporates:
+    //   Gain: '<S21>/omega^2'
 
-    rtDW.DiscreteTimeIntegratory_dt_DSTA += 100.0F * state * 0.0025F;
+    rtDW.DiscreteTimeIntegratory_dt_DSTA += 4.0F * degree * 0.0025F;
 
-    // Update for DiscreteIntegrator: '<S7>/Discrete-Time Integrator'
-    rtDW.DiscreteTimeIntegrator_DSTATE += 0.0025F * residuum;
-    if (rtDW.DiscreteTimeIntegrator_DSTATE >= 0.8F) {
-      rtDW.DiscreteTimeIntegrator_DSTATE = 0.8F;
+    // Update for DiscreteIntegrator: '<S20>/Discrete-Time Integrator y_dt' incorporates:
+    //   DiscreteIntegrator: '<S20>/Discrete-Time Integrator y'
+    //   DotProduct: '<S2>/Dot Product'
+    //   Gain: '<S20>/2*d//omega'
+    //   Gain: '<S20>/omega^2'
+    //   Inport: '<Root>/measure'
+    //   Sqrt: '<S2>/Sqrt'
+    //   Sum: '<S20>/Sum2'
+    //   Sum: '<S20>/Sum3'
+
+    rtDW.DiscreteTimeIntegratory_dt_DS_c += (std::sqrt((rtU.measure.V_Kg[0] *
+      rtU.measure.V_Kg[0] + rtU.measure.V_Kg[1] * rtU.measure.V_Kg[1]) +
+      rtU.measure.V_Kg[2] * rtU.measure.V_Kg[2]) - (0.2F *
+      rtDW.DiscreteTimeIntegratory_dt_DS_c +
+      rtDW.DiscreteTimeIntegratory_DSTAT_f)) * 100.0F * 0.0025F;
+
+    // Update for DiscreteIntegrator: '<S18>/Discrete-Time Integrator' incorporates:
+    //   Gain: '<S18>/Gain4'
+
+    rtDW.DiscreteTimeIntegrator_DSTATE += 0.1F * rtb_Add_b * 0.0025F;
+    if (rtDW.DiscreteTimeIntegrator_DSTATE >= 1.0F) {
+      rtDW.DiscreteTimeIntegrator_DSTATE = 1.0F;
     } else {
       if (rtDW.DiscreteTimeIntegrator_DSTATE <= 0.0F) {
         rtDW.DiscreteTimeIntegrator_DSTATE = 0.0F;
       }
     }
 
-    // End of Update for DiscreteIntegrator: '<S7>/Discrete-Time Integrator'
+    // End of Update for DiscreteIntegrator: '<S18>/Discrete-Time Integrator'
+
+    // Update for DiscreteIntegrator: '<S20>/Discrete-Time Integrator y'
+    rtDW.DiscreteTimeIntegratory_DSTAT_f += 0.0025F * state;
   }
 
+  // End of Logic: '<S2>/AND'
   // End of Outputs for SubSystem: '<S2>/Subsystem2'
 
-  // Sum: '<S6>/Add' incorporates:
-  //   Delay: '<S6>/Delay'
-  //   Delay: '<S6>/Delay1'
+  // Switch: '<S2>/Switch' incorporates:
+  //   Relay: '<S2>/Relay'
 
-  rtb_Add = rtDW.Delay1_DSTATE + rtDW.Delay_DSTATE;
-
-  // Switch: '<S2>/Switch'
-  if (rtb_Gain[7] > 0.5F) {
+  if ((real32_T)rtDW.Relay_Mode > 0.5F) {
     // Saturate: '<S2>/Saturation2'
     if (rtb_Gain[6] > 1.0F) {
       residuum = 1.0F;
@@ -2190,7 +2248,7 @@ void MatlabControllerClass::step()
     // End of Saturate: '<S2>/Saturation2'
 
     // MATLAB Function: '<S6>/MATLAB Function'
-    i = (int32_T)rtb_Add;
+    i = (int32_T)num_of_splines;
 
     // Outport: '<Root>/channels' incorporates:
     //   Constant: '<S6>/Constant2'
@@ -2201,9 +2259,9 @@ void MatlabControllerClass::step()
 
     rtY.channels[0] = rtConstP.Constant2_Value[i - 1] * residuum +
       rtDW.VectorConcatenate[0];
-    rtY.channels[1] = rtConstP.Constant2_Value[i + 2002] * residuum +
+    rtY.channels[1] = rtConstP.Constant2_Value[i + 176] * residuum +
       rtDW.VectorConcatenate[1];
-    rtY.channels[3] = rtConstP.Constant2_Value[i + 4005] * residuum +
+    rtY.channels[3] = rtConstP.Constant2_Value[i + 353] * residuum +
       rtDW.VectorConcatenate[2];
     rtY.channels[2] = rtDW.VectorConcatenate[3];
   } else {
@@ -2224,27 +2282,27 @@ void MatlabControllerClass::step()
   //   Constant: '<S4>/Constant2'
   //   Inport: '<Root>/measure'
 
-  residuum = 1.0F / (rtU.measure.rangefinder[0] + 1.0F);
-  rtb_Switch_i_idx_0 = 1.0F / (rtU.measure.rangefinder[1] + 1.0F);
-  rtb_Switch_i_idx_1 = 1.0F / (rtU.measure.rangefinder[2] + 1.0F);
+  state = 1.0F / (rtU.measure.rangefinder[0] + 1.0F);
+  degree = 1.0F / (rtU.measure.rangefinder[1] + 1.0F);
+  rtb_Add_b = 1.0F / (rtU.measure.rangefinder[2] + 1.0F);
 
   // DotProduct: '<S4>/Dot Product'
-  state = 0.0F;
+  residuum = 0.0F;
   for (i = 0; i < 3; i++) {
     // Product: '<S4>/Multiply' incorporates:
     //   Constant: '<S4>/Constant1'
 
-    rtb_Switch_i_idx_2 = rtConstP.Constant1_Value[i + 6] * rtb_Switch_i_idx_1 +
-      (rtConstP.Constant1_Value[i + 3] * rtb_Switch_i_idx_0 +
-       rtConstP.Constant1_Value[i] * residuum);
+    rtb_Switch_i_idx_2 = rtConstP.Constant1_Value[i + 6] * rtb_Add_b +
+      (rtConstP.Constant1_Value[i + 3] * degree + rtConstP.Constant1_Value[i] *
+       state);
 
     // DotProduct: '<S4>/Dot Product' incorporates:
-    //   Math: '<S14>/Math Function'
+    //   Math: '<S13>/Math Function'
 
     rtb_Switch_i_idx_3 = rtb_Switch_i_idx_2 * rtb_Switch_i_idx_2;
-    state += rtb_Switch_i_idx_3;
+    residuum += rtb_Switch_i_idx_3;
 
-    // Math: '<S14>/Math Function'
+    // Math: '<S13>/Math Function'
     rtb_MathFunction[i] = rtb_Switch_i_idx_3;
 
     // Product: '<S4>/Multiply' incorporates:
@@ -2258,14 +2316,14 @@ void MatlabControllerClass::step()
   //   DotProduct: '<S4>/Dot Product'
   //   Sqrt: '<S4>/Sqrt'
 
-  residuum = 1.0F / std::sqrt(state);
+  residuum = 1.0F / std::sqrt(residuum);
 
-  // Sum: '<S14>/Sum of Elements'
+  // Sum: '<S13>/Sum of Elements'
   state = (rtb_MathFunction[0] + rtb_MathFunction[1]) + rtb_MathFunction[2];
 
-  // Math: '<S14>/Math Function1'
+  // Math: '<S13>/Math Function1'
   //
-  //  About '<S14>/Math Function1':
+  //  About '<S13>/Math Function1':
   //   Operator: sqrt
 
   if (state < 0.0F) {
@@ -2274,40 +2332,40 @@ void MatlabControllerClass::step()
     state = std::sqrt(state);
   }
 
-  // End of Math: '<S14>/Math Function1'
+  // End of Math: '<S13>/Math Function1'
 
-  // Switch: '<S14>/Switch' incorporates:
-  //   Constant: '<S14>/Constant'
-  //   Product: '<S14>/Product'
+  // Switch: '<S13>/Switch' incorporates:
+  //   Constant: '<S13>/Constant'
+  //   Product: '<S13>/Product'
 
   if (state > 0.0F) {
-    rtb_Switch_i_idx_0 = tunableEnvironment[0];
-    rtb_Switch_i_idx_1 = tunableEnvironment[1];
+    degree = tunableEnvironment[0];
+    rtb_Add_b = tunableEnvironment[1];
     rtb_Switch_i_idx_2 = tunableEnvironment[2];
     rtb_Switch_i_idx_3 = state;
   } else {
-    rtb_Switch_i_idx_0 = 0.0F;
-    rtb_Switch_i_idx_1 = 0.0F;
+    degree = 0.0F;
+    rtb_Add_b = 0.0F;
     rtb_Switch_i_idx_2 = 0.0F;
     rtb_Switch_i_idx_3 = 1.0F;
   }
 
-  // End of Switch: '<S14>/Switch'
+  // End of Switch: '<S13>/Switch'
 
   // Outport: '<Root>/logs' incorporates:
   //   Inport: '<Root>/measure'
 
   rtY.logs[3] = rtU.measure.s_Kg[0];
 
-  // Product: '<S14>/Divide'
-  tunableEnvironment[1] = rtb_Switch_i_idx_1 / rtb_Switch_i_idx_3;
+  // Product: '<S13>/Divide'
+  tunableEnvironment[1] = rtb_Add_b / rtb_Switch_i_idx_3;
 
   // Outport: '<Root>/logs' incorporates:
   //   Inport: '<Root>/measure'
 
   rtY.logs[4] = rtU.measure.s_Kg[1];
 
-  // Product: '<S14>/Divide'
+  // Product: '<S13>/Divide'
   tunableEnvironment[2] = rtb_Switch_i_idx_2 / rtb_Switch_i_idx_3;
 
   // Outport: '<Root>/logs' incorporates:
@@ -2315,25 +2373,26 @@ void MatlabControllerClass::step()
 
   rtY.logs[5] = rtU.measure.s_Kg[2];
 
-  // Gain: '<S11>/rad2deg' incorporates:
+  // Gain: '<S10>/rad2deg' incorporates:
   //   MATLAB Function: '<S4>/MATLAB Function'
 
   state = 57.2957802F * std::atan2(tunableEnvironment[1], tunableEnvironment[2]);
 
-  // Gain: '<S10>/rad2deg' incorporates:
+  // Gain: '<S9>/rad2deg' incorporates:
   //   MATLAB Function: '<S4>/MATLAB Function'
-  //   Product: '<S14>/Divide'
+  //   Product: '<S13>/Divide'
 
-  rtb_Switch_i_idx_0 = std::atan2(-(rtb_Switch_i_idx_0 / rtb_Switch_i_idx_3),
-    std::sqrt(tunableEnvironment[1] * tunableEnvironment[1] +
-              tunableEnvironment[2] * tunableEnvironment[2])) * 57.2957802F;
+  degree = std::atan2(-(degree / rtb_Switch_i_idx_3), std::sqrt
+                      (tunableEnvironment[1] * tunableEnvironment[1] +
+                       tunableEnvironment[2] * tunableEnvironment[2])) *
+    57.2957802F;
 
   // MATLAB Function: '<S2>/MATLAB Function' incorporates:
   //   Outport: '<Root>/channels'
 
   rtY.channels[4] = residuum;
   rtY.channels[5] = state;
-  rtY.channels[6] = rtb_Switch_i_idx_0;
+  rtY.channels[6] = degree;
   rtY.channels[7] = 0.0F;
 
   // Outport: '<Root>/logs' incorporates:
@@ -2341,42 +2400,42 @@ void MatlabControllerClass::step()
 
   rtY.logs[0] = residuum;
   rtY.logs[1] = state;
-  rtY.logs[2] = rtb_Switch_i_idx_0;
-  rtY.logs[6] = b_size;
-  rtY.logs[7] = axis_sel;
-  rtY.logs[8] = num_of_splines;
+  rtY.logs[2] = degree;
+  rtY.logs[6] = px;
+  rtY.logs[7] = b_size;
+  rtY.logs[8] = axis_sel;
   for (i = 0; i < 6; i++) {
     rtY.logs[i + 9] = rtb_state_vec[i];
   }
 
-  // Update for Memory: '<S9>/Memory2'
+  // Update for Memory: '<S8>/Memory2'
   memcpy(&rtDW.Memory2_PreviousInput[0], &rtb_uvwxb[0], 300U * sizeof(real32_T));
 
-  // Update for UnitDelay: '<S9>/Unit Delay' incorporates:
-  //   MATLAB Function: '<S9>/trajFromWaypoints'
+  // Update for UnitDelay: '<S8>/Unit Delay' incorporates:
+  //   MATLAB Function: '<S8>/trajFromWaypoints'
 
   rtDW.UnitDelay_DSTATE = traj;
 
-  // Update for UnitDelay: '<S26>/Delay Input1'
+  // Update for UnitDelay: '<S22>/Delay Input1'
   //
-  //  Block description for '<S26>/Delay Input1':
+  //  Block description for '<S22>/Delay Input1':
   //
   //   Store in Global RAM
 
   rtDW.DelayInput1_DSTATE = rtb_Compare;
 
-  // Update for Memory: '<S9>/Memory1'
+  // Update for Memory: '<S8>/Memory1'
   rtDW.Memory1_PreviousInput[0] = rtb_AnormAlfaRhoPhi_idx_0;
   rtDW.Memory1_PreviousInput[1] = rtb_AnormAlfaRhoPhi_idx_1;
   rtDW.Memory1_PreviousInput[2] = rtb_AnormAlfaRhoPhi_idx_2;
   rtDW.Memory1_PreviousInput[3] = rtb_AnormAlfaRhoPhi_idx_3;
 
-  // Update for Memory: '<S9>/Memory'
+  // Update for Memory: '<S8>/Memory'
   for (i = 0; i < 6; i++) {
     rtDW.Memory_PreviousInput[i] = rtb_state_vec[i];
   }
 
-  // End of Update for Memory: '<S9>/Memory'
+  // End of Update for Memory: '<S8>/Memory'
 
   // Update for Delay: '<S6>/Delay1' incorporates:
   //   Constant: '<S6>/Constant'
@@ -2386,23 +2445,23 @@ void MatlabControllerClass::step()
   // Update for UnitDelay: '<S6>/Unit Delay' incorporates:
   //   Switch: '<S6>/Switch'
 
-  rtDW.UnitDelay_DSTATE_l = (rtb_Add >= 2003.0F);
+  rtDW.UnitDelay_DSTATE_l = (num_of_splines >= 177.0F);
 
-  // Update for UnitDelay: '<S15>/Delay Input1'
+  // Update for UnitDelay: '<S14>/Delay Input1'
   //
-  //  Block description for '<S15>/Delay Input1':
+  //  Block description for '<S14>/Delay Input1':
   //
   //   Store in Global RAM
 
   rtDW.DelayInput1_DSTATE_e = rtb_Compare_l;
 
-  // Update for Memory: '<S17>/Memory' incorporates:
-  //   CombinatorialLogic: '<S17>/Logic'
+  // Update for Memory: '<S16>/Memory' incorporates:
+  //   CombinatorialLogic: '<S16>/Logic'
 
   rtDW.Memory_PreviousInput_i = rtConstP.Logic_table[(uint32_T)loop_ub];
 
   // Update for Delay: '<S6>/Delay'
-  rtDW.Delay_DSTATE = rtb_Add;
+  rtDW.Delay_DSTATE = num_of_splines;
 }
 
 // Model initialize function
@@ -2418,18 +2477,21 @@ void MatlabControllerClass::initialize()
 
     // End of ConstCode for Outport: '<Root>/function_channels'
 
-    // InitializeConditions for UnitDelay: '<S9>/Unit Delay'
+    // InitializeConditions for UnitDelay: '<S8>/Unit Delay'
     rtDW.UnitDelay_DSTATE = rtConstP.pooled3;
 
-    // InitializeConditions for Memory: '<S17>/Memory'
+    // InitializeConditions for Memory: '<S16>/Memory'
     rtDW.Memory_PreviousInput_i = true;
 
     // InitializeConditions for Delay: '<S6>/Delay'
     rtDW.Delay_DSTATE = 1.0F;
 
     // SystemInitialize for Enabled SubSystem: '<S2>/Subsystem2'
-    // InitializeConditions for DiscreteIntegrator: '<S19>/Discrete-Time Integrator y' 
+    // InitializeConditions for DiscreteIntegrator: '<S21>/Discrete-Time Integrator y' 
     rtDW.DiscreteTimeIntegratory_DSTATE = 14.0F;
+
+    // InitializeConditions for DiscreteIntegrator: '<S20>/Discrete-Time Integrator y' 
+    rtDW.DiscreteTimeIntegratory_DSTAT_f = 14.0F;
 
     // End of SystemInitialize for SubSystem: '<S2>/Subsystem2'
   }
