@@ -80,6 +80,7 @@ void ModeCustom::update()
 
     // assign commanded and measured values to controller inputs struct
     ExtU rtU_;
+    memset(&rtU_, 0, sizeof(rtU_));
 
     rtU_.cmd.roll  = roll_out;
     rtU_.cmd.pitch = pitch_out;
@@ -99,9 +100,9 @@ void ModeCustom::update()
     rtU_.measure.EulerAngles[0] = plane.ahrs.roll;
     rtU_.measure.EulerAngles[1] = plane.ahrs.pitch;
     rtU_.measure.EulerAngles[2] = plane.ahrs.yaw;
-    rtU_.measure.a_Kg[0] = acc_NED.x;
-    rtU_.measure.a_Kg[1] = acc_NED.y;
-    rtU_.measure.a_Kg[2] = acc_NED.z;
+    rtU_.measure.a_Kg[0] = acc_NED[0];
+    rtU_.measure.a_Kg[1] = acc_NED[1];
+    rtU_.measure.a_Kg[2] = acc_NED[2];
     rtU_.measure.V_Kg[0] = velocity_NED[0];
     rtU_.measure.V_Kg[1] = velocity_NED[1];
     rtU_.measure.V_Kg[2] = velocity_NED[2];
@@ -153,9 +154,10 @@ void ModeCustom::update()
     ExtY rtY_ = custom_controller.rtY;
 
     // DEBUGGING:
-    // Send measure bus to Simulink (uncomment line 3 in mode.h)
+    // Send all inputs of custom controller to Simulink (uncomment line 3 in mode.h)
+    // Check byte alignment/padding in Simulink, while receiving (e.g. 4)
     #ifdef Custom_Matlab_Output
-        socket_debug.sendto(&rtU_.measure, sizeof(rtU_.measure), _debug_address, _debug_port); 
+        socket_debug.sendto(&rtU_, sizeof(rtU_), _debug_address, _debug_port); 
     #endif
 
     // log signals
