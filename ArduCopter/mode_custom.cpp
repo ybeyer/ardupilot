@@ -137,6 +137,7 @@ void ModeCustom::run()
 
     // assign commanded controller inputs to cmd struct
     ExtU rtU_;
+    memset(&rtU_, 0, sizeof(rtU_));
     ExtY rtY_;
 
     rtU_.cmd.roll = roll_out;
@@ -226,9 +227,10 @@ void ModeCustom::run()
     rtY_ = custom_controller.rtY;
 
     // DEBUGGING:
-    // Send measure bus to Simulink (uncomment line 3 in mode.h)
+    // Send all inputs of custom controller to Simulink (uncomment line 3 in mode.h)
+    // Check byte alignment/padding in Simulink, while receiving (e.g. 4)
     #ifdef Custom_Matlab_Output
-        socket_debug.sendto(&rtU_.measure, sizeof(rtU_.measure), _debug_address, _debug_port); 
+        socket_debug.sendto(&rtU_, sizeof(rtU_), _debug_address, _debug_port); 
     #endif
 
     // log signals
