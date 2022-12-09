@@ -73,8 +73,6 @@ void ModeCustom::run()
         velocity_NED[2] = 0;
     }
 
-    Vector3f Omega_Kb_filt = ahrs_.get_gyro_latest();
-
     /* Info: gyro scaling is hard coded based on AP_InertialSensor::register_gyro in AP_InertialSensor.cpp.
     The scaling is applied in AP_InertialSensor_Backend::_notify_new_gyro_raw_sample in
     AP_InertialSensor_Backend.cpp. However, the variable gyro_filtered is overwritten during filtering.
@@ -182,12 +180,9 @@ void ModeCustom::run()
 
 
     // assign measured controller inputs to measure struct
-    rtU_.measure.omega_Kb[0] = Omega_Kb_filt[0];
-    rtU_.measure.omega_Kb[1] = Omega_Kb_filt[1];
-    rtU_.measure.omega_Kb[2] = Omega_Kb_filt[2];
-    rtU_.measure.Omega_Kb_raw[0] = Omega_Kb_raw[0];
-    rtU_.measure.Omega_Kb_raw[1] = Omega_Kb_raw[1];
-    rtU_.measure.Omega_Kb_raw[2] = Omega_Kb_raw[2];
+    rtU_.measure.omega_Kb[0] = Omega_Kb_raw[0];
+    rtU_.measure.omega_Kb[1] = Omega_Kb_raw[1];
+    rtU_.measure.omega_Kb[2] = Omega_Kb_raw[2];
     rtU_.measure.q_bg[0] = attitude_vehicle_quat.q1;
     rtU_.measure.q_bg[1] = attitude_vehicle_quat.q2;
     rtU_.measure.q_bg[2] = attitude_vehicle_quat.q3;
