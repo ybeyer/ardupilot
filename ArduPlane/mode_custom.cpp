@@ -41,9 +41,13 @@ void ModeCustom::update()
 
     // int RNGFND_num_sensors = plane.rangefinder.num_sensors();
     
-
     // get measured inputs
-    Vector3f angular_velocity_Kb = plane.ahrs.get_gyro();
+    /* Info: gyro scaling is hard coded based on AP_InertialSensor::register_gyro in AP_InertialSensor.cpp.
+    The scaling is applied in AP_InertialSensor_Backend::_notify_new_gyro_raw_sample in
+    AP_InertialSensor_Backend.cpp. However, the variable gyro_filtered is overwritten during filtering.
+    It seems that there is no non-filtered scaled angular velocity available as member variable.
+    That is why the scaling is applied here.) */
+    Vector3f Omega_Kb_raw = AP::ins().get_raw_gyro() / (INT16_MAX/radians(2000));
 
     Quaternion attitude_vehicle_quat;
     if(!plane.ahrs.get_quaternion(attitude_vehicle_quat))
@@ -85,9 +89,9 @@ void ModeCustom::update()
         rtU_.cmd.RC_pwm[i] = plane.g2.rc_channels.channel(i)->get_radio_in();
     }
 
-    rtU_.measure.omega_Kb[0] = angular_velocity_Kb[0];
-    rtU_.measure.omega_Kb[1] = angular_velocity_Kb[1];
-    rtU_.measure.omega_Kb[2] = angular_velocity_Kb[2];
+    rtU_.measure.omega_Kb[0] = Omega_Kb_raw[0];
+    rtU_.measure.omega_Kb[1] = Omega_Kb_raw[1];
+    rtU_.measure.omega_Kb[2] = Omega_Kb_raw[2];
     rtU_.measure.q_bg[0] = attitude_vehicle_quat[0];
     rtU_.measure.q_bg[1] = attitude_vehicle_quat[1];
     rtU_.measure.q_bg[2] = attitude_vehicle_quat[2];

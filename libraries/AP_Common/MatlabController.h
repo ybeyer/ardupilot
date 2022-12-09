@@ -49,7 +49,6 @@ typedef struct {
 #define DEFINED_TYPEDEF_FOR_measureBus_
 
 typedef struct {
-  real32_T Omega_Kb_raw[3];
   real32_T omega_Kb[3];
   real32_T EulerAngles[3];
   real32_T q_bg[4];
