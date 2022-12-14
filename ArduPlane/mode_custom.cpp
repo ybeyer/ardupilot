@@ -1,6 +1,8 @@
 #include "mode.h"
 #include "Plane.h"
 #include <AP_Common/MatlabController.h>
+#include <GCS_MAVLink/include/mavlink/v2.0/checksum.h>
+
 
 bool ModeCustom::_enter()
 {
@@ -16,7 +18,7 @@ bool ModeCustom::_enter()
 void ModeCustom::update()
 {
 
-    uint32_t time_beg = AP_HAL::micros();
+    uint32_t time_total = AP_HAL::micros();
 
     // get pilot inputs
     float tr_max_inv = 1.0 / 4500;
@@ -161,7 +163,13 @@ void ModeCustom::update()
     updated_waypoints = false;
 
     // get controller outputs struct
-    custom_controller.step(); //run a step in controller.
+    uint32_t time_step = AP_HAL::micros();
+    #ifdef Mode_Custom_Use_External_Controller
+        custom_controller.step_external();
+    #else
+        custom_controller.step(); //run a step in controller.
+    #endif
+    time_step = AP_HAL::micros() - time_step;
     ExtY *rtY_ = &(custom_controller.rtY);
 
     // DEBUGGING:
@@ -172,11 +180,13 @@ void ModeCustom::update()
     #endif
 
     // log signals
+    uint32_t time_log = AP_HAL::micros();
     for (int i=0;i<num_log_batches;i++) {
         write_log_custom(batch_name_full[i], label_full[i],
             &custom_controller.rtY.logs[log_signal_idx_cumsum[i]],
             log_config[i].num_signals);
     }
+    time_log = AP_HAL::micros() - time_log;
 
     // send controller outputs to channels and set PWMs
     for (uint8_t i=0; i<8; i++) {
@@ -216,27 +226,24 @@ void ModeCustom::update()
 
     counter++;
 
-    uint32_t modecustom_duration_us = AP_HAL::micros() - time_beg;
-
-    // Log the execution time and report the maximum
+    time_total = AP_HAL::micros() - time_total;
     static uint32_t modecustom_max_us = 0;
-    if(modecustom_duration_us > modecustom_max_us) 
-        modecustom_max_us = modecustom_duration_us;
+    if(time_total > modecustom_max_us){modecustom_max_us = time_total;}
+
+    // Log the execution times
     AP::logger().Write(
-        "MLPM", "TimeUS,dtUS",
-        "Qf",
+        "MLPM", "TimeUS,TimeTotalUS,TimeStepUS,TimeLogUS,TimeMaxUS",
+        "Qffff",
         AP_HAL::micros64(),
-        (double)modecustom_duration_us);    
+        (double)time_total, (double)time_step, (double)time_log, (double)modecustom_max_us );
     
-
-    if ((now - last_print >= 1e6) || (rtU_->cmd.mission_change == 1) /* 1000 ms : 1.0 hz */ ) {
-
-        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Time in us: %d, max: %d  \n", (int)modecustom_duration_us, (int)modecustom_max_us);
-            
-        last_print = now;
-        counter = 0;
-    }
-
+    #ifdef Custom_Debug
+        if ((now - last_print >= 1e6) || (rtU_->cmd.mission_change == 1) /* 1000 ms : 1.0 hz */ ) {
+            GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Time in us: %d, max: %d  \n", (int)time_total, (int)modecustom_max_us);
+            last_print = now;
+            counter = 0;
+        }
+    #endif
 
 }
 

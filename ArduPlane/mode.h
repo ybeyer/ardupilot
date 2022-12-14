@@ -1,6 +1,7 @@
 #pragma once
 
 // #define Custom_Matlab_Output //define for the custom simulink output
+#define Custom_Debug // print performance to console
 
 #include <AP_Param/AP_Param.h>
 #include <AP_Common/Location.h>
