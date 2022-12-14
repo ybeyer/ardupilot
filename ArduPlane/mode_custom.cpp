@@ -68,6 +68,9 @@ void ModeCustom::update()
         velocity_NED[2] = 0;
     }
 
+    // get acceleration in body-fixed-frame
+    Vector3f acc_FRD = plane.ahrs.get_accel() - plane.ahrs.get_accel_bias();
+
     Vector3f position_NED;
     //if(!plane.ahrs.get_relative_position_NED_home(position_NED))
     if(!plane.ahrs.get_relative_position_NED_origin(position_NED))
@@ -103,6 +106,9 @@ void ModeCustom::update()
     rtU_->measure.a_Kg[0] = acc_NED[0];
     rtU_->measure.a_Kg[1] = acc_NED[1];
     rtU_->measure.a_Kg[2] = acc_NED[2];
+    rtU_->measure.a_Kb[0] = acc_FRD[0];
+    rtU_->measure.a_Kb[1] = acc_FRD[1];
+    rtU_->measure.a_Kb[2] = acc_FRD[2];
     rtU_->measure.V_Kg[0] = velocity_NED[0];
     rtU_->measure.V_Kg[1] = velocity_NED[1];
     rtU_->measure.V_Kg[2] = velocity_NED[2];

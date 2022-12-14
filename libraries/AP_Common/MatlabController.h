@@ -53,6 +53,7 @@ typedef struct {
   real32_T EulerAngles[3];
   real32_T q_bg[4];
   real32_T a_Kg[3];
+  real32_T a_Kb[3];
   real32_T V_Kg[3];
   real32_T s_Kg[3];
   real32_T s_Kg_origin[3];
