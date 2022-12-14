@@ -2,6 +2,7 @@
 
 // #define Custom_Matlab_Output //define for the custom simulink output
 #define Custom_Debug // print performance to console
+// #define Mode_Custom_Use_External_Controller
 
 #include <AP_Param/AP_Param.h>
 #include <AP_Common/Location.h>
@@ -355,7 +356,7 @@ protected:
     float waypoints[max_num_of_ardupilot_waypoints][4];
     // will be set true in case of mission update through function mission_updated
     bool updated_waypoints = false;
-
+ 
     // custom logging
     static const int num_log_batches = sizeof(log_config)/sizeof(log_config[0]);
     static const int max_num_signals_per_batch = 14;
@@ -380,6 +381,9 @@ protected:
     // signal names are part of the label (e.g. "s1" or "s2" or "s3")
     void extract_one_signal_name(const uint8_t log_names_int[], int number, signal_name_t &log_name);
 
+    #ifdef Mode_Custom_Use_External_Controller
+        void step_external();
+    #endif
 };
 
 class ModeRTL : public Mode
