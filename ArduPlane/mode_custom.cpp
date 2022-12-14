@@ -68,6 +68,12 @@ void ModeCustom::update()
         velocity_NED[2] = 0;
     }
 
+    // get airspeed estimate from airspeed sensor
+    float airspeed_estimate;
+    if (!plane.ahrs.airspeed_estimate(airspeed_estimate)) {
+        airspeed_estimate = 0;
+    }    
+
     // get acceleration in body-fixed-frame
     Vector3f acc_FRD = plane.ahrs.get_accel() - plane.ahrs.get_accel_bias();
 
@@ -112,6 +118,7 @@ void ModeCustom::update()
     rtU_->measure.V_Kg[0] = velocity_NED[0];
     rtU_->measure.V_Kg[1] = velocity_NED[1];
     rtU_->measure.V_Kg[2] = velocity_NED[2];
+    rtU_->measure.airspeed = airspeed_estimate;   
     rtU_->measure.s_Kg[0] = position_NED[0];
     rtU_->measure.s_Kg[1] = position_NED[1];
     rtU_->measure.s_Kg[2] = position_NED[2];
