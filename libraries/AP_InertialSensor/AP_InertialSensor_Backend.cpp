@@ -548,6 +548,9 @@ void AP_InertialSensor_Backend::_notify_new_accel_raw_sample(uint8_t instance,
     } else {
         log_accel_raw(instance, sample_us, _imu._accel_filtered[instance]);
     }
+
+    _imu._last_raw_accel[instance] = accel;
+
 }
 
 /*

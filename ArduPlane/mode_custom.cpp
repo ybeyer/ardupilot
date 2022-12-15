@@ -86,7 +86,7 @@ void ModeCustom::update()
     }    
 
     // get acceleration in body-fixed-frame
-    Vector3f acc_FRD = plane.ahrs.get_accel() - plane.ahrs.get_accel_bias();
+    Vector3f acc_FRD = AP::ins().get_raw_accel() - AP::ins().get_accel_offsets();
 
     Vector3f position_NED;
     //if(!plane.ahrs.get_relative_position_NED_home(position_NED))

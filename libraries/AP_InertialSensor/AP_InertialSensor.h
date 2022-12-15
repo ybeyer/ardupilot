@@ -159,6 +159,7 @@ public:
     ///
     const Vector3f     &get_accel(uint8_t i) const { return _accel[i]; }
     const Vector3f     &get_accel(void) const { return get_accel(_primary_accel); }
+    const Vector3f     &get_raw_accel(void) const { return _last_raw_accel[_primary_accel]; }
 
     // multi-device interface
     bool get_gyro_health(uint8_t instance) const { return (instance<_gyro_count) ? _gyro_healthy[instance] : false; }
@@ -506,6 +507,7 @@ private:
     float _loop_delta_t_max;
 
     // Most recent accelerometer reading
+    Vector3f _last_raw_accel[INS_MAX_INSTANCES];
     Vector3f _accel[INS_MAX_INSTANCES];
     Vector3f _delta_velocity[INS_MAX_INSTANCES];
     float _delta_velocity_dt[INS_MAX_INSTANCES];
