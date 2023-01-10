@@ -16,6 +16,7 @@ bool ModeCustom::_enter()
     #endif
 
     custom_controller.initialize(); 
+    updated_waypoints = true;
 
     // init custom logging
     log_setup(log_config);
@@ -153,7 +154,7 @@ void ModeCustom::update()
     }
     int wp_count=0;
     // start with index j=1 because 1st Ardupilot waypoint is always home position
-    for (int j=1;(j<max_num_of_ardupilot_waypoints)&&(j<numberOfNavCommands);j++){
+    for (uint16_t j = 1;(j<max_num_of_ardupilot_waypoints)&&(j<=numberOfNavCommands);j++){
         // assign only waypoints that are no "ghost waypoints", see declaration of waypoints
         if (abs(waypoints[j][0]) + abs(waypoints[j][1]) + abs(waypoints[j][2]) >= 0.01f){
             rtU_->cmd.waypoints[4*wp_count]   = waypoints[j][0]*0.01f; // convert cm to m
