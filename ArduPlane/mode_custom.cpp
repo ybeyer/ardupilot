@@ -6,6 +6,8 @@
 #ifdef Mode_Custom_Use_External_Controller
     // Matek H743-MINI: 1 = TX7, 2 = TX1, 3 = TX2, 6 = TX4, 7 = TX6
     AP_HAL::UARTDriver *fc_uart = hal.serial(2);
+    uint16_t bytes_avail = 0;
+    uint16_t bytes_read = 0;
     uint16_t missed_frames = 0;
 #endif
 
@@ -248,8 +250,18 @@ void ModeCustom::update()
         (double)time_total, (double)time_step, (double)time_log, (double)modecustom_max_us );
     
     #ifdef Custom_Debug
-        if ((now - last_print >= 1e6) || (rtU_->cmd.mission_change == 1) /* 1000 ms : 1.0 hz */ ) {
-            GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Time in us: %d, max: %d  \n", (int)time_total, (int)modecustom_max_us);
+        if ((now - last_print >= 5e6) || (rtU_->cmd.mission_change == 1)  /* 5e6 us -> 5.0 hz */ ) {
+            
+            #ifdef Mode_Custom_Use_External_Controller
+                GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Bytes avail: %d, Bytes read: %d, Missed Frames: %d \n", bytes_avail, bytes_read, missed_frames);
+                missed_frames = 0;
+
+                GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Time in us: %d, max: %d Logs: %f %f %f %f %f %f %f %f %f  \n", (int)time_total, (int)modecustom_max_us,
+                rtY_->logs[0], rtY_->logs[1], rtY_->logs[2], rtY_->logs[3], rtY_->logs[4], rtY_->logs[5], rtY_->logs[6], rtY_->logs[7], rtY_->logs[8]);
+            #else
+                GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Time in us: %d, max: %d  \n", (int)time_total, (int)modecustom_max_us);
+            #endif
+
             last_print = now;
             counter = 0;
         }
@@ -373,8 +385,8 @@ void ModeCustom::extract_one_signal_name(const uint8_t log_names_int[], int numb
 
 #ifdef Mode_Custom_Use_External_Controller
 void ModeCustom::step_external(){
-    uint16_t bytes_avail = 0;
-    uint16_t bytes_read = 0;
+    bytes_avail = 0;
+    bytes_read = 0;
     bool bytes_ok = false;
 
     // Receive actuator commands and logs
