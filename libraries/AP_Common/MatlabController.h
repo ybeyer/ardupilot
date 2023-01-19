@@ -55,12 +55,13 @@ typedef struct {
   real32_T a_Kg[3];
   real32_T a_Kb[3];
   real32_T V_Kg[3];
-  real32_T airspeed;
   real32_T s_Kg[3];
   real32_T s_Kg_origin[3];
   real32_T lla[3];
   real32_T rangefinder[6];
   real32_T V_bat;
+  real32_T omega_mot[4];
+  real32_T airspeed;
 } measureBus;
 
 #endif
