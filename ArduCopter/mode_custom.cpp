@@ -44,7 +44,7 @@ bool ModeCustom::init(bool ignore_checks)
 void ModeCustom::run()
 {
 
-    uint32_t time_total = AP_HAL::micros();
+    uint64_t time_total = AP_HAL::micros();
 
     // Get stick inputs, -1 ... 1
     int16_t tr_max = 4500;
@@ -221,7 +221,7 @@ void ModeCustom::run()
     
     // run Simulink controller
     custom_controller.rtU = rtU_;
-    uint32_t time_step = AP_HAL::micros();
+    uint64_t time_step = AP_HAL::micros();
     custom_controller.step();
     time_step = AP_HAL::micros() - time_step;
     rtY_ = custom_controller.rtY;
@@ -230,11 +230,11 @@ void ModeCustom::run()
     // Send all inputs of custom controller to Simulink (uncomment line 3 in mode.h)
     // Check byte alignment/padding in Simulink, while receiving (e.g. 4)
     #ifdef Custom_Matlab_Output
-        socket_debug.sendto(&rtU_, sizeof(rtU_), _debug_address, _debug_port); 
+        socket_debug.sendto(&rtU_.measure, sizeof(rtU_), _debug_address, _debug_port); 
     #endif
 
     // log signals
-    uint32_t time_log = AP_HAL::micros();
+    uint64_t time_log = AP_HAL::micros();
     for (int i=0;i<num_log_batches;i++) {
         write_log_custom(batch_name_full[i], label_full[i],
             &custom_controller.rtY.logs[log_signal_idx_cumsum[i]],
