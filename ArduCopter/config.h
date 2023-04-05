@@ -213,13 +213,13 @@
 //////////////////////////////////////////////////////////////////////////////
 // Parachute release
 #ifndef PARACHUTE
- # define PARACHUTE HAL_PARACHUTE_ENABLED
+ # define PARACHUTE DISABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
 // Nav-Guided - allows external nav computer to control vehicle
 #ifndef NAV_GUIDED
- # define NAV_GUIDED    !HAL_MINIMIZE_FEATURES
+ # define NAV_GUIDED    DISABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -261,13 +261,13 @@
 //////////////////////////////////////////////////////////////////////////////
 // flip - fly vehicle in flip in pitch and roll direction mode
 #ifndef MODE_FLIP_ENABLED
-# define MODE_FLIP_ENABLED ENABLED
+# define MODE_FLIP_ENABLED DISABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
 // Follow - follow another vehicle or GCS
 #ifndef MODE_FOLLOW_ENABLED
-# define MODE_FOLLOW_ENABLED !HAL_MINIMIZE_FEATURES
+# define MODE_FOLLOW_ENABLED DISABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -279,7 +279,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // GuidedNoGPS mode - control vehicle's angles from GCS
 #ifndef MODE_GUIDED_NOGPS_ENABLED
-# define MODE_GUIDED_NOGPS_ENABLED !HAL_MINIMIZE_FEATURES
+# define MODE_GUIDED_NOGPS_ENABLED DISABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -303,37 +303,37 @@
 //////////////////////////////////////////////////////////////////////////////
 // SmartRTL - allows vehicle to retrace a (loop-eliminated) breadcrumb home
 #ifndef MODE_SMARTRTL_ENABLED
-# define MODE_SMARTRTL_ENABLED ENABLED
+# define MODE_SMARTRTL_ENABLED DISABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
 // Sport - fly vehicle in rate-controlled (earth-frame) mode
 #ifndef MODE_SPORT_ENABLED
-# define MODE_SPORT_ENABLED !HAL_MINIMIZE_FEATURES
+# define MODE_SPORT_ENABLED DISABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
 // System ID - conduct system identification tests on vehicle
 #ifndef MODE_SYSTEMID_ENABLED
-# define MODE_SYSTEMID_ENABLED !HAL_MINIMIZE_FEATURES
+# define MODE_SYSTEMID_ENABLED DISABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
 // Throw - fly vehicle after throwing it in the air
 #ifndef MODE_THROW_ENABLED
-# define MODE_THROW_ENABLED ENABLED
+# define MODE_THROW_ENABLED DISABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
 // ZigZag - allow vehicle to fly in a zigzag manner with predefined point A B
 #ifndef MODE_ZIGZAG_ENABLED
-# define MODE_ZIGZAG_ENABLED !HAL_MINIMIZE_FEATURES
+# define MODE_ZIGZAG_ENABLED DISABLE
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
 // Turtle - allow vehicle to be flipped over after a crash
 #ifndef MODE_TURTLE_ENABLED
-# define MODE_TURTLE_ENABLED !HAL_MINIMIZE_FEATURES && !defined(DISABLE_DSHOT) && FRAME_CONFIG != HELI_FRAME
+# define MODE_TURTLE_ENABLED DISABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -355,13 +355,13 @@
 
 // Beacon support - support for local positioning systems
 #ifndef BEACON_ENABLED
-# define BEACON_ENABLED !HAL_MINIMIZE_FEATURES
+# define BEACON_ENABLED DISABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
 // Landing Gear support
 #ifndef LANDING_GEAR_ENABLED
- #define LANDING_GEAR_ENABLED ENABLED
+ #define LANDING_GEAR_ENABLED DISABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -448,7 +448,7 @@
 // CAMERA TRIGGER AND CONTROL
 //
 #ifndef CAMERA
- # define CAMERA        ENABLED
+ # define CAMERA        DISABLED
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -639,11 +639,11 @@
 #endif
 
 #ifndef AC_AVOID_ENABLED
- #define AC_AVOID_ENABLED   ENABLED
+ #define AC_AVOID_ENABLED   DISABLED
 #endif
 
 #ifndef AC_OAPATHPLANNER_ENABLED
- #define AC_OAPATHPLANNER_ENABLED   !HAL_MINIMIZE_FEATURES
+ #define AC_OAPATHPLANNER_ENABLED   DISABLED
 #endif
 
 #if AC_AVOID_ENABLED && !AC_FENCE
