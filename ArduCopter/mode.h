@@ -1,10 +1,11 @@
 #pragma once
 
-//#define Custom_Matlab_Output //define for the custom simulink output
+//#define CUSTOM_MATLAB_OUTPUT //define for the custom simulink output
 
 #include "Copter.h"
 #include <AC_AttitudeControl/MatlabController.h>    // new
-#ifdef Custom_Matlab_Output
+
+#ifdef CUSTOM_MATLAB_OUTPUT
     #include <AP_HAL/utility/Socket.h>
 #endif
 
@@ -175,13 +176,6 @@ protected:
     RC_Channel *&channel_throttle;
     RC_Channel *&channel_yaw;
     float &G_Dt;
-
-    MatlabControllerClass custom_controller;
-#ifdef Custom_Matlab_Output
-    SocketAPM socket_debug; //
-    const char *_debug_address = "127.0.0.1";
-    int _debug_port = 9004;
-#endif
 
     // note that we support two entirely different automatic takeoffs:
 
@@ -1396,8 +1390,14 @@ private:
 class ModeCustom : public Mode {
 
 public:
+
+#ifdef CUSTOM_MATLAB_OUTPUT
+    ModeCustom(void);
+#else
     // inherit constructor
     using Mode::Mode;
+#endif
+
     Number mode_number() const override { return Number::CUSTOM; }
 
     bool init(bool ignore_checks) override;
@@ -1421,6 +1421,14 @@ protected:
     void override_cntrl_params();
 
 private:
+    MatlabControllerClass custom_controller;
+
+#ifdef CUSTOM_MATLAB_OUTPUT
+    SocketAPM socket_debug;
+    const char *_debug_address = "127.0.0.1";
+    int _debug_port = 9004;
+#endif
+
     static const int max_num_of_matlab_waypoints = 6;
     // Ardupilot contains ghost waypoints
     // (home position and velocity of previous waypoint),

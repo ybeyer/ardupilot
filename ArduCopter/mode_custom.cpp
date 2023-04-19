@@ -2,6 +2,13 @@
 #include <AP_Motors/AP_MotorsMatrix.h>
 #include <GCS_MAVLink/GCS.h>
 
+#ifdef CUSTOM_MATLAB_OUTPUT
+// constructor
+ModeCustom::ModeCustom(void) : Mode(), socket_debug(true)
+{
+}
+#endif
+
 // Function for hardcoding changes to MATLABs cntrl struct.
 // Values can be accessed in the same fashion as in MATLAB, e.g.:
 //     cntrl.sample_time = 42;
@@ -229,8 +236,8 @@ void ModeCustom::run()
     // DEBUGGING:
     // Send all inputs of custom controller to Simulink (uncomment line 3 in mode.h)
     // Check byte alignment/padding in Simulink, while receiving (e.g. 4)
-    #ifdef Custom_Matlab_Output
-        socket_debug.sendto(&rtU_.measure, sizeof(rtU_), _debug_address, _debug_port); 
+    #ifdef CUSTOM_MATLAB_OUTPUT
+        socket_debug.sendto(&rtU_.measure, sizeof(rtU_), _debug_address, _debug_port);
     #endif
 
     // log signals
