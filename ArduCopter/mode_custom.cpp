@@ -251,6 +251,8 @@ void ModeCustom::run()
         motors->set_custom_input( i, rtY_.u[i] );
     }
 
+    motors->output_custom();
+
     time_total = AP_HAL::micros() - time_total;
 
     // Log the execution times    

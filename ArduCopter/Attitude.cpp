@@ -8,6 +8,13 @@
 //  called at 400hz by default
 void Copter::run_rate_controller()
 {
+    // if custom mode is enabled, call custom output method
+    const char *fm_name_pointer = flightmode->name4();
+    //std::string fm_name(fm_name_pointer, 4);  // string not supported for build
+    char comparison_char = 'X';
+    bool is_custom_mode = *fm_name_pointer == comparison_char;
+    //bool is_custom_mode = fm_name.compare("XXXX") == 0;   // string not supported for build
+    if(!is_custom_mode) { 
     // set attitude and position controller loop time
     const float last_loop_time_s = AP::scheduler().get_last_loop_time_s();
     motors->set_dt(last_loop_time_s);
@@ -16,6 +23,7 @@ void Copter::run_rate_controller()
 
     // run low level rate controllers that only require IMU data
     attitude_control->rate_controller_run(); 
+    };
 }
 
 /*************************************************************
