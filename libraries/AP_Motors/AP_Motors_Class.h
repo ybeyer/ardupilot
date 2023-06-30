@@ -102,9 +102,6 @@ public:
     // modified version of output() for custom controllers
     void                output_custom();
 
-    // return string corresponding to frame_type
-    virtual const char* get_type_string() const { return ""; }
-
     // returns a formatted string into buffer, e.g. "QUAD/X"
     void get_frame_and_type_string(char *buffer, uint8_t buflen) const;
 

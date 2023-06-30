@@ -269,75 +269,9 @@ void Copter::get_scheduler_tasks(const AP_Scheduler::Task *&tasks,
 
 constexpr int8_t Copter::_failsafe_priorities[7];
 
-<<<<<<< HEAD
-// Main loop - 400hz
-void Copter::fast_loop()
-{
-    // update INS immediately to get current gyro data populated
-    ins.update();
-
-    // if custom mode is enabled, call custom output method
-    const char *fm_name_pointer = flightmode->name4();
-    //std::string fm_name(fm_name_pointer, 4);  // string not supported for build
-    char comparison_char = 'X';
-    bool is_custom_mode = *fm_name_pointer == comparison_char;
-    //bool is_custom_mode = fm_name.compare("XXXX") == 0;   // string not supported for build
-    if(!is_custom_mode) { 
-        // run low level rate controllers that only require IMU data
-        attitude_control->rate_controller_run();
-        // send outputs to the motors library immediately
-        motors_output();
-    }
-
-    // run EKF state estimator (expensive)
-    // --------------------
-    read_AHRS();
-
-#if FRAME_CONFIG == HELI_FRAME
-    update_heli_control_dynamics();
-    #if MODE_AUTOROTATE_ENABLED == ENABLED
-        heli_update_autorotation();
-    #endif
-#endif //HELI_FRAME
-
-    // Inertial Nav
-    // --------------------
-    read_inertia();
-
-    // check if ekf has reset target heading or position
-    check_ekf_reset();
-
-    // run the attitude controllers
-    update_flight_mode();
-
-    if(is_custom_mode) {
-        motors_output();
-    }
-
-    // update home from EKF if necessary
-    update_home_from_EKF();
-
-    // check if we've landed or crashed
-    update_land_and_crash_detectors();
-
-#if HAL_MOUNT_ENABLED
-    // camera mount's fast update
-    camera_mount.update_fast();
-#endif
-
-    // log sensor health
-    if (should_log(MASK_LOG_ANY)) {
-        Log_Sensor_Health();
-    }
-
-    AP_Vehicle::fast_loop();
-}
-
-#ifdef ENABLE_SCRIPTING
-=======
 #if AP_SCRIPTING_ENABLED
 #if MODE_GUIDED_ENABLED == ENABLED
->>>>>>> original/Copter-4.4
+
 // start takeoff to given altitude (for use by scripting)
 bool Copter::start_takeoff(float alt)
 {
