@@ -116,6 +116,7 @@ void Sub::auto_wp_run()
         motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
         attitude_control.set_throttle_out(0,true,g.throttle_filt);
         attitude_control.relax_attitude_controllers();
+        wp_nav.wp_and_spline_init();                                                // Reset xy target
         return;
     }
 
@@ -161,10 +162,10 @@ void Sub::auto_wp_run()
 
     // call attitude controller
     if (auto_yaw_mode == AUTO_YAW_HOLD) {
-        // roll & pitch from waypoint controller, yaw rate from pilot
+        // roll & pitch & yaw rate from pilot
         attitude_control.input_euler_angle_roll_pitch_euler_rate_yaw(target_roll, target_pitch, target_yaw_rate);
     } else {
-        // roll, pitch from waypoint controller, yaw heading from auto_heading()
+        // roll, pitch from pilot, yaw heading from auto_heading()
         attitude_control.input_euler_angle_roll_pitch_yaw(target_roll, target_pitch, get_auto_heading(), true);
     }
 }
@@ -172,20 +173,25 @@ void Sub::auto_wp_run()
 // auto_circle_movetoedge_start - initialise waypoint controller to move to edge of a circle with it's center at the specified location
 //  we assume the caller has set the circle's circle with circle_nav.set_center()
 //  we assume the caller has performed all required GPS_ok checks
-void Sub::auto_circle_movetoedge_start(const Location &circle_center, float radius_m)
+void Sub::auto_circle_movetoedge_start(const Location &circle_center, float radius_m, bool ccw_turn)
 {
     // set circle center
     circle_nav.set_center(circle_center);
 
     // set circle radius
     if (!is_zero(radius_m)) {
-        circle_nav.set_radius(radius_m * 100.0f);
+        circle_nav.set_radius_cm(radius_m * 100.0f);
     }
+
+     // set circle direction by using rate
+    float current_rate = circle_nav.get_rate();
+    current_rate = ccw_turn ? -fabsf(current_rate) : fabsf(current_rate);
+    circle_nav.set_rate(current_rate);
 
     // check our distance from edge of circle
     Vector3f circle_edge_neu;
     circle_nav.get_closest_point_on_circle(circle_edge_neu);
-    float dist_to_edge = (inertial_nav.get_position() - circle_edge_neu).length();
+    float dist_to_edge = (inertial_nav.get_position_neu_cm() - circle_edge_neu).length();
 
     // if more than 3m then fly to edge
     if (dist_to_edge > 300.0f) {
@@ -205,9 +211,7 @@ void Sub::auto_circle_movetoedge_start(const Location &circle_center, float radi
         }
 
         // if we are outside the circle, point at the edge, otherwise hold yaw
-        const Vector3p &circle_center_neu = circle_nav.get_center();
-        const Vector3f &curr_pos = inertial_nav.get_position();
-        float dist_to_center = norm(circle_center_neu.x - curr_pos.x, circle_center_neu.y - curr_pos.y);
+        float dist_to_center = get_horizontal_distance_cm(inertial_nav.get_position_xy_cm().topostype(), circle_nav.get_center().xy());
         if (dist_to_center > circle_nav.get_radius() && dist_to_center > 500) {
             set_auto_yaw_mode(get_default_auto_yaw_mode(false));
         } else {
@@ -226,7 +230,7 @@ void Sub::auto_circle_start()
     auto_mode = Auto_Circle;
 
     // initialise circle controller
-    circle_nav.init(circle_nav.get_center(), circle_nav.center_is_terrain_alt());
+    circle_nav.init(circle_nav.get_center(), circle_nav.center_is_terrain_alt(), circle_nav.get_rate());
 }
 
 // auto_circle_run - circle in AUTO flight mode
@@ -307,6 +311,7 @@ void Sub::auto_loiter_run()
         attitude_control.set_throttle_out(0,true,g.throttle_filt);
         attitude_control.relax_attitude_controllers();
 
+        wp_nav.wp_and_spline_init();                                                // Reset xy target
         return;
     }
 
@@ -339,7 +344,7 @@ void Sub::auto_loiter_run()
     float target_roll, target_pitch;
     get_pilot_desired_lean_angles(channel_roll->get_control_in(), channel_pitch->get_control_in(), target_roll, target_pitch, aparm.angle_max);
 
-    // roll & pitch from waypoint controller, yaw rate from pilot
+    // roll & pitch & yaw rate from pilot
     attitude_control.input_euler_angle_roll_pitch_euler_rate_yaw(target_roll, target_pitch, target_yaw_rate);
 }
 
@@ -463,10 +468,11 @@ void Sub::set_auto_yaw_roi(const Location &roi_location)
 #endif  // HAL_MOUNT_ENABLED
     } else {
 #if HAL_MOUNT_ENABLED
-        // check if mount type requires us to rotate the quad
+        // check if mount type requires us to rotate the sub
         if (!camera_mount.has_pan_control()) {
-            roi_WP = pv_location_to_vector(roi_location);
-            set_auto_yaw_mode(AUTO_YAW_ROI);
+            if (roi_location.get_vector_from_origin_NEU(roi_WP)) {
+                set_auto_yaw_mode(AUTO_YAW_ROI);
+            }
         }
         // send the command to the camera mount
         camera_mount.set_roi_target(roi_location);
@@ -478,9 +484,10 @@ void Sub::set_auto_yaw_roi(const Location &roi_location)
         //      3: point at a location given by alt, lon, lat parameters
         //      4: point at a target given a target id (can't be implemented)
 #else
-        // if we have no camera mount aim the quad at the location
-        roi_WP = pv_location_to_vector(roi_location);
-        set_auto_yaw_mode(AUTO_YAW_ROI);
+        // if we have no camera mount aim the sub at the location
+        if (roi_location.get_vector_from_origin_NEU(roi_WP)) {
+            set_auto_yaw_mode(AUTO_YAW_ROI);
+        }
 #endif  // HAL_MOUNT_ENABLED
     }
 }
@@ -514,7 +521,7 @@ float Sub::get_auto_heading()
     case AUTO_YAW_CORRECT_XTRACK: {
         // TODO return current yaw if not in appropriate mode
         // Bearing of current track (centidegrees)
-        float track_bearing = get_bearing_cd(wp_nav.get_wp_origin(), wp_nav.get_wp_destination());
+        float track_bearing = get_bearing_cd(wp_nav.get_wp_origin().xy(), wp_nav.get_wp_destination().xy());
 
         // Bearing from current position towards intermediate position target (centidegrees)
         const Vector2f target_vel_xy{pos_control.get_vel_target_cms().x, pos_control.get_vel_target_cms().y};
@@ -591,6 +598,9 @@ void Sub::auto_terrain_recover_run()
         motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
         attitude_control.set_throttle_out(0,true,g.throttle_filt);
         attitude_control.relax_attitude_controllers();
+
+        loiter_nav.init_target();                                                   // Reset xy target
+        pos_control.relax_z_controller(motors.get_throttle_hover());                // Reset z axis controller
         return;
     }
 

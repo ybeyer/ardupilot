@@ -16,10 +16,10 @@ protected:
 
 private:
 
-    void do_aux_function_armdisarm(const AuxSwitchPos ch_flag) override;
     void do_aux_function_change_mode(const Mode::Number mode,
                                      const AuxSwitchPos ch_flag);
     void do_aux_function_change_air_mode(const AuxSwitchPos ch_flag);
+    void do_aux_function_change_force_flying(const AuxSwitchPos ch_flag);
 
     // called when the mode switch changes position:
     void mode_switch_changed(modeswitch_pos_t new_pos) override;
@@ -41,6 +41,9 @@ public:
         }
         return &obj_channels[chan];
     }
+
+    // returns true if throttle arming checks should be run
+    bool arming_check_throttle() const override;
 
 protected:
 

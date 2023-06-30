@@ -11,7 +11,6 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <signal.h>
 #include <time.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -22,6 +21,8 @@
 #include <queue>
 
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BH
+#define RCIN_RPI_CHN_NUM 8
+#elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_OBAL_V1
 #define RCIN_RPI_CHN_NUM 8
 #else
 #define RCIN_RPI_CHN_NUM 1
@@ -70,7 +71,7 @@ public:
     void* get_page(void **pages, const uint32_t addr) const;
 
     // This function returns offset from the beginning of the buffer using (virtual) address in 'pages' and memory_table.
-    uint32_t get_offset(void **pages, const uint32_t addr) const;
+    uint32_t get_offset(void **pages, const uint64_t addr) const;
 
     //How many bytes are available for reading in circle buffer?
     uint32_t bytes_available(const uint32_t read_addr, const uint32_t write_addr) const;

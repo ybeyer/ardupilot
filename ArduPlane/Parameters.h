@@ -1,6 +1,9 @@
 #pragma once
 
+#define AP_PARAM_VEHICLE_NAME plane
+
 #include <AP_Common/AP_Common.h>
+#include <AP_Gripper/AP_Gripper.h>
 
 // Global parameter class.
 //
@@ -51,7 +54,7 @@ public:
 
         // Misc
         //
-        k_param_auto_trim      = 10,
+        k_param_auto_trim      = 10, // unused
         k_param_log_bitmask_old,  // unused
         k_param_pitch_trim_cd,
         k_param_mix_mode,
@@ -89,7 +92,7 @@ public:
         k_param_relay,
         k_param_takeoff_throttle_delay,
         k_param_mode_takeoff, // was skip_gyro_cal
-        k_param_auto_fbw_steer,
+        k_param_auto_fbw_steer, // unused
         k_param_waypoint_max_radius,
         k_param_ground_steer_alt,        
         k_param_ground_steer_dps,
@@ -196,7 +199,7 @@ public:
         k_param_sonar_enabled_old,  // unused
         k_param_ahrs,  // AHRS group
         k_param_barometer,   // barometer ground calibration
-        k_param_airspeed,  // AP_Airspeed parameters
+        k_param_airspeed,           // only used for parameter conversion; AP_Airspeed parameters moved to AP_Vehicle
         k_param_curr_amp_offset,
         k_param_NavEKF,  // deprecated - remove
         k_param_mission, // mission library
@@ -350,7 +353,9 @@ public:
         k_param_gcs4,          // stream rates
         k_param_gcs5,          // stream rates
         k_param_gcs6,          // stream rates
-        k_param_fence,         // vehicle fence
+        k_param_fence,         // vehicle fence - unused
+        k_param_acro_yaw_rate,
+        k_param_takeoff_throttle_max_t,
     };
 
     AP_Int16 format_version;
@@ -361,7 +366,7 @@ public:
     AP_Int16 sysid_my_gcs;
     AP_Int8 telem_delay;
 
-    AP_Int8  rtl_autoland;
+    AP_Enum<RtlAutoland> rtl_autoland;
 
     AP_Int8  crash_accel_threshold;
 
@@ -376,8 +381,6 @@ public:
 
     // speed used for speed scaling
     AP_Float scaling_speed;
-
-    AP_Int8  auto_fbw_steer;
 
     // Waypoints
     //
@@ -422,11 +425,11 @@ public:
     AP_Int16 alt_offset;
     AP_Int16 acro_roll_rate;
     AP_Int16 acro_pitch_rate;
+    AP_Int16 acro_yaw_rate;
     AP_Int8  acro_locking;
 
     // Misc
     //
-    AP_Int8 auto_trim;
     AP_Int8 rudder_only;
     AP_Float mixing_gain;
     AP_Int16 mixing_offset;
@@ -442,7 +445,7 @@ public:
     AP_Int8 flap_2_percent;
     AP_Int8 flap_2_speed;
     AP_Int8 takeoff_flap_percent;  
-    AP_Int8 stick_mixing;
+    AP_Enum<StickMixing> stick_mixing;
     AP_Float takeoff_throttle_min_speed;
     AP_Float takeoff_throttle_min_accel;
     AP_Int8 takeoff_throttle_delay;
@@ -486,8 +489,10 @@ public:
     AP_Stats stats;
 #endif
 
+#if AP_ICENGINE_ENABLED
     // internal combustion engine control
     AP_ICEngine ice_control;
+#endif
 
     // RC input channels
     RC_Channels_Plane rc_channels;
@@ -512,21 +517,21 @@ public:
     // home reset altitude threshold
     AP_Int8 home_reset_threshold;
 
-#if GRIPPER_ENABLED == ENABLED
+#if AP_GRIPPER_ENABLED
     // Payload Gripper
     AP_Gripper gripper;
 #endif
 
     AP_Int32 flight_options;
 
-#ifdef ENABLE_SCRIPTING
+#if AP_SCRIPTING_ENABLED
     AP_Scripting scripting;
-#endif // ENABLE_SCRIPTING
+#endif // AP_SCRIPTING_ENABLED
 
     AP_Int8 takeoff_throttle_accel_count;
     AP_Int8 takeoff_timeout;
 
-#if LANDING_GEAR_ENABLED == ENABLED
+#if AP_LANDINGGEAR_ENABLED
     AP_LandingGear landing_gear;
 #endif
 
@@ -541,16 +546,14 @@ public:
     AP_Float fwd_thr_batt_voltage_min;
     AP_Int8  fwd_thr_batt_idx;
 
-#if HAL_EFI_ENABLED
-    // EFI Engine Monitor
-    AP_EFI efi;
-#endif
-
 #if OFFBOARD_GUIDED == ENABLED
     // guided yaw heading PID
     AC_PID guidedHeading{5000.0,  0.0,   0.0, 0 ,  10.0,   5.0,  5.0 ,  5.0  , 0.2};
 #endif
 
+#if AP_SCRIPTING_ENABLED
+    AP_Follow follow;
+#endif
 
     AP_Float        fs_ekf_thresh;
 
@@ -562,6 +565,11 @@ public:
     AP_Int8         man_expo_rudder;
 
     AP_Int32        oneshot_mask;
+    
+    AP_Int8         axis_bitmask; // axes to be autotuned
+
+    // just to make compilation easier when all things are compiled out...
+    uint8_t unused_integer;
 };
 
 extern const AP_Param::Info var_info[];

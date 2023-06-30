@@ -30,6 +30,10 @@
 
 #include <GCS_MAVLink/GCS.h>
 
+#if AP_GPS_DEBUG_LOGGING_ENABLED
+#include <AP_Filesystem/AP_Filesystem.h>
+#endif
+
 extern const AP_HAL::HAL& hal;
 
 AP_GPS_Backend::AP_GPS_Backend(AP_GPS &_gps, AP_GPS::GPS_State &_state, AP_HAL::UARTDriver *_port) :
@@ -106,6 +110,17 @@ void AP_GPS_Backend::make_gps_time(uint32_t bcd_date, uint32_t bcd_milliseconds)
 }
 
 /*
+  get the last time of week in ms
+ */
+uint32_t AP_GPS_Backend::get_last_itow_ms(void) const
+{
+    if (!_have_itow) {
+        return state.time_week_ms;
+    }
+    return (_pseudo_itow_delta_ms == 0)?(_last_itow_ms):((_pseudo_itow/1000ULL) + _pseudo_itow_delta_ms);
+}
+
+/*
   fill in 3D velocity for a GPS that doesn't give vertical velocity numbers
  */
 void AP_GPS_Backend::fill_3d_velocity(void)
@@ -116,6 +131,15 @@ void AP_GPS_Backend::fill_3d_velocity(void)
     state.velocity.y = state.ground_speed * sinf(gps_heading);
     state.velocity.z = 0;
     state.have_vertical_velocity = false;
+}
+
+/*
+  fill in 3D velocity for a GPS that doesn't give vertical velocity numbers
+ */
+void AP_GPS_Backend::velocity_to_speed_course(AP_GPS::GPS_State &s)
+{
+    s.ground_course = wrap_360(degrees(atan2f(s.velocity.y, s.velocity.x)));
+    s.ground_speed = s.velocity.xy().length();
 }
 
 void
@@ -175,7 +199,7 @@ bool AP_GPS_Backend::should_log() const
 
 void AP_GPS_Backend::send_mavlink_gps_rtk(mavlink_channel_t chan)
 {
-#ifndef HAL_NO_GCS
+#if HAL_GCS_ENABLED
     const uint8_t instance = state.instance;
     // send status
     switch (instance) {
@@ -223,15 +247,17 @@ void AP_GPS_Backend::send_mavlink_gps_rtk(mavlink_channel_t chan)
 void AP_GPS_Backend::set_uart_timestamp(uint16_t nbytes)
 {
     if (port) {
-        state.uart_timestamp_ms = port->receive_time_constraint_us(nbytes) / 1000U;
+        state.last_corrected_gps_time_us = port->receive_time_constraint_us(nbytes);
+        state.corrected_timestamp_updated = true;
     }
 }
 
 
 void AP_GPS_Backend::check_new_itow(uint32_t itow, uint32_t msg_length)
 {
-    if (itow != _last_itow) {
-        _last_itow = itow;
+    if (itow != _last_itow_ms) {
+        _last_itow_ms = itow;
+        _have_itow = true;
 
         /*
           we need to calculate a pseudo-itow, which copes with the
@@ -245,7 +271,11 @@ void AP_GPS_Backend::check_new_itow(uint32_t itow, uint32_t msg_length)
 
         // get the time the packet arrived on the UART
         uint64_t uart_us;
-        if (port) {
+        if (_last_pps_time_us != 0 && (state.status >= AP_GPS::GPS_OK_FIX_2D)) {
+            // pps is only reliable when we have some sort of GPS fix
+            uart_us = _last_pps_time_us;
+            _last_pps_time_us = 0;
+        } else if (port) {
             uart_us = port->receive_time_constraint_us(msg_length);
         } else {
             uart_us = AP_HAL::micros64();
@@ -269,6 +299,9 @@ void AP_GPS_Backend::check_new_itow(uint32_t itow, uint32_t msg_length)
         } else {
             _rate_counter = 0;
             _last_rate_ms = dt_ms;
+            if (_rate_ms != 0) {
+                set_pps_desired_freq(1000/_rate_ms);
+            }
         }
         if (_rate_ms == 0) {
             // only allow 5Hz to 20Hz in user config
@@ -283,20 +316,30 @@ void AP_GPS_Backend::check_new_itow(uint32_t itow, uint32_t msg_length)
 
         // use msg arrival time, and correct for jitter
         uint64_t local_us = jitter_correction.correct_offboard_timestamp_usec(_pseudo_itow, uart_us);
-        state.uart_timestamp_ms = local_us / 1000U;
+        state.last_corrected_gps_time_us = local_us;
+        state.corrected_timestamp_updated = true;
 
+#ifndef HAL_BUILD_AP_PERIPH
         // look for lagged data from the GPS. This is meant to detect
         // the case that the GPS is trying to push more data into the
         // UART than can fit (eg. with GPS_RAW_DATA at 115200).
+        // This is disabled on AP_Periph as it is better to catch missed packet rate at the flight
+        // controller level
         float expected_lag;
         if (gps.get_lag(state.instance, expected_lag)) {
-            float lag_s = (now - state.uart_timestamp_ms) * 0.001;
+            float lag_s = (now - (state.last_corrected_gps_time_us/1000U)) * 0.001;
             if (lag_s > expected_lag+0.05) {
                 // more than 50ms over expected lag, increment lag counter
                 state.lagged_sample_count++;
             } else {
                 state.lagged_sample_count = 0;
             }
+        }
+#endif // HAL_BUILD_AP_PERIPH
+
+        if (state.status >= AP_GPS::GPS_OK_FIX_2D) {
+            // we must have a decent fix to calculate difference between itow and pseudo-itow
+            _pseudo_itow_delta_ms = itow - (_pseudo_itow/1000ULL);
         }
     }
 }
@@ -377,6 +420,8 @@ bool AP_GPS_Backend::calculate_moving_base_yaw(AP_GPS::GPS_State &interim_state,
 
             if (fabsf(alt_error) > permitted_error_length_pct * min_dist) {
                 // the vertical component is out of range, reject it
+                Debug("bad alt_err %.1f > %.1f\n",
+                      alt_error, permitted_error_length_pct * min_dist);
                 goto bad_yaw;
             }
         }
@@ -389,12 +434,109 @@ bool AP_GPS_Backend::calculate_moving_base_yaw(AP_GPS::GPS_State &interim_state,
             interim_state.have_gps_yaw = true;
             interim_state.gps_yaw_time_ms = AP_HAL::millis();
         }
+        goto good_yaw;
     }
-
-    return true;
 
 bad_yaw:
     interim_state.have_gps_yaw = false;
-    return false;
+
+good_yaw:
+
+#if HAL_LOGGING_ENABLED
+    // this log message helps diagnose GPS yaw issues
+    // @LoggerMessage: GPYW
+    // @Description: GPS Yaw
+    // @Field: TimeUS: Time since system startup
+    // @Field: Id: instance
+    // @Field: RHD: reported heading,deg
+    // @Field: RDist: antenna separation,m
+    // @Field: RDown: vertical antenna separation,m
+    // @Field: OK: 1 if have yaw
+    AP::logger().WriteStreaming("GPYW", "TimeUS,Id,RHD,RDist,RDown,OK",
+                                "s#dmm-",
+                                "F-----",
+                                "QBfffB",
+                                AP_HAL::micros64(),
+                                state.instance,
+                                reported_heading_deg,
+                                reported_distance,
+                                reported_D,
+                                interim_state.have_gps_yaw);
+#endif
+
+    return interim_state.have_gps_yaw;
 }
 #endif // GPS_MOVING_BASELINE
+
+#if AP_GPS_DEBUG_LOGGING_ENABLED
+
+/*
+  log some data for debugging
+
+  the logging format matches that used by SITL with SIM_GPS_TYPE=7,
+  allowing for development of GPS drivers based on logged data
+*/
+void AP_GPS_Backend::log_data(const uint8_t *data, uint16_t length)
+{
+    if (state.instance < 2) {
+        logging[state.instance].buf.write(data, length);
+    }
+    if (!log_thread_created) {
+        log_thread_created = true;
+        hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_GPS_Backend::logging_start, void), "gps_log", 4096, AP_HAL::Scheduler::PRIORITY_IO, 0);
+    }
+}
+
+AP_GPS_Backend::loginfo AP_GPS_Backend::logging[2];
+bool AP_GPS_Backend::log_thread_created;
+
+// logging loop, needs to be static to allow for re-alloc of GPS backends
+void AP_GPS_Backend::logging_loop(void)
+{
+    while (true) {
+        hal.scheduler->delay(10);
+        static uint16_t lognum;
+        for (uint8_t instance=0; instance<2; instance++) {
+            if (logging[instance].fd == -1 && logging[instance].buf.available()) {
+                char fname[] = "gpsN_XXX.log";
+                fname[3] = '1' + instance;
+                if (lognum == 0) {
+                    for (lognum=1; lognum<1000; lognum++) {
+                        struct stat st;
+                        hal.util->snprintf(&fname[5], 8, "%03u.log", lognum);
+                        if (AP::FS().stat(fname, &st) != 0) {
+                            break;
+                        }
+                    }
+                }
+                hal.util->snprintf(&fname[5], 8, "%03u.log", lognum);
+                logging[instance].fd = AP::FS().open(fname, O_WRONLY|O_CREAT|O_APPEND);
+            }
+            if (logging[instance].fd != -1) {
+                uint32_t n = 0;
+                const uint8_t *p;
+                while ((p = logging[instance].buf.readptr(n)) != nullptr && n != 0) {
+                    struct {
+                        uint32_t magic = 0x7fe53b04U;
+                        uint32_t time_ms;
+                        uint32_t n;
+                    } header;
+                    header.n = n;
+                    header.time_ms = AP_HAL::millis();
+                    // short writes are unlikely and are ignored (only FS full errors)
+                    AP::FS().write(logging[instance].fd, (const uint8_t *)&header, sizeof(header));
+                    AP::FS().write(logging[instance].fd, p, n);
+                    logging[instance].buf.advance(n);
+                    AP::FS().fsync(logging[instance].fd);
+                }
+            }
+        }
+    }
+}
+
+// logging thread start, needs to be non-static for thread_create
+void AP_GPS_Backend::logging_start(void)
+{
+    logging_loop();
+}
+#endif // AP_GPS_DEBUG_LOGGING_ENABLED

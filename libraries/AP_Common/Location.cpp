@@ -140,7 +140,7 @@ bool Location::get_alt_cm(AltFrame desired_frame, int32_t &ret_alt_cm) const
         if (terrain == nullptr) {
             return false;
         }
-        if (!terrain->height_amsl(*this, alt_terr_cm, true)) {
+        if (!terrain->height_amsl(*this, alt_terr_cm)) {
             return false;
         }
         // convert terrain alt to cm
@@ -219,12 +219,9 @@ bool Location::get_vector_xy_from_origin_NE(Vector2f &vec_ne) const
 bool Location::get_vector_from_origin_NEU(Vector3f &vec_neu) const
 {
     // convert lat, lon
-    Vector2f vec_ne;
-    if (!get_vector_xy_from_origin_NE(vec_ne)) {
+    if (!get_vector_xy_from_origin_NE(vec_neu.xy())) {
         return false;
     }
-    vec_neu.x = vec_ne.x;
-    vec_neu.y = vec_ne.y;
 
     // convert altitude
     int32_t alt_above_origin_cm = 0;
@@ -236,14 +233,24 @@ bool Location::get_vector_from_origin_NEU(Vector3f &vec_neu) const
     return true;
 }
 
-// return distance in meters between two locations
-ftype Location::get_distance(const struct Location &loc2) const
+// return horizontal distance in meters between two locations
+ftype Location::get_distance(const Location &loc2) const
 {
     ftype dlat = (ftype)(loc2.lat - lat);
     ftype dlng = ((ftype)diff_longitude(loc2.lng,lng)) * longitude_scale((lat+loc2.lat)/2);
     return norm(dlat, dlng) * LOCATION_SCALING_FACTOR;
 }
 
+// return the altitude difference in meters taking into account alt frame.
+bool Location::get_alt_distance(const Location &loc2, ftype &distance) const
+{
+    int32_t alt1, alt2;
+    if (!get_alt_cm(AltFrame::ABSOLUTE, alt1) || !loc2.get_alt_cm(AltFrame::ABSOLUTE, alt2)) {
+        return false;
+    }
+    distance = (alt1 - alt2) * 0.01;
+    return true;
+}
 
 /*
   return the distance in meters in North/East plane as a N/E vector
@@ -255,7 +262,7 @@ Vector2f Location::get_distance_NE(const Location &loc2) const
                     diff_longitude(loc2.lng,lng) * LOCATION_SCALING_FACTOR * longitude_scale((loc2.lat+lat)/2));
 }
 
-// return the distance in meters in North/East/Down plane as a N/E/D vector to loc2
+// return the distance in meters in North/East/Down plane as a N/E/D vector to loc2, NOT CONSIDERING ALT FRAME!
 Vector3f Location::get_distance_NED(const Location &loc2) const
 {
     return Vector3f((loc2.lat - lat) * LOCATION_SCALING_FACTOR,
@@ -345,9 +352,11 @@ bool Location::sanitize(const Location &defaultLoc)
 
     // convert relative alt=0 to mean current alt
     if (alt == 0 && relative_alt) {
-        relative_alt = false;
-        alt = defaultLoc.alt;
-        has_changed = true;
+        int32_t defaultLoc_alt;
+        if (defaultLoc.get_alt_cm(get_alt_frame(), defaultLoc_alt)) {
+            alt = defaultLoc_alt;
+            has_changed = true;
+        }
     }
 
     // limit lat/lng to appropriate ranges
@@ -364,14 +373,14 @@ bool Location::sanitize(const Location &defaultLoc)
 assert_storage_size<Location, 16> _assert_storage_size_Location;
 
 
-// return bearing in centi-degrees from location to loc2
-int32_t Location::get_bearing_to(const struct Location &loc2) const
+// return bearing in radians from location to loc2, return is 0 to 2*Pi
+ftype Location::get_bearing(const Location &loc2) const
 {
     const int32_t off_x = diff_longitude(loc2.lng,lng);
     const int32_t off_y = (loc2.lat - lat) / loc2.longitude_scale((lat+loc2.lat)/2);
-    int32_t bearing = 9000 + atan2F(-off_y, off_x) * DEGX100;
+    ftype bearing = (M_PI*0.5) + atan2F(-off_y, off_x);
     if (bearing < 0) {
-        bearing += 36000;
+        bearing += 2*M_PI;
     }
     return bearing;
 }

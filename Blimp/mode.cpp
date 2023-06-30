@@ -5,6 +5,8 @@
  * flight modes is in control_acro.cpp, control_stabilize.cpp, etc
  */
 
+#include <AP_Vehicle/AP_MultiCopter.h>
+
 /*
   constructor for Mode object
  */
@@ -175,11 +177,6 @@ bool Mode::is_disarmed_or_landed() const
 bool Mode::set_mode(Mode::Number mode, ModeReason reason)
 {
     return blimp.set_mode(mode, reason);
-}
-
-void Mode::set_land_complete(bool b)
-{
-    return blimp.set_land_complete(b);
 }
 
 GCS_Blimp &Mode::gcs()

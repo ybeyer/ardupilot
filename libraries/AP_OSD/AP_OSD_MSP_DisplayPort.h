@@ -15,9 +15,6 @@ public:
     //draw given text to framebuffer
     void write(uint8_t x, uint8_t y, const char* text) override;
 
-    //draw formatted text to framebuffer
-    void write(uint8_t x, uint8_t y, bool blink, const char *fmt, ...) override FMT_PRINTF(5, 6);
-
     //flush framebuffer to screen
     void flush() override;
 
@@ -27,6 +24,15 @@ public:
     // copy the backend specific symbol set to the OSD lookup table
     void init_symbol_set(uint8_t *lookup_table, const uint8_t size) override;
 
+    // called by the OSD thread once
+    // used to initialize the uart in the correct thread
+    void osd_thread_run_once() override;
+
+    // return a correction factor used to display angles correctly
+    float get_aspect_ratio_correction() const override;
+
+protected:
+    uint8_t format_string_for_osd(char* dst, uint8_t size, bool decimal_packed, const char *fmt, va_list ap) override;
 
 private:
     void setup_defaults(void);

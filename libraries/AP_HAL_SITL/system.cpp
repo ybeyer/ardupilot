@@ -25,7 +25,11 @@ void init()
     gettimeofday(&state.start_time, nullptr);
 }
 
+#if defined(__CYGWIN__) || defined(__CYGWIN64__) || defined(CYGWIN_BUILD)
 void panic(const char *errormsg, ...)
+#else
+void WEAK panic(const char *errormsg, ...)
+#endif
 {
     va_list ap;
 
@@ -48,7 +52,7 @@ void panic(const char *errormsg, ...)
 }
 
 // partly flogged from: https://github.com/tridge/junkcode/blob/master/segv_handler/segv_handler.c
-void run_command_on_ownpid(const char *commandname)
+static void run_command_on_ownpid(const char *commandname)
 {
     // find dumpstack command:
     const char *command_filepath = commandname; // if we can't find it trust in PATH

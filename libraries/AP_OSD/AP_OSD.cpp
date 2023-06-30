@@ -35,16 +35,18 @@
 #include <utility>
 #include <AP_Notify/AP_Notify.h>
 #include <AP_Terrain/AP_Terrain.h>
+#include <AP_RSSI/AP_RSSI.h>
+#include <GCS_MAVLink/GCS.h>
 
 // macro for easy use of var_info2
-#define AP_SUBGROUPINFO2(element, name, idx, thisclazz, elclazz) { AP_PARAM_GROUP, idx, name, AP_VAROFFSET(thisclazz, element), { group_info : elclazz::var_info2 }, AP_PARAM_FLAG_NESTED_OFFSET }
+#define AP_SUBGROUPINFO2(element, name, idx, thisclazz, elclazz) { name, AP_VAROFFSET(thisclazz, element), { group_info : elclazz::var_info2 }, AP_PARAM_FLAG_NESTED_OFFSET, idx, AP_PARAM_GROUP }
 
 const AP_Param::GroupInfo AP_OSD::var_info[] = {
 
     // @Param: _TYPE
     // @DisplayName: OSD type
     // @Description: OSD type. TXONLY makes the OSD parameter selection available to other modules even if there is no native OSD support on the board, for instance CRSF.
-    // @Values: 0:None,1:MAX7456,2:SITL,3:MSP,4:TXONLY
+    // @Values: 0:None,1:MAX7456,2:SITL,3:MSP,4:TXONLY,5:MSP_DISPLAYPORT
     // @User: Standard
     // @RebootRequired: True
     AP_GROUPINFO_FLAGS("_TYPE", 1, AP_OSD, osd_type, 0, AP_PARAM_FLAG_ENABLE),
@@ -204,6 +206,13 @@ const AP_Param::GroupInfo AP_OSD::var_info[] = {
     // @Range: 0 100
     // @User: Standard
     AP_GROUPINFO("_W_RESTVOLT", 26, AP_OSD, warn_restvolt, 10.0f),
+       
+    // @Param: _W_ACRVOLT
+    // @DisplayName: Avg Cell Resting Volt warn level
+    // @Description: Set level at which ACRVOLT item will flash
+    // @Range: 0 100
+    // @User: Standard
+    AP_GROUPINFO("_W_ACRVOLT", 31, AP_OSD, warn_avgcellrestvolt, 3.6f),
 
 #endif //osd enabled
 #if OSD_PARAM_ENABLED
@@ -216,12 +225,13 @@ const AP_Param::GroupInfo AP_OSD::var_info[] = {
     AP_SUBGROUPINFO(param_screen[1], "6_", 22, AP_OSD, AP_OSD_ParamScreen),
 #endif
 
+#if OSD_ENABLED
     // additional tables to go beyond 63 limit
     AP_SUBGROUPINFO2(screen[0], "1_", 27, AP_OSD, AP_OSD_Screen),
     AP_SUBGROUPINFO2(screen[1], "2_", 28, AP_OSD, AP_OSD_Screen),
     AP_SUBGROUPINFO2(screen[2], "3_", 29, AP_OSD, AP_OSD_Screen),
     AP_SUBGROUPINFO2(screen[3], "4_", 30, AP_OSD, AP_OSD_Screen),
-
+#endif
     AP_GROUPEND
 };
 
@@ -238,7 +248,7 @@ AP_OSD::AP_OSD()
     AP_Param::setup_object_defaults(this, var_info);
 #if OSD_ENABLED
     // default first screen enabled
-    screen[0].enabled = 1;
+    screen[0].enabled.set(1);
     previous_pwm_screen = -1;
 #endif
 #ifdef WITH_SITL_OSD
@@ -253,7 +263,7 @@ AP_OSD::AP_OSD()
 
 void AP_OSD::init()
 {
-    switch ((enum osd_types)osd_type.get()) {
+    switch (osd_types(osd_type.get())) {
     case OSD_NONE:
     case OSD_TXONLY:
     default:
@@ -265,11 +275,13 @@ void AP_OSD::init()
         if (!spi_dev) {
             break;
         }
+#if HAL_WITH_OSD_BITMAP
         backend = AP_OSD_MAX7456::probe(*this, std::move(spi_dev));
+#endif
         if (backend == nullptr) {
             break;
         }
-        hal.console->printf("Started MAX7456 OSD\n");
+        DEV_PRINTF("Started MAX7456 OSD\n");
 #endif
         break;
     }
@@ -280,7 +292,7 @@ void AP_OSD::init()
         if (backend == nullptr) {
             break;
         }
-        hal.console->printf("Started SITL OSD\n");
+        DEV_PRINTF("Started SITL OSD\n");
         break;
     }
 #endif
@@ -289,7 +301,7 @@ void AP_OSD::init()
         if (backend == nullptr) {
             break;
         }
-        hal.console->printf("Started MSP OSD\n");
+        DEV_PRINTF("Started MSP OSD\n");
         break;
     }
 #if HAL_WITH_MSP_DISPLAYPORT
@@ -298,16 +310,16 @@ void AP_OSD::init()
         if (backend == nullptr) {
             break;
         }
-        hal.console->printf("Started MSP DisplayPort OSD\n");
+        DEV_PRINTF("Started MSP DisplayPort OSD\n");
         break;
     }
 #endif
     }
 #if OSD_ENABLED
-    if (backend != nullptr && (enum osd_types)osd_type.get() != OSD_MSP) {
+    if (backend != nullptr) {
         // populate the fonts lookup table
         backend->init_symbol_set(AP_OSD_AbstractScreen::symbols_lookup_table, AP_OSD_NUM_SYMBOLS);
-        // create thread as higher priority than IO for all backends but MSP which has its own
+        // create thread as higher priority than IO for all backends
         hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_OSD::osd_thread, void), "OSD", 1280, AP_HAL::Scheduler::PRIORITY_IO, 1);
     }
 #endif
@@ -316,6 +328,9 @@ void AP_OSD::init()
 #if OSD_ENABLED
 void AP_OSD::osd_thread()
 {
+    // initialize thread specific code once
+    backend->osd_thread_run_once();
+
     while (true) {
         hal.scheduler->delay(100);
         update_osd();
@@ -327,62 +342,101 @@ void AP_OSD::update_osd()
     backend->clear();
 
     if (!_disable) {
-        stats();
+        update_stats();
         update_current_screen();
 
         get_screen(current_screen).set_backend(backend);
-        get_screen(current_screen).draw();
+        // skip drawing for MSP OSD backends to save some resources
+        if (osd_types(osd_type.get()) != OSD_MSP) {
+            get_screen(current_screen).draw();
+        }
     }
 
     backend->flush();
 }
 
 //update maximums and totals
-void AP_OSD::stats()
+void AP_OSD::update_stats()
 {
+    // allow other threads to consume stats info
+    WITH_SEMAPHORE(_sem);
+
     uint32_t now = AP_HAL::millis();
     if (!AP_Notify::flags.armed) {
-        last_update_ms = now;
+        _stats.last_update_ms = now;
         return;
     }
 
     // flight distance
-    uint32_t delta_ms = now - last_update_ms;
-    last_update_ms = now;
+    uint32_t delta_ms = now - _stats.last_update_ms;
+    _stats.last_update_ms = now;
 
-    AP_AHRS &ahrs = AP::ahrs();
-    Vector2f v = ahrs.groundspeed_vector();
+    Vector2f v;
+    Location loc {};
+    Location home_loc;
+    bool home_is_set;
+    bool have_airspeed_estimate;
+    float alt;
+    float aspd_mps = 0.0f;
+    {
+        // minimize semaphore scope
+        AP_AHRS &ahrs = AP::ahrs();
+        WITH_SEMAPHORE(ahrs.get_semaphore());
+        v = ahrs.groundspeed_vector();
+        home_is_set = ahrs.get_location(loc) && ahrs.home_is_set();
+        if (home_is_set) {
+            home_loc = ahrs.get_home();
+        }
+        ahrs.get_relative_position_D_home(alt);
+        have_airspeed_estimate = ahrs.airspeed_estimate(aspd_mps);
+    }
     float speed = v.length();
     if (speed < 0.178) {
         speed = 0.0;
     }
     float dist_m = (speed * delta_ms)*0.001;
-    last_distance_m += dist_m;
+    _stats.last_distance_m += dist_m;
 
     // maximum ground speed
-    max_speed_mps = fmaxf(max_speed_mps,speed);
+    _stats.max_speed_mps = fmaxf(_stats.max_speed_mps,speed);
 
     // maximum distance
-    Location loc;
-    if (ahrs.get_position(loc) && ahrs.home_is_set()) {
-        const Location &home_loc = ahrs.get_home();
+    if (home_is_set) {
         float distance = home_loc.get_distance(loc);
-        max_dist_m = fmaxf(max_dist_m, distance);
+        _stats.max_dist_m = fmaxf(_stats.max_dist_m, distance);
     }
 
     // maximum altitude
-    float alt;
-    AP::ahrs().get_relative_position_D_home(alt);
     alt = -alt;
-    max_alt_m = fmaxf(max_alt_m, alt);
+    _stats.max_alt_m = fmaxf(_stats.max_alt_m, alt);
     // maximum current
     AP_BattMonitor &battery = AP::battery();
     float amps;
     if (battery.current_amps(amps)) {
-        max_current_a = fmaxf(max_current_a, amps);
+        _stats.max_current_a = fmaxf(_stats.max_current_a, amps);
     }
+    // minimum voltage
+    float voltage = battery.voltage();
+    if (voltage > 0) {
+        _stats.min_voltage_v = fminf(_stats.min_voltage_v, voltage);
+    }
+    // minimum rssi
+    AP_RSSI *ap_rssi = AP_RSSI::get_singleton();
+    if (ap_rssi) {
+        _stats.min_rssi = fminf(_stats.min_rssi, ap_rssi->read_receiver_rssi());
+    }
+    // max airspeed either true or synthetic
+    if (have_airspeed_estimate) {
+        _stats.max_airspeed_mps = fmaxf(_stats.max_airspeed_mps, aspd_mps);
+    }
+#if HAL_WITH_ESC_TELEM
+    // max esc temp
+    AP_ESC_Telem& telem = AP::esc_telem();
+    int16_t highest_temperature = 0;
+    telem.get_highest_motor_temperature(highest_temperature);
+    _stats.max_esc_temp = MAX(_stats.max_esc_temp, highest_temperature);
+#endif
 }
-
 
 //Thanks to minimosd authors for the multiple osd screen idea
 void AP_OSD::update_current_screen()
@@ -494,6 +548,7 @@ void AP_OSD::set_nav_info(NavInfo &navinfo)
 #endif // OSD_ENABLED
 
 // handle OSD parameter configuration
+#if HAL_GCS_ENABLED
 void AP_OSD::handle_msg(const mavlink_message_t &msg, const GCS_MAVLINK& link)
 {
     bool found = false;
@@ -538,6 +593,7 @@ void AP_OSD::handle_msg(const mavlink_message_t &msg, const GCS_MAVLINK& link)
         break;
     }
 }
+#endif
 
 AP_OSD *AP::osd() {
     return AP_OSD::get_singleton();

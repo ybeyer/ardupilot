@@ -19,7 +19,10 @@
 #include <AP_Proximity/AP_Proximity.h>
 #include <AP_Beacon/AP_Beacon.h>
 #include <AP_Logger/AP_Logger.h>
+#include <AP_Vehicle/AP_Vehicle_Type.h>
 #include <stdio.h>
+
+#if !APM_BUILD_TYPE(APM_BUILD_ArduPlane)
 
 #if APM_BUILD_TYPE(APM_BUILD_Rover)
  # define AP_AVOID_BEHAVE_DEFAULT AC_Avoid::BehaviourType::BEHAVIOR_STOP
@@ -27,7 +30,7 @@
  # define AP_AVOID_BEHAVE_DEFAULT AC_Avoid::BehaviourType::BEHAVIOR_SLIDE
 #endif
 
-#if APM_BUILD_TYPE(APM_BUILD_ArduCopter)
+#if APM_BUILD_COPTER_OR_HELI
     # define AP_AVOID_ENABLE_Z          1
 #endif
 
@@ -65,12 +68,12 @@ const AP_Param::GroupInfo AC_Avoid::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("MARGIN", 4, AC_Avoid, _margin, 2.0f),
 
-    // @Param{Copter}: BEHAVE
+    // @Param{Copter, Rover}: BEHAVE
     // @DisplayName: Avoidance behaviour
     // @Description: Avoidance behaviour (slide or stop)
     // @Values: 0:Slide,1:Stop
     // @User: Standard
-    AP_GROUPINFO_FRAME("BEHAVE", 5, AC_Avoid, _behavior, AP_AVOID_BEHAVE_DEFAULT, AP_PARAM_FRAME_COPTER | AP_PARAM_FRAME_HELI | AP_PARAM_FRAME_TRICOPTER),
+    AP_GROUPINFO_FRAME("BEHAVE", 5, AC_Avoid, _behavior, AP_AVOID_BEHAVE_DEFAULT, AP_PARAM_FRAME_COPTER | AP_PARAM_FRAME_HELI | AP_PARAM_FRAME_TRICOPTER | AP_PARAM_FRAME_ROVER),
 
     // @Param: BACKUP_SPD
     // @DisplayName: Avoidance maximum backup speed
@@ -130,6 +133,7 @@ void AC_Avoid::adjust_velocity_fence(float kP, float accel_cmss, Vector3f &desir
     // maximum component of desired  backup velocity in each quadrant 
     Vector2f quad_1_back_vel, quad_2_back_vel, quad_3_back_vel, quad_4_back_vel;
 
+#if AP_FENCE_ENABLED
     if ((_enabled & AC_AVOID_STOP_AT_FENCE) > 0) {
         // Store velocity needed to back away from fence
         Vector2f backup_vel_fence;
@@ -150,13 +154,16 @@ void AC_Avoid::adjust_velocity_fence(float kP, float accel_cmss, Vector3f &desir
         adjust_velocity_exclusion_circles(kP, accel_cmss_limited, desired_velocity_xy_cms, backup_vel_fence, dt);
         find_max_quadrant_velocity(backup_vel_fence, quad_1_back_vel, quad_2_back_vel, quad_3_back_vel, quad_4_back_vel);
     }
+#endif // AP_FENCE_ENABLED
 
+#if AP_BEACON_ENABLED
     if ((_enabled & AC_AVOID_STOP_AT_BEACON_FENCE) > 0) {
         // Store velocity needed to back away from beacon fence
         Vector2f backup_vel_beacon;
         adjust_velocity_beacon_fence(kP, accel_cmss_limited, desired_velocity_xy_cms, backup_vel_beacon, dt);
         find_max_quadrant_velocity(backup_vel_beacon, quad_1_back_vel, quad_2_back_vel, quad_3_back_vel, quad_4_back_vel);
     }
+#endif // AP_BEACON_ENABLED
 
     // check for vertical fence
     float desired_velocity_z_cms = desired_vel_cms.z;
@@ -361,6 +368,7 @@ void AC_Avoid::adjust_velocity_z(float kP, float accel_cmss, float& climb_rate_c
 
     const AP_AHRS &_ahrs = AP::ahrs();
 
+#if AP_FENCE_ENABLED
     // calculate distance below fence
     AC_Fence *fence = AP::fence();
     if ((_enabled & AC_AVOID_STOP_AT_FENCE) > 0 && fence && (fence->get_enabled_fences() & AC_FENCE_TYPE_ALT_MAX) > 0) {
@@ -371,6 +379,7 @@ void AC_Avoid::adjust_velocity_z(float kP, float accel_cmss, float& climb_rate_c
         alt_diff = fence->get_safe_alt_max() + veh_alt;
         limit_alt = true;
     }
+#endif
 
     // calculate distance to (e.g.) optical flow altitude limit
     // AHRS values are always in metres
@@ -654,6 +663,8 @@ float AC_Avoid::get_max_speed(float kP, float accel_cmss, float distance_cm, flo
         return sqrt_controller(distance_cm, kP, accel_cmss, dt);
     }
 }
+
+#if AP_FENCE_ENABLED
 
 /*
  * Adjusts the desired velocity for the circular fence.
@@ -1078,7 +1089,9 @@ void AC_Avoid::adjust_velocity_exclusion_circles(float kP, float accel_cmss, Vec
     // desired backup velocity is sum of maximum velocity component in each quadrant 
     backup_vel = quad_1_back_vel + quad_2_back_vel + quad_3_back_vel + quad_4_back_vel;
 }
+#endif // AP_FENCE_ENABLED
 
+#if AP_BEACON_ENABLED
 /*
  * Adjusts the desired velocity for the beacon fence.
  */
@@ -1100,11 +1113,14 @@ void AC_Avoid::adjust_velocity_beacon_fence(float kP, float accel_cmss, Vector2f
 
     // adjust velocity using beacon
     float margin = 0;
+#if AP_FENCE_ENABLED
     if (AP::fence()) {
         margin = AP::fence()->get_margin();
     }
+#endif
     adjust_velocity_polygon(kP, accel_cmss, desired_vel_cms, backup_vel, boundary, num_points, margin, dt, true);
 }
+#endif  // AP_BEACON_ENABLED
 
 /*
  * Adjusts the desired velocity based on output from the proximity sensor
@@ -1174,7 +1190,7 @@ void AC_Avoid::adjust_velocity_proximity(float kP, float accel_cmss, Vector3f &d
             if (breach_dist > deadzone) {
                 // this vector will help us decide how much we have to back away horizontally and vertically
                 const Vector3f margin_vector = vector_to_obstacle.normalized() * breach_dist;
-                const float xy_back_dist = norm(margin_vector.x, margin_vector.y);
+                const float xy_back_dist = margin_vector.xy().length();
                 const float z_back_dist = margin_vector.z;
                 calc_backup_velocity_3D(kP, accel_cmss, quad_1_back_vel, quad_2_back_vel, quad_3_back_vel, quad_4_back_vel, xy_back_dist, vector_to_obstacle, kP_z, accel_cmss_z, z_back_dist, min_back_vel_z, max_back_vel_z, dt);
             }
@@ -1466,3 +1482,5 @@ AC_Avoid *ac_avoid()
 }
 
 }
+
+#endif // !APM_BUILD_Arduplane

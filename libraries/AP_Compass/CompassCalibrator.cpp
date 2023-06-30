@@ -64,6 +64,7 @@
 #include <AP_AHRS/AP_AHRS.h>
 #include <AP_GPS/AP_GPS.h>
 #include <GCS_MAVLink/GCS.h>
+#include <AP_InternalError/AP_InternalError.h>
 
 #define FIELD_RADIUS_MIN 150
 #define FIELD_RADIUS_MAX 950
@@ -323,6 +324,7 @@ void CompassCalibrator::update_cal_report()
     cal_report.orientation_confidence = _orientation_confidence;
     cal_report.original_orientation = _orig_orientation;
     cal_report.orientation = _orientation_solution;
+    cal_report.check_orientation = _check_orientation;
 }
 
 // running method for use in thread
@@ -1066,7 +1068,7 @@ bool CompassCalibrator::fix_radius(void)
         _params.scale_factor = 0;
         return true;
     }
-    const struct Location &loc = AP::gps().location();
+    const Location &loc = AP::gps().location();
     float intensity;
     float declination;
     float inclination;

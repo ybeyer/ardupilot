@@ -17,8 +17,6 @@
  */
 #pragma once
 
-#include <AP_HAL/AP_HAL.h>
-
 #include "NotifyDevice.h"
 
 class Buzzer: public NotifyDevice
@@ -59,7 +57,7 @@ private:
     } _flags;
 
     uint32_t _pattern;           // current pattern
-    uint8_t _pin;
+    int8_t _pin;
     uint32_t _pattern_start_time;
 
     // enforce minumum 100ms interval between patterns:

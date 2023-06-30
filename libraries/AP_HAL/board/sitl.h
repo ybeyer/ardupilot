@@ -5,12 +5,8 @@
 #define HAL_MEM_CLASS HAL_MEM_CLASS_1000
 #define HAL_OS_POSIX_IO 1
 #define HAL_OS_SOCKETS 1
-#define HAL_DSHOT_ALARM 0
-#define HAL_WITH_ESC_TELEM 1
 
 #define AP_FLASHSTORAGE_TYPE 3
-
-#if defined(STORAGE_USE_FLASH) && STORAGE_USE_FLASH==1
 
 #if AP_FLASHSTORAGE_TYPE == 1
 // emulate F1/F3 flash
@@ -33,7 +29,6 @@
 #define HAL_FLASH_MIN_WRITE_SIZE 32
 #define HAL_FLASH_ALLOW_UPDATE 0
 #endif
-#endif
 
 #ifndef HAL_STORAGE_SIZE
 #define HAL_STORAGE_SIZE            32768
@@ -45,7 +40,6 @@
 #define HAL_PARAM_DEFAULTS_PATH nullptr
 #define HAL_INS_DEFAULT HAL_INS_NONE
 #define HAL_BARO_DEFAULT HAL_BARO_NONE
-#define HAL_COMPASS_DEFAULT HAL_COMPASS_NONE
 #define HAL_GPIO_A_LED_PIN        61
 #define HAL_GPIO_B_LED_PIN        48
 #define HAL_GPIO_C_LED_PIN        117

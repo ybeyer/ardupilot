@@ -25,16 +25,15 @@
 #define RX_BOUNCE_BUFSIZE 64U
 #define TX_BOUNCE_BUFSIZE 64U
 
-// enough for uartA to uartI, plus IOMCU
-#define UART_MAX_DRIVERS 10
+// enough for uartA to uartJ, plus IOMCU
+#define UART_MAX_DRIVERS 11
 
 class ChibiOS::UARTDriver : public AP_HAL::UARTDriver {
 public:
     UARTDriver(uint8_t serial_num);
 
     /* Do not allow copies */
-    UARTDriver(const UARTDriver &other) = delete;
-    UARTDriver &operator=(const UARTDriver&) = delete;
+    CLASS_NO_COPY(UARTDriver);
 
     void begin(uint32_t b) override;
     void begin_locked(uint32_t b, uint32_t write_key) override;
@@ -46,6 +45,9 @@ public:
     bool tx_pending() override;
     uint32_t get_usb_baud() const override;
 
+    // disable TX/RX pins for unusued uart
+    void disable_rxtx(void) const override;
+    
     uint32_t available() override;
     uint32_t available_locked(uint32_t key) override;
 
@@ -66,7 +68,7 @@ public:
 
     // control optional features
     bool set_options(uint16_t options) override;
-    uint8_t get_options(void) const override;
+    uint16_t get_options(void) const override;
 
     // write to a locked port. If port is locked and key is not correct then 0 is returned
     // and write is discarded
@@ -131,15 +133,19 @@ public:
      */
     uint64_t receive_time_constraint_us(uint16_t nbytes) override;
 
-    uint32_t bw_in_kilobytes_per_second() const override {
+    uint32_t bw_in_bytes_per_second() const override {
         if (sdef.is_usb) {
-            return 200;
+            return 200*1024;
         }
-        return _baudrate/(9*1024);
+        return _baudrate/10;
     }
 
+    uint32_t get_baud_rate() const override { return _baudrate; }
+
+#if HAL_UART_STATS_ENABLED
     // request information on uart I/O for one uart
     void uart_info(ExpandingString &str) override;
+#endif
 
     /*
       return true if this UART has DMA enabled on both RX and TX
@@ -152,10 +158,12 @@ private:
     bool tx_dma_enabled;
 
     /*
-      copy of rx_line and tx_line with alternative configs resolved
+      copy of rx_line, tx_line, rts_line and cts_line with alternative configs resolved
      */
     ioline_t atx_line;
     ioline_t arx_line;
+    ioline_t arts_line;
+    ioline_t acts_line;
 
     // thread used for all UARTs
     static thread_t* volatile uart_rx_thread_ctx;

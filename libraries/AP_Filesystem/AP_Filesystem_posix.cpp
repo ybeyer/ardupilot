@@ -49,10 +49,12 @@ static const char *map_filename(const char *fname)
     return fname;
 }
 
-int AP_Filesystem_Posix::open(const char *fname, int flags)
+int AP_Filesystem_Posix::open(const char *fname, int flags, bool allow_absolute_paths)
 {
     FS_CHECK_ALLOWED(-1);
-    fname = map_filename(fname);
+    if (! allow_absolute_paths) {
+        fname = map_filename(fname);
+    }
     // we automatically add O_CLOEXEC as we always want it for ArduPilot FS usage
     return ::open(fname, flags | O_CLOEXEC, 0644);
 }
@@ -131,6 +133,14 @@ int AP_Filesystem_Posix::closedir(void *dirp)
 {
     FS_CHECK_ALLOWED(-1);
     return ::closedir((DIR *)dirp);
+}
+
+int AP_Filesystem_Posix::rename(const char *oldpath, const char *newpath)
+{
+    FS_CHECK_ALLOWED(-1);
+    oldpath = map_filename(oldpath);
+    newpath = map_filename(newpath);
+    return ::rename(oldpath, newpath);
 }
 
 // return free disk space in bytes

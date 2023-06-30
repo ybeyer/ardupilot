@@ -14,9 +14,11 @@
  */
 #include "AP_OpticalFlow_Onboard.h"
 
+#if AP_OPTICALFLOW_ONBOARD_ENABLED
+
 #include <AP_HAL/AP_HAL.h>
 
-#include "OpticalFlow.h"
+#include "AP_OpticalFlow.h"
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_LINUX &&\
     CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP
@@ -27,10 +29,6 @@
 
 #define OPTICALFLOW_ONBOARD_ID 1
 extern const AP_HAL::HAL& hal;
-
-AP_OpticalFlow_Onboard::AP_OpticalFlow_Onboard(OpticalFlow &_frontend) :
-    OpticalFlow_backend(_frontend)
-{}
 
 void AP_OpticalFlow_Onboard::init(void)
 {
@@ -52,7 +50,7 @@ void AP_OpticalFlow_Onboard::update()
         return;
     }
 
-    struct OpticalFlow::OpticalFlow_state state;
+    struct AP_OpticalFlow::OpticalFlow_state state;
     state.surface_quality = data_frame.quality;
     if (data_frame.delta_time > 0) {
         const Vector2f flowScaler = _flowScaler();
@@ -98,3 +96,5 @@ void AP_OpticalFlow_Onboard::update()
 }
 
 #endif
+
+#endif  // AP_OPTICALFLOW_ONBOARD_ENABLED

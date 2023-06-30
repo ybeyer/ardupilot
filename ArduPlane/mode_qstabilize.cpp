@@ -1,6 +1,8 @@
 #include "mode.h"
 #include "Plane.h"
 
+#if HAL_QUADPLANE_ENABLED
+
 bool ModeQStabilize::_enter()
 {
     quadplane.throttle_wait = false;
@@ -25,7 +27,7 @@ void ModeQStabilize::update()
         return;
     }
 
-    if ((plane.quadplane.options & QuadPlane::OPTION_INGORE_FW_ANGLE_LIMITS_IN_Q_MODES) == 0) {
+    if (!plane.quadplane.option_is_set(QuadPlane::OPTION::INGORE_FW_ANGLE_LIMITS_IN_Q_MODES)) {
         // by default angles are also constrained by forward flight limits
         set_limited_roll_pitch(roll_input, pitch_input);
     } else {
@@ -62,6 +64,8 @@ void ModeQStabilize::set_tailsitter_roll_pitch(const float roll_input, const flo
 
     // angle max for tailsitter pitch
     plane.nav_pitch_cd = pitch_input * plane.quadplane.aparm.angle_max;
+
+    plane.quadplane.transition->set_VTOL_roll_pitch_limit(plane.nav_roll_cd, plane.nav_pitch_cd);
 }
 
 // set the desired roll and pitch for normal quadplanes, also limited by forward flight limtis
@@ -76,3 +80,5 @@ void ModeQStabilize::set_limited_roll_pitch(const float roll_input, const float 
         plane.nav_pitch_cd = pitch_input * MIN(-plane.pitch_limit_min_cd, plane.quadplane.aparm.angle_max);
     }
 }
+
+#endif

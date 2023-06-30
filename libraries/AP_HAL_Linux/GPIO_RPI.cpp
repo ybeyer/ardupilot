@@ -4,7 +4,8 @@
     CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BH || \
     CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_DARK || \
     CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_PXFMINI || \
-    CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_NAVIGATOR
+    CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_NAVIGATOR || \
+    CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_OBAL_V1
 
 #include <assert.h>
 #include <errno.h>
@@ -162,12 +163,15 @@ void GPIO_RPI::init()
     const int rpi_version = UtilRPI::from(hal.util)->get_rpi_version();
 
     GPIO_RPI::Address peripheral_base;
-    if(rpi_version == 1) {
+    if(rpi_version == 0) {
         peripheral_base = Address::BCM2708_PERIPHERAL_BASE;
-    } else if (rpi_version == 2) {
+    } else if (rpi_version == 1 || rpi_version == 2) {
         peripheral_base = Address::BCM2709_PERIPHERAL_BASE;
-    } else {
+    } else if (rpi_version == 3) {
         peripheral_base = Address::BCM2711_PERIPHERAL_BASE;
+    } else {
+        AP_HAL::panic("Unknown rpi_version, cannot locate peripheral base address");
+        return;
     }
 
     if (!openMemoryDevice()) {

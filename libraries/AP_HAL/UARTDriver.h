@@ -5,15 +5,23 @@
 #include "AP_HAL_Namespace.h"
 #include "utility/BetterStream.h"
 
+#ifndef HAL_UART_STATS_ENABLED
+#define HAL_UART_STATS_ENABLED !defined(HAL_NO_UARTDRIVER)
+
+#endif
+
 class ExpandingString;
 
 /* Pure virtual UARTDriver class */
 class AP_HAL::UARTDriver : public AP_HAL::BetterStream {
+private:
+    // option bits for port
+    uint16_t _last_options;
+
 public:
     UARTDriver() {}
     /* Do not allow copies */
-    UARTDriver(const UARTDriver &other) = delete;
-    UARTDriver &operator=(const UARTDriver&) = delete;
+    CLASS_NO_COPY(UARTDriver);
 
     // begin() implicitly clears rx/tx buffers, even if the port was already open (unless the UART is the console UART)
     virtual void begin(uint32_t baud) = 0;
@@ -61,8 +69,8 @@ public:
     virtual int16_t read_locked(uint32_t key) { return -1; }
     
     // control optional features
-    virtual bool set_options(uint16_t options) { return options==0; }
-    virtual uint8_t get_options(void) const { return 0; }
+    virtual bool set_options(uint16_t options) { _last_options = options; return options==0; }
+    virtual uint16_t get_options(void) const { return _last_options; }
 
     enum {
         OPTION_RXINV              = (1U<<0),  // invert RX line
@@ -77,10 +85,13 @@ public:
         OPTION_NODMA_TX           = (1U<<9), // don't use DMA for TX
         OPTION_MAVLINK_NO_FORWARD = (1U<<10), // don't forward MAVLink data to or from this device
         OPTION_NOFIFO             = (1U<<11), // disable hardware FIFO
+        OPTION_NOSTREAMOVERRIDE   = (1U<<12), // don't allow GCS to override streamrates
     };
 
     enum flow_control {
-        FLOW_CONTROL_DISABLE=0, FLOW_CONTROL_ENABLE=1, FLOW_CONTROL_AUTO=2
+        FLOW_CONTROL_DISABLE=0,
+        FLOW_CONTROL_ENABLE=1,
+        FLOW_CONTROL_AUTO=2,
     };
     virtual void set_flow_control(enum flow_control flow_control_setting) {};
     virtual enum flow_control get_flow_control(void) { return FLOW_CONTROL_DISABLE; }
@@ -121,17 +132,21 @@ public:
      */
     virtual uint64_t receive_time_constraint_us(uint16_t nbytes) { return 0; }
 
-    virtual uint32_t bw_in_kilobytes_per_second() const {
-        return 57;
+    virtual uint32_t bw_in_bytes_per_second() const {
+        return 5760;
     }
+
+    virtual uint32_t get_baud_rate() const { return 0; }
 
     /*
       return true if this UART has DMA enabled on both RX and TX
      */
     virtual bool is_dma_enabled() const { return false; }
 
+#if HAL_UART_STATS_ENABLED
     // request information on uart I/O for this uart, for @SYS/uarts.txt
     virtual void uart_info(ExpandingString &str) {}
+#endif
 
     /*
       software control of the CTS/RTS pins if available. Return false if
@@ -142,4 +157,7 @@ public:
 
     // return true requested baud on USB port
     virtual uint32_t get_usb_baud(void) const { return 0; }
+
+    // disable TX/RX pins for unusued uart
+    virtual void disable_rxtx(void) const {}
 };

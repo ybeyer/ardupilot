@@ -20,12 +20,8 @@ void Sub::init_ardupilot()
 #endif
 
     // init cargo gripper
-#if GRIPPER_ENABLED == ENABLED
+#if AP_GRIPPER_ENABLED
     g2.gripper.init();
-#endif
-
-#if AC_FENCE == ENABLED
-    fence.init();
 #endif
 
     // initialise notify system
@@ -49,10 +45,14 @@ void Sub::init_ardupilot()
         AP_Param::set_default_by_name("BARO_EXT_BUS", 1);
         break;
     }
-#else
+#elif CONFIG_HAL_BOARD != HAL_BOARD_LINUX
     AP_Param::set_default_by_name("BARO_EXT_BUS", 1);
 #endif
-    celsius.init(barometer.external_bus());
+
+#if AP_TEMPERATURE_SENSOR_ENABLED
+    // In order to preserve Sub's previous AP_TemperatureSensor Behavior we set the Default I2C Bus Here
+    AP_Param::set_default_by_name("TEMP1_BUS", barometer.external_bus());
+#endif
 
     // setup telem slots with serial ports
     gcs().setup_uarts();
@@ -62,7 +62,9 @@ void Sub::init_ardupilot()
 #endif
 
     // initialise rc channels including setting mode
+    rc().convert_options(RC_Channel::AUX_FUNC::ARMDISARM_UNUSED, RC_Channel::AUX_FUNC::ARMDISARM);
     rc().init();
+
 
     init_rc_in();               // sets up rc channels from radio
     init_rc_out();              // sets up motors and output to escs
@@ -83,7 +85,11 @@ void Sub::init_ardupilot()
     AP::compass().set_log_bit(MASK_LOG_COMPASS);
     AP::compass().init();
 
-#if OPTFLOW == ENABLED
+#if AP_AIRSPEED_ENABLED
+    airspeed.set_log_bit(MASK_LOG_IMU);
+#endif
+
+#if AP_OPTICALFLOW_ENABLED
     // initialise optical flow sensor
     optflow.init(MASK_LOG_OPTFLOW);
 #endif
@@ -92,9 +98,14 @@ void Sub::init_ardupilot()
     // initialise camera mount
     camera_mount.init();
     // This step ncessary so the servo is properly initialized
-    camera_mount.set_angle_targets(0, 0, 0);
+    camera_mount.set_angle_target(0, 0, 0, false);
     // for some reason the call to set_angle_targets changes the mode to mavlink targeting!
     camera_mount.set_mode(MAV_MOUNT_MODE_RC_TARGETING);
+#endif
+
+#if AP_CAMERA_ENABLED
+    // initialise camera
+    camera.init();
 #endif
 
 #ifdef USERHOOK_INIT
@@ -135,7 +146,7 @@ void Sub::init_ardupilot()
 #endif
 
     // initialise AP_RPM library
-#if RPM_ENABLED == ENABLED
+#if AP_RPM_ENABLED
     rpm_sensor.init();
 #endif
 
@@ -149,11 +160,9 @@ void Sub::init_ardupilot()
 
     startup_INS_ground();
 
-#ifdef ENABLE_SCRIPTING
+#if AP_SCRIPTING_ENABLED
     g2.scripting.init();
-#endif // ENABLE_SCRIPTING
-
-    g2.airspeed.init();
+#endif // AP_SCRIPTING_ENABLED
 
     // we don't want writes to the serial port to cause us to pause
     // mid-flight, so set the serial ports non-blocking once we are
@@ -229,7 +238,7 @@ bool Sub::optflow_position_ok()
 
     // return immediately if neither optflow nor visual odometry is enabled
     bool enabled = false;
-#if OPTFLOW == ENABLED
+#if AP_OPTICALFLOW_ENABLED
     if (optflow.enabled()) {
         enabled = true;
     }
@@ -271,8 +280,11 @@ bool Sub::should_log(uint32_t mask)
 #include <AP_ADSB/AP_ADSB.h>
 
 // dummy method to avoid linking AFS
+#if AP_ADVANCEDFAILSAFE_ENABLED
 bool AP_AdvancedFailsafe::gcs_terminate(bool should_terminate, const char *reason) { return false; }
 AP_AdvancedFailsafe *AP::advancedfailsafe() { return nullptr; }
+#endif
+
 #if HAL_ADSB_ENABLED
 // dummy method to avoid linking AP_Avoidance
 AP_Avoidance *AP::ap_avoidance() { return nullptr; }

@@ -1,9 +1,9 @@
+#include "AP_Baro_SITL.h"
+
+#if AP_SIM_BARO_ENABLED
+
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Vehicle/AP_Vehicle_Type.h>
-
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-
-#include "AP_Baro_SITL.h"
 
 extern const AP_HAL::HAL& hal;
 
@@ -66,7 +66,7 @@ void AP_Baro_SITL::_timer()
         return;
     }
 
-    sim_alt += _sitl->baro[_instance].drift * now / 1000.0f;
+    sim_alt += _sitl->baro[_instance].drift * now * 0.001f;
     sim_alt += _sitl->baro[_instance].noise * rand_float();
 
     // add baro glitch
@@ -118,14 +118,14 @@ void AP_Baro_SITL::_timer()
 
     AP_Baro::SimpleAtmosphere(sim_alt * 0.001f, sigma, delta, theta);
     float p = SSL_AIR_PRESSURE * delta;
-    float T = SSL_AIR_TEMPERATURE * theta - C_TO_KELVIN;
+    float T = KELVIN_TO_C(SSL_AIR_TEMPERATURE * theta);
 
     temperature_adjustment(p, T);
 #else
     float rho, delta, theta;
     AP_Baro::SimpleUnderWaterAtmosphere(-sim_alt * 0.001f, rho, delta, theta);
     float p = SSL_AIR_PRESSURE * delta;
-    float T = SSL_AIR_TEMPERATURE * theta - C_TO_KELVIN;
+    float T = KELVIN_TO_C(SSL_AIR_TEMPERATURE * theta);
 #endif
 
     // add in correction for wind effects
@@ -167,6 +167,7 @@ float AP_Baro_SITL::wind_pressure_correction(void)
     float error = 0.0;
     const float sqx = sq(airspeed_vec_bf.x);
     const float sqy = sq(airspeed_vec_bf.y);
+    const float sqz = sq(airspeed_vec_bf.z);
 
     if (is_positive(airspeed_vec_bf.x)) {
         error += bp.wcof_xp * sqx;
@@ -178,8 +179,13 @@ float AP_Baro_SITL::wind_pressure_correction(void)
     } else {
         error += bp.wcof_yn * sqy;
     }
+    if (is_positive(airspeed_vec_bf.z)) {
+        error += bp.wcof_zp * sqz;
+    } else {
+        error += bp.wcof_zn * sqz;
+    }
 
     return error * 0.5 * SSL_AIR_DENSITY * AP::baro().get_air_density_ratio();
 }
 
-#endif  // CONFIG_HAL_BOARD
+#endif  // AP_SIM_BARO_ENABLED

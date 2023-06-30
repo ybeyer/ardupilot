@@ -188,7 +188,6 @@ bool Sub::verify_command(const AP_Mission::Mission_Command& cmd)
     case MAV_CMD_DO_SET_HOME:
     case MAV_CMD_DO_SET_ROI:
     case MAV_CMD_DO_MOUNT_CONTROL:
-    case MAV_CMD_DO_CONTROL_VIDEO:
     case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
     case MAV_CMD_DO_GUIDED_LIMITS:
         return true;
@@ -353,10 +352,17 @@ void Sub::do_circle(const AP_Mission::Mission_Command& cmd)
     }
 
     // calculate radius
-    uint8_t circle_radius_m = HIGHBYTE(cmd.p1); // circle radius held in high byte of p1
+    uint16_t circle_radius_m = HIGHBYTE(cmd.p1); // circle radius held in high byte of p1
+    if (cmd.type_specific_bits & (1U << 0)) {
+        circle_radius_m *= 10;
+    }
+
+
+    // true if circle should be ccw
+    const bool circle_direction_ccw = cmd.content.location.loiter_ccw;
 
     // move to edge of circle (verify_circle) will ensure we begin circling once we reach the edge
-    auto_circle_movetoedge_start(circle_center, circle_radius_m);
+    auto_circle_movetoedge_start(circle_center, circle_radius_m, circle_direction_ccw);
 }
 
 // do_loiter_time - initiate loitering at a point for a given time period
@@ -509,18 +515,17 @@ bool Sub::verify_circle(const AP_Mission::Mission_Command& cmd)
     // check if we've reached the edge
     if (auto_mode == Auto_CircleMoveToEdge) {
         if (wp_nav.reached_wp_destination()) {
-            Vector3f curr_pos = inertial_nav.get_position();
-            Vector3f circle_center = pv_location_to_vector(cmd.content.location);
+            Vector3f circle_center;
+            UNUSED_RESULT(cmd.content.location.get_vector_from_origin_NEU(circle_center));
 
             // set target altitude if not provided
             if (is_zero(circle_center.z)) {
-                circle_center.z = curr_pos.z;
+                circle_center.z = inertial_nav.get_position_z_up_cm();
             }
 
             // set lat/lon position if not provided
             if (cmd.content.location.lat == 0 && cmd.content.location.lng == 0) {
-                circle_center.x = curr_pos.x;
-                circle_center.y = curr_pos.y;
+                circle_center.xy() = inertial_nav.get_position_xy_cm();
             }
 
             // start circling
@@ -683,6 +688,6 @@ void Sub::do_roi(const AP_Mission::Mission_Command& cmd)
 void Sub::do_mount_control(const AP_Mission::Mission_Command& cmd)
 {
 #if HAL_MOUNT_ENABLED
-    camera_mount.set_angle_targets(cmd.content.mount_control.roll, cmd.content.mount_control.pitch, cmd.content.mount_control.yaw);
+    camera_mount.set_angle_target(cmd.content.mount_control.roll, cmd.content.mount_control.pitch, cmd.content.mount_control.yaw, false);
 #endif
 }

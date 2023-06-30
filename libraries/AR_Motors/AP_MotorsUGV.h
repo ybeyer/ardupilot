@@ -3,6 +3,7 @@
 #include <AP_Arming/AP_Arming.h>
 #include <AP_ServoRelayEvents/AP_ServoRelayEvents.h>
 #include <AP_WheelEncoder/AP_WheelRateControl.h>
+#include <SRV_Channel/SRV_Channel.h>
 
 class AP_MotorsUGV {
 public:
@@ -11,18 +12,6 @@ public:
 
     // singleton support
     static AP_MotorsUGV    *get_singleton(void) { return _singleton; }
-
-    enum pwm_type {
-        PWM_TYPE_NORMAL = 0,
-        PWM_TYPE_ONESHOT = 1,
-        PWM_TYPE_ONESHOT125 = 2,
-        PWM_TYPE_BRUSHED_WITH_RELAY = 3,
-        PWM_TYPE_BRUSHED_BIPOLAR = 4,
-        PWM_TYPE_DSHOT150 = 5,
-        PWM_TYPE_DSHOT300 = 6,
-        PWM_TYPE_DSHOT600 = 7,
-        PWM_TYPE_DSHOT1200 = 8
-    };
 
     enum motor_test_order {
         MOTOR_TEST_THROTTLE = 1,
@@ -118,10 +107,13 @@ public:
     bool pre_arm_check(bool report) const;
 
     // return the motor mask
-    uint16_t get_motor_mask() const { return _motor_mask; }
+    uint32_t get_motor_mask() const { return _motor_mask; }
 
-    // returns the configured PWM type
-    uint8_t get_pwm_type() const { return _pwm_type; }
+    // returns true if the configured PWM type is digital and should have fixed endpoints
+    bool is_digital_pwm_type() const;
+
+    // returns true if the vehicle is omni
+    bool is_omni() const { return _frame_type != FRAME_TYPE_UNDEFINED && _motors_num > 0; }
 
     // structure for holding motor limit flags
     struct AP_MotorsUGV_limit {
@@ -134,7 +126,20 @@ public:
     // var_info for holding Parameter information
     static const struct AP_Param::GroupInfo var_info[];
 
-protected:
+private:
+
+    enum pwm_type {
+        PWM_TYPE_NORMAL = 0,
+        PWM_TYPE_ONESHOT = 1,
+        PWM_TYPE_ONESHOT125 = 2,
+        PWM_TYPE_BRUSHED_WITH_RELAY = 3,
+        PWM_TYPE_BRUSHED_BIPOLAR = 4,
+        PWM_TYPE_DSHOT150 = 5,
+        PWM_TYPE_DSHOT300 = 6,
+        PWM_TYPE_DSHOT600 = 7,
+        PWM_TYPE_DSHOT1200 = 8
+    };
+
     // sanity check parameters
     void sanity_check_parameters();
 
@@ -214,7 +219,7 @@ protected:
     float   _mainsail;  // requested mainsail input as a value from 0 to 100
     float   _wingsail;  // requested wing sail input as a value in the range +- 100
     float   _mast_rotation;  // requested mast rotation input as a value in the range +- 100
-    uint16_t _motor_mask;   // mask of motors configured with pwm_type
+    uint32_t _motor_mask;   // mask of motors configured with pwm_type
     frame_type _frame_type; // frame type requested at initialisation
 
     // omni variables

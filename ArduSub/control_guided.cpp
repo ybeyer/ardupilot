@@ -4,10 +4,6 @@
  * Init and run calls for guided flight mode
  */
 
-#ifndef GUIDED_LOOK_AT_TARGET_MIN_DISTANCE_CM
-# define GUIDED_LOOK_AT_TARGET_MIN_DISTANCE_CM     500     // point nose at target if it is more than 5m away
-#endif
-
 #define GUIDED_POSVEL_TIMEOUT_MS    3000    // guided mode's position-velocity controller times out after 3seconds with no new updates
 #define GUIDED_ATTITUDE_TIMEOUT_MS  1000    // guided mode's attitude controller times out after 1 second with no new updates
 
@@ -133,7 +129,7 @@ bool Sub::guided_set_destination(const Vector3f& destination)
         guided_pos_control_start();
     }
 
-#if AC_FENCE == ENABLED
+#if AP_FENCE_ENABLED
     // reject destination if outside the fence
     const Location dest_loc(destination, Location::AltFrame::ABOVE_ORIGIN);
     if (!fence.check_destination_within_fence(dest_loc)) {
@@ -161,7 +157,7 @@ bool Sub::guided_set_destination(const Location& dest_loc)
         guided_pos_control_start();
     }
 
-#if AC_FENCE == ENABLED
+#if AP_FENCE_ENABLED
     // reject destination outside the fence.
     // Note: there is a danger that a target specified as a terrain altitude might not be checked if the conversion to alt-above-home fails
     if (!fence.check_destination_within_fence(dest_loc)) {
@@ -205,7 +201,7 @@ bool Sub::guided_set_destination_posvel(const Vector3f& destination, const Vecto
         guided_posvel_control_start();
     }
 
-#if AC_FENCE == ENABLED
+#if AP_FENCE_ENABLED
     // reject destination if outside the fence
     const Location dest_loc(destination, Location::AltFrame::ABOVE_ORIGIN);
     if (!fence.check_destination_within_fence(dest_loc)) {
@@ -286,9 +282,7 @@ void Sub::guided_pos_control_run()
         // Sub vehicles do not stabilize roll/pitch/yaw when disarmed
         attitude_control.set_throttle_out(0,true,g.throttle_filt);
         attitude_control.relax_attitude_controllers();
-        // initialise velocity controller
-        pos_control.init_z_controller();
-        pos_control.init_xy_controller();
+        wp_nav.wp_and_spline_init();
         return;
     }
 
@@ -321,10 +315,10 @@ void Sub::guided_pos_control_run()
 
     // call attitude controller
     if (auto_yaw_mode == AUTO_YAW_HOLD) {
-        // roll & pitch from waypoint controller, yaw rate from pilot
+        // roll & pitch & yaw rate from pilot
         attitude_control.input_euler_angle_roll_pitch_euler_rate_yaw(channel_roll->get_control_in(), channel_pitch->get_control_in(), target_yaw_rate);
     } else {
-        // roll, pitch from waypoint controller, yaw heading from auto_heading()
+        // roll, pitch from pilot, yaw heading from auto_heading()
         attitude_control.input_euler_angle_roll_pitch_yaw(channel_roll->get_control_in(), channel_pitch->get_control_in(), get_auto_heading(), true);
     }
 }
@@ -364,6 +358,7 @@ void Sub::guided_vel_control_run()
         pos_control.set_vel_desired_cms(Vector3f(0,0,0));
     }
 
+    pos_control.stop_pos_xy_stabilisation();
     // call velocity controller which includes z axis controller
     pos_control.update_xy_controller();
     pos_control.update_z_controller();
@@ -377,10 +372,10 @@ void Sub::guided_vel_control_run()
 
     // call attitude controller
     if (auto_yaw_mode == AUTO_YAW_HOLD) {
-        // roll & pitch from waypoint controller, yaw rate from pilot
+        // roll & pitch & yaw rate from pilot
         attitude_control.input_euler_angle_roll_pitch_euler_rate_yaw(channel_roll->get_control_in(), channel_pitch->get_control_in(), target_yaw_rate);
     } else {
-        // roll, pitch from waypoint controller, yaw heading from auto_heading()
+        // roll, pitch from pilot, yaw heading from auto_heading()
         attitude_control.input_euler_angle_roll_pitch_yaw(channel_roll->get_control_in(), channel_pitch->get_control_in(), get_auto_heading(), true);
     }
 }
@@ -443,10 +438,10 @@ void Sub::guided_posvel_control_run()
 
     // call attitude controller
     if (auto_yaw_mode == AUTO_YAW_HOLD) {
-        // roll & pitch from waypoint controller, yaw rate from pilot
+        // roll & pitch & yaw rate from pilot
         attitude_control.input_euler_angle_roll_pitch_euler_rate_yaw(channel_roll->get_control_in(), channel_pitch->get_control_in(), target_yaw_rate);
     } else {
-        // roll, pitch from waypoint controller, yaw heading from auto_heading()
+        // roll, pitch from pilot, yaw heading from auto_heading()
         attitude_control.input_euler_angle_roll_pitch_yaw(channel_roll->get_control_in(), channel_pitch->get_control_in(), get_auto_heading(), true);
     }
 }
@@ -530,7 +525,7 @@ void Sub::guided_limit_init_time_and_pos()
     guided_limit.start_time = AP_HAL::millis();
 
     // initialise start position from current position
-    guided_limit.start_pos = inertial_nav.get_position();
+    guided_limit.start_pos = inertial_nav.get_position_neu_cm();
 }
 
 // guided_limit_check - returns true if guided mode has breached a limit
@@ -543,7 +538,7 @@ bool Sub::guided_limit_check()
     }
 
     // get current location
-    const Vector3f& curr_pos = inertial_nav.get_position();
+    const Vector3f& curr_pos = inertial_nav.get_position_neu_cm();
 
     // check if we have gone below min alt
     if (!is_zero(guided_limit.alt_min_cm) && (curr_pos.z < guided_limit.alt_min_cm)) {
@@ -557,7 +552,7 @@ bool Sub::guided_limit_check()
 
     // check if we have gone beyond horizontal limit
     if (guided_limit.horiz_max_cm > 0.0f) {
-        float horiz_move = get_horizontal_distance_cm(guided_limit.start_pos, curr_pos);
+        const float horiz_move = get_horizontal_distance_cm(guided_limit.start_pos.xy(), curr_pos.xy());
         if (horiz_move > guided_limit.horiz_max_cm) {
             return true;
         }

@@ -85,7 +85,13 @@ void malloc_init(void)
     // check for changes which indicate a write to an uninitialised
     // object.  We start at address 0x1 as writing the first byte
     // causes a fault
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#if defined(__GNUC__) &&  __GNUC__ >= 10
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
     memset((void*)0x00000001, 0, 1023);
+#pragma GCC diagnostic pop
 #endif
 
     uint8_t i;
@@ -420,6 +426,7 @@ size_t mem_available(void)
     return totalp;
 }
 
+#if CH_CFG_USE_DYNAMIC == TRUE
 /*
   allocate a thread on any available heap
  */
@@ -444,6 +451,7 @@ thread_t *thread_create_alloc(size_t size,
     }
     return NULL;
 }
+#endif
 
 /*
   return heap information
@@ -482,4 +490,49 @@ char *strdup(const char *str)
     memcpy(ret, str, len);
     ret[len] = 0;
     return ret;
+}
+
+/*
+    is valid memory region
+ */
+bool is_address_in_memory(void *addr)
+{
+    uint8_t i;
+    for (i=0; i<NUM_MEMORY_REGIONS; i++) {
+        if (addr >= memory_regions[i].address &&
+            addr < (memory_regions[i].address + memory_regions[i].size)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/*
+  return the start of memory region that contains the address
+ */
+void* get_addr_mem_region_start_addr(void *addr)
+{ 
+    uint8_t i;
+    for (i=0; i<NUM_MEMORY_REGIONS; i++) {
+        if (addr >= memory_regions[i].address &&
+            addr < (memory_regions[i].address + memory_regions[i].size)) {
+            return memory_regions[i].address;
+        }
+    }
+    return 0;
+}
+
+/*
+  return the end of memory region that contains the address
+ */
+void* get_addr_mem_region_end_addr(void *addr)
+{ 
+    uint8_t i;
+    for (i=0; i<NUM_MEMORY_REGIONS; i++) {
+        if (addr >= memory_regions[i].address &&
+            addr < (memory_regions[i].address + memory_regions[i].size)) {
+            return memory_regions[i].address + memory_regions[i].size;
+        }
+    }
+    return 0;
 }

@@ -55,12 +55,13 @@ const AP_Param::GroupInfo AP_OAPathPlanner::var_info[] = {
     // @Path: AP_OADatabase.cpp
     AP_SUBGROUPINFO(_oadatabase, "DB_", 4, AP_OAPathPlanner, AP_OADatabase),
 
-    // @Param{Rover}: OPTIONS
+    // @Param: OPTIONS
     // @DisplayName: Options while recovering from Object Avoidance
     // @Description: Bitmask which will govern vehicles behaviour while recovering from Obstacle Avoidance (i.e Avoidance is turned off after the path ahead is clear).   
-    // @Bitmask: 0: Reset the origin of the waypoint to the present location
+    // @Bitmask{Rover}: 0: Reset the origin of the waypoint to the present location, 1: log Dijkstra points
+    // @Bitmask{Copter}: 1: log Dijkstra points
     // @User: Standard
-    AP_GROUPINFO_FRAME("OPTIONS", 5, AP_OAPathPlanner, _options, OA_OPTIONS_DEFAULT, AP_PARAM_FRAME_ROVER),
+    AP_GROUPINFO("OPTIONS", 5, AP_OAPathPlanner, _options, OA_OPTIONS_DEFAULT),
 
     // @Group: BR_
     // @Path: AP_OABendyRuler.cpp
@@ -92,14 +93,18 @@ void AP_OAPathPlanner::init()
         }
         break;
     case OA_PATHPLAN_DIJKSTRA:
+#if AP_FENCE_ENABLED
         if (_oadijkstra == nullptr) {
-            _oadijkstra = new AP_OADijkstra();
+            _oadijkstra = new AP_OADijkstra(_options);
         }
+#endif
         break;
     case OA_PATHPLAN_DJIKSTRA_BENDYRULER:
+#if AP_FENCE_ENABLED
         if (_oadijkstra == nullptr) {
-            _oadijkstra = new AP_OADijkstra();
+            _oadijkstra = new AP_OADijkstra(_options);
         }
+#endif
         if (_oabendyruler == nullptr) {
             _oabendyruler = new AP_OABendyRuler();
             AP_Param::load_object_from_eeprom(_oabendyruler, AP_OABendyRuler::var_info);
@@ -235,7 +240,7 @@ void AP_OAPathPlanner::avoidance_thread()
     bool origin_set = false;
     while (!origin_set) {
         hal.scheduler->delay(500);
-        struct Location ekf_origin {};
+        Location ekf_origin {};
         {
             WITH_SEMAPHORE(AP::ahrs().get_semaphore());
             origin_set = AP::ahrs().get_origin(ekf_origin);    
@@ -297,6 +302,7 @@ void AP_OAPathPlanner::avoidance_thread()
         }
 
         case OA_PATHPLAN_DIJKSTRA: {
+#if AP_FENCE_ENABLED
             if (_oadijkstra == nullptr) {
                 continue;
             }
@@ -314,6 +320,7 @@ void AP_OAPathPlanner::avoidance_thread()
                 break;
             }
             path_planner_used = OAPathPlannerUsed::Dijkstras;
+#endif
             break;
         }
 
@@ -331,12 +338,15 @@ void AP_OAPathPlanner::avoidance_thread()
                 break;
             } else {
                 // cleared all obstacles, trigger Dijkstra's to calculate path based on current deviated position  
+#if AP_FENCE_ENABLED
                 if (proximity_only == false) {
                     _oadijkstra->recalculate_path();
                 }
+#endif
                 // only use proximity avoidance now for BendyRuler
                 proximity_only = true;
             }
+#if AP_FENCE_ENABLED
             _oadijkstra->set_fence_margin(_margin_max);
             const AP_OADijkstra::AP_OADijkstra_State dijkstra_state = _oadijkstra->update(avoidance_request2.current_loc, avoidance_request2.destination, origin_new, destination_new);
             switch (dijkstra_state) {
@@ -351,6 +361,7 @@ void AP_OAPathPlanner::avoidance_thread()
                 break;
             }
             path_planner_used = OAPathPlannerUsed::Dijkstras;
+#endif
             break;
         }
 
