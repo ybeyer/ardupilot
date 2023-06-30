@@ -80,16 +80,13 @@ void ModeCustom::run()
         velocity_NED[2] = 0;
     }
 
-    /* Info: gyro scaling is hard coded based on AP_InertialSensor::register_gyro in AP_InertialSensor.cpp.
-    The scaling is applied in AP_InertialSensor_Backend::_notify_new_gyro_raw_sample in
-    AP_InertialSensor_Backend.cpp. However, the variable gyro_filtered is overwritten during filtering.
-    It seems that there is no non-filtered scaled angular velocity available as member variable.
-    That is why the scaling is applied here.) */
-    Vector3f Omega_Kb_raw = AP::ins().get_raw_gyro() / (INT16_MAX/radians(2000));
+    // To do: This is raw measurement (above 1kHz) samples at 400Hz.
+    // Noise could be reduced by downsampling.
+    Vector3f Omega_Kb_raw = AP::ins().get_gyro();
 
     // accel_ef_blended is acceleration at IMU position
     // https://ardupilot.org/copter/docs/common-sensor-offset-compensation.html
-    Vector3f accel_ef_at_imu = ahrs_.get_accel_ef_blended();
+    Vector3f accel_ef_at_imu = ahrs_.get_accel_ef();
     Vector3f imu_pos_offset = AP::ins().get_imu_pos_offset(AP::ins().get_primary_accel());
     Vector3f accel_ef_at_cog = imu_accel_to_cog_accel(  accel_ef_at_imu, imu_pos_offset, Omega_Kb_raw,
                                                         ahrs_.get_rotation_body_to_ned() );
