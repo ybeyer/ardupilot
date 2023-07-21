@@ -2,7 +2,7 @@
 
 // #define Custom_Matlab_Output //define for the custom simulink output
 #define Custom_Debug // print performance to console
-#define Mode_Custom_Use_External_Controller
+// #define Mode_Custom_Use_External_Controller
 
 #include <AP_Param/AP_Param.h>
 #include <AP_Common/Location.h>
