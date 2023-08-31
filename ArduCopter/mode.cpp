@@ -23,7 +23,8 @@ Mode::Mode(void) :
     channel_throttle(copter.channel_throttle),
     channel_yaw(copter.channel_yaw),
     G_Dt(copter.G_Dt)
-{ };
+{
+}
 
 // return the static controller object corresponding to supplied mode
 Mode *Copter::mode_from_mode_num(const Mode::Number mode)
@@ -39,6 +40,10 @@ Mode *Copter::mode_from_mode_num(const Mode::Number mode)
 
         case Mode::Number::STABILIZE:
             ret = &mode_stabilize;
+            break;
+
+        case Mode::Number::CUSTOM:
+            ret = &mode_custom;
             break;
 
         case Mode::Number::ALT_HOLD:

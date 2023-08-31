@@ -187,6 +187,7 @@ public:
     friend class Parameters;
     friend class ParametersG2;
     friend class AP_Avoidance_Copter;
+    friend class AP_Mission;
 
 #if ADVANCED_FAILSAFE == ENABLED
     friend class AP_AdvancedFailsafe_Copter;
@@ -219,6 +220,7 @@ public:
     friend class ModeSmartRTL;
     friend class ModeSport;
     friend class ModeStabilize;
+    friend class ModeCustom;
     friend class ModeStabilize_Heli;
     friend class ModeSystemId;
     friend class ModeThrow;
@@ -968,6 +970,9 @@ private:
 #endif
 #if MODE_DRIFT_ENABLED == ENABLED
     ModeDrift mode_drift;
+#endif
+#if MODE_CUSTOM_ENABLED == ENABLED
+    ModeCustom mode_custom;
 #endif
 #if MODE_FLIP_ENABLED == ENABLED
     ModeFlip mode_flip;

@@ -73,6 +73,9 @@ public:
     // Empty destructor to suppress compiler warning
     virtual ~AC_AttitudeControl() {}
 
+    // Get _ahrs object
+    const AP_AHRS_View& get_ahrs() { return _ahrs; };
+
     // set_dt / get_dt - dt is the time since the last time the attitude controllers were updated
     // _dt should be set based on the time of the last IMU read used by these controllers
     // the attitude controller should run updates for active controllers on each loop to ensure normal operation

@@ -1,7 +1,17 @@
 #pragma once
 
+//#define CUSTOM_MATLAB_OUTPUT //define for the custom simulink output
+//#define CUSTOM_MATLAB_INDOOR_TESTING
+
 #include "Copter.h"
 #include <AP_Math/chirp.h>
+
+#include <AC_AttitudeControl/MatlabController.h>    // new
+
+#ifdef CUSTOM_MATLAB_OUTPUT
+    #include <AP_HAL/utility/Socket.h>
+#endif
+
 class Parameters;
 class ParametersG2;
 
@@ -39,6 +49,7 @@ public:
         AUTOROTATE =   26,  // Autonomous autorotation
         AUTO_RTL =     27,  // Auto RTL, this is not a true mode, AUTO will report as this mode if entered to perform a DO_LAND_START Landing sequence
         TURTLE =       28,  // Flip over after crash
+        CUSTOM    =    29,  // custom flight mode from MATLAB/Simulink
 
         // Mode number 127 reserved for the "drone show mode" in the Skybrush
         // fork at https://github.com/skybrush-io/ardupilot
@@ -1516,6 +1527,89 @@ protected:
 
 private:
 
+};
+
+class ModeCustom : public Mode {
+
+public:
+
+#ifdef CUSTOM_MATLAB_OUTPUT
+    ModeCustom(void);
+#else
+    // inherit constructor
+    using Mode::Mode;
+#endif
+
+    Number mode_number() const override { return Number::CUSTOM; }
+
+    bool init(bool ignore_checks) override;
+    virtual void run() override;
+
+#ifdef CUSTOM_MATLAB_INDOOR_TESTING
+    bool requires_GPS() const override { return false; }
+#else
+    bool requires_GPS() const override { return true; }
+#endif
+    bool has_manual_throttle() const override { return true; }
+    bool allows_arming(AP_Arming::Method method) const override { return true; };
+    bool is_autopilot() const override { return false; }
+    void output_to_motors() override { motors->output_custom(); }
+    void add_waypoint(uint16_T index, Vector3f location);
+    void add_speed(uint16_T index, float V_k);
+    void mission_updated(){updated_waypoints = true;};
+
+protected:
+
+    const char *name() const override { return "CUSTOM"; }
+    const char *name4() const override { return "XXXX"; }
+    float yawInit;
+    float sInit[3];
+    void override_cntrl_params();
+
+private:
+    MatlabControllerClass custom_controller;
+
+#ifdef CUSTOM_MATLAB_OUTPUT
+    SocketAPM socket_debug;
+    const char *_debug_address = "127.0.0.1";
+    int _debug_port = 9004;
+#endif
+
+    static const int max_num_of_matlab_waypoints = 6;
+    // Ardupilot contains ghost waypoints
+    // (home position and velocity of previous waypoint),
+    // this is the max size
+    static const int max_num_of_ardupilot_waypoints = 2*max_num_of_matlab_waypoints+1;
+    int numberOfNavCommands = 0;
+    float waypoints[max_num_of_ardupilot_waypoints][4];
+    // will be set true in case of mission update through function mission_updated
+    bool updated_waypoints = false;
+
+    // custom logging
+    static const int num_log_batches = sizeof(log_config)/sizeof(log_config[0]);
+    static const int max_num_signals_per_batch = 14;
+    static const int max_signal_name_length = 3;
+    static const int max_batch_name_length = 4;
+    typedef uint8_t signal_name_t[max_signal_name_length];
+    char label_full[num_log_batches][6+max_num_signals_per_batch*(max_signal_name_length+1)+1];
+    int label_length[num_log_batches];
+    char batch_name_full[num_log_batches][max_batch_name_length];
+    int batch_name_length[num_log_batches];
+    int log_signal_idx_cumsum[num_log_batches];
+    // log initialization function
+    void log_setup(const logConfigBus log_config_in[]);
+    // set log labels (e.g. "TimeUS,s1,s2,s3") that are passed to AP::logger().Write(…)
+    void set_log_labels(const logConfigBus log_config[]);
+    // set log batch names (e.g. "ML1" or "MLXY") that are passed to AP::logger().Write(…)
+    void set_log_batch_names(const logConfigBus log_config[]);
+    // set auxilliary cumulative index that is needed to pick the log signals from the log signals array
+    void set_log_signal_idx_cumsum(const logConfigBus log_config[]);
+    // wrapper of AP::logger().Write() for use of arrays (implementaion does not look good but there is probably no simpler alternative)
+    void write_log_custom(const char *name, const char *labels, float *signals, int size);
+    // signal names are part of the label (e.g. "s1" or "s2" or "s3")
+    void extract_one_signal_name(const uint8_t log_names_int[], int number, signal_name_t &log_name);
+
+    Vector3f imu_accel_to_cog_accel(Vector3f accel_ef_at_imu, Vector3f imu_offset, Vector3f Omega_Kb, Matrix3f M_bg);
 };
 
 #if FRAME_CONFIG == HELI_FRAME

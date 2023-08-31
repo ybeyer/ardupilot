@@ -99,6 +99,8 @@ public:
         MOTOR_FRAME_TYPE_Y4 = 19, //Y4 Quadrotor frame
     };
 
+    // modified version of output() for custom controllers
+    void                output_custom();
 
     // returns a formatted string into buffer, e.g. "QUAD/X"
     void get_frame_and_type_string(char *buffer, uint8_t buflen) const;
@@ -279,7 +281,10 @@ public:
 
     // write log, to be called at 10hz
     virtual void Log_Write() {};
-
+    
+    // set a new custom motor input to the desired index of the array for custom controllers
+    void                set_custom_input(int index, float input);
+    
 protected:
     // output functions that should be overloaded by child classes
     virtual void        output_armed_stabilizing() = 0;
@@ -376,6 +381,9 @@ protected:
     // external limits from scripting
     AP_Motors_limit external_limits;
 #endif
+
+    // for mode_custom
+    float _custom_input[AP_MOTORS_MAX_NUM_MOTORS];
 
 private:
 

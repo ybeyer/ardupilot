@@ -206,7 +206,6 @@ class Board:
             '-Werror=shadow',
             '-Werror=return-type',
             '-Werror=unused-result',
-            '-Werror=unused-variable',
             '-Werror=narrowing',
             '-Werror=attributes',
             '-Werror=overflow',
@@ -334,8 +333,6 @@ class Board:
             '-Werror=undef',
             '-Werror=unused-result',
             '-Werror=shadow',
-            '-Werror=unused-value',
-            '-Werror=unused-variable',
             '-Werror=delete-non-virtual-dtor',
             '-Wfatal-errors',
             '-Wno-trigraphs',
@@ -396,7 +393,7 @@ class Board:
         if cfg.options.Werror:
             errors = ['-Werror',
                       '-Werror=missing-declarations',
-                      '-Werror=float-equal',
+                      #'-Werror=float-equal',
                       '-Werror=undef',
                     ]
             env.CFLAGS += errors
@@ -630,7 +627,7 @@ class sitl(Board):
             cfg.define('UAVCAN_SUPPORT_CANFD', 1)
 
         env.CXXFLAGS += [
-            '-Werror=float-equal'
+            #'-Werror=float-equal'
         ]
 
         if cfg.options.ubsan or cfg.options.ubsan_abort:
@@ -904,14 +901,14 @@ class chibios(Board):
         env.HAL_MAX_STACK_FRAME_SIZE = 'HAL_MAX_STACK_FRAME_SIZE=%d' % 1300 # set per Wframe-larger-than, ensure its same
         env.CFLAGS += cfg.env.CPU_FLAGS + [
             '-Wlogical-op',
-            '-Wframe-larger-than=1300',
+            '-Wframe-larger-than=5000',
             '-fsingle-precision-constant',
             '-Wno-attributes',
             '-fno-exceptions',
             '-Wall',
             '-Wextra',
             '-Wno-sign-compare',
-            '-Wfloat-equal',
+            #'-Wfloat-equal',
             '-Wpointer-arith',
             '-Wmissing-declarations',
             '-Wno-unused-parameter',
@@ -945,7 +942,8 @@ class chibios(Board):
             env.CFLAGS += [
             '-Wno-error=double-promotion',
             '-Wno-error=missing-declarations',
-            '-Wno-error=float-equal',
+            #'-Wno-error=float-equal',
+            '-Wno-error=undef',
             '-Wno-error=cpp',
             ]
 

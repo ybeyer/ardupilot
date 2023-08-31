@@ -732,6 +732,8 @@ public:
     }
 #endif
 
+    //setting the mission updated bool in mode_custom
+    void mission_complete();
 private:
     static AP_Mission *_singleton;
 

@@ -271,6 +271,7 @@ constexpr int8_t Copter::_failsafe_priorities[7];
 
 #if AP_SCRIPTING_ENABLED
 #if MODE_GUIDED_ENABLED == ENABLED
+
 // start takeoff to given altitude (for use by scripting)
 bool Copter::start_takeoff(float alt)
 {
