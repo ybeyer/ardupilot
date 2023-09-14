@@ -84,6 +84,13 @@ JSON::JSON(const char *frame_str) :
 */
 void JSON::set_interface_ports(const char* address, const int port_in, const int port_out)
 {
+    if (!sock.bind("0.0.0.0", port_in)) {
+        fprintf(stderr, "SITL: socket in bind failed on sim in : %d  - %s\n", port_in, strerror(errno));
+        fprintf(stderr, "Aborting launch...\n");
+        exit(1);
+    }
+    printf("Bind %s:%d for SITL in\n", "127.0.0.1", port_in);
+
     sock.set_blocking(false);
     sock.reuseaddress();
 
