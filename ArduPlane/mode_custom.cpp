@@ -201,29 +201,57 @@ void ModeCustom::update()
     time_log = AP_HAL::micros() - time_log;
 
     // send controller outputs to channels and set PWMs
-    for (uint8_t i=0; i<8; i++) {
-        SRV_Channel::Aux_servo_function_t function_i = (SRV_Channel::Aux_servo_function_t)rtY_->function_channels[i];
-
-        if(function_i == SRV_Channel::Aux_servo_function_t::k_none){
-            continue;  
+    bool is_passthrough;
+    bool is_servo;
+    float u_norm = 0.0f;
+    uint16_t zero_pwm = 0;
+    SRV_Channel::Aux_servo_function_t function_i;
+    SRV_Channel *c;
+    for (uint8_t i=0; i<16; i++) {
+        is_passthrough = rtY_->function_channels[i]==999;
+        c = SRV_Channels::srv_channel(i);
+        if (is_passthrough) {
+            is_servo = c->is_servo();
+            u_norm = rtY_->channels[i];
+            if (c->get_reversed()) {
+                if (is_servo) {
+                    u_norm = -u_norm;
+                } else {
+                    u_norm = 1.0f - u_norm;
+                }
+            }
+        } else {
+            function_i = (SRV_Channel::Aux_servo_function_t)rtY_->function_channels[i];
+            if(function_i == SRV_Channel::Aux_servo_function_t::k_none){
+                continue;  
+            }
         }
-        if(function_i == SRV_Channel::Aux_servo_function_t::k_throttle) {
-            if (!hal.util->get_soft_armed()) {
-                if (plane.arming.arming_required() == AP_Arming::Required::YES_ZERO_PWM) {
+        // similar to servos.cpp, l. 714
+        if (!hal.util->get_soft_armed() && !c->is_servo()) {
+            if (plane.arming.arming_required() == AP_Arming::Required::YES_ZERO_PWM) {
+                if (is_passthrough) {
+                    //zero_pwm = c->get_limit_pwm(SRV_Channel::Limit::ZERO_PWM);
+                    c->set_output_pwm(zero_pwm);
+                } else {
                     SRV_Channels::set_output_limit(function_i, SRV_Channel::Limit::ZERO_PWM);
+                }
+            } else {
+                if (is_passthrough) {
+                    c->set_output_norm(0);
                 } else {
                     SRV_Channels::set_output_norm(function_i, 0);
                 }
             }
-            else{
+        } else {
+            if (is_passthrough) {
+                c->set_output_norm(u_norm);
+            } else {
                 SRV_Channels::set_output_norm(function_i, rtY_->channels[i]);
             }
         }
-        else
-        {
-             SRV_Channels::set_output_norm(function_i, rtY_->channels[i]);
-        }
     }
+    
+    
     // plot rangefinder distance in cm for debugging
 
     static uint16_t counter;
