@@ -11,6 +11,15 @@
     uint16_t missed_frames = 0;
 #endif
 
+
+#ifdef CUSTOM_MATLAB_OUTPUT
+// constructor
+ModeCustom::ModeCustom(void) : Mode(), socket_debug(true)
+{
+}
+#endif
+
+
 bool ModeCustom::_enter()
 {
     #ifdef Mode_Custom_Use_External_Controller
@@ -187,7 +196,7 @@ void ModeCustom::update()
     // DEBUGGING:
     // Send all inputs of custom controller to Simulink (uncomment line 3 in mode.h)
     // Check byte alignment/padding in Simulink, while receiving (e.g. 4)
-    #ifdef Custom_Matlab_Output
+    #ifdef CUSTOM_MATLAB_OUTPUT
         socket_debug.sendto(rtU_, sizeof(ExtU), _debug_address, _debug_port); 
     #endif
 

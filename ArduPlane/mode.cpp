@@ -8,9 +8,6 @@ Mode::Mode()
     loiter_nav(plane.quadplane.loiter_nav),
     poscontrol(plane.quadplane.poscontrol)
 #endif
-    #ifdef Custom_Matlab_Output
-    ,socket_debug(true)
-    #endif
 {
 }
 

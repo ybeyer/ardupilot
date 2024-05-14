@@ -1,6 +1,6 @@
 #pragma once
 
-// #define Custom_Matlab_Output //define for the custom simulink output
+// #define CUSTOM_MATLAB_OUTPUT //define for the custom simulink output
 #define Custom_Debug // print performance to console
 // #define Mode_Custom_Use_External_Controller
 
@@ -12,7 +12,7 @@
 #include <AP_Vehicle/ModeReason.h>
 #include "quadplane.h"
 #include <AP_Common/MatlabController.h>
-#ifdef Custom_Matlab_Output
+#ifdef CUSTOM_MATLAB_OUTPUT
     #include <AP_HAL/utility/Socket.h>
 #endif
 
@@ -145,13 +145,6 @@ protected:
     AC_Loiter*& loiter_nav;
     QuadPlane& quadplane;
     QuadPlane::PosControlState &poscontrol;
-#endif
-
-    MatlabControllerClass custom_controller;
-#ifdef Custom_Matlab_Output
-    SocketAPM socket_debug; //
-    const char *_debug_address = "127.0.0.1";
-    int _debug_port = 9004;
 #endif
 };
 
@@ -334,6 +327,13 @@ class ModeCustom : public Mode //added
 {
 public:
 
+    #ifdef CUSTOM_MATLAB_OUTPUT
+        ModeCustom(void);
+    #else
+        // inherit constructor
+        using Mode::Mode;
+    #endif
+
     Number mode_number() const override { return Number::CUSTOM; }
     const char* name() const override { return "CUSTOM"; }
     const char* name4() const override { return "CUSTOM"; }
@@ -384,6 +384,16 @@ protected:
     #ifdef Mode_Custom_Use_External_Controller
         void step_external();
     #endif
+
+private:
+
+    MatlabControllerClass custom_controller;
+
+#ifdef CUSTOM_MATLAB_OUTPUT
+    SocketAPM socket_debug; //
+    const char *_debug_address = "127.0.0.1";
+    int _debug_port = 9004;
+#endif
 };
 
 class ModeRTL : public Mode
