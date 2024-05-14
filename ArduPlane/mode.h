@@ -1,7 +1,6 @@
 #pragma once
 
 // #define CUSTOM_MATLAB_OUTPUT //define for the custom simulink output
-#define Custom_Debug // print performance to console
 // #define Mode_Custom_Use_External_Controller
 
 #include <AP_Param/AP_Param.h>

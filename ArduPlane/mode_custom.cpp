@@ -271,20 +271,6 @@ void ModeCustom::update()
         }
     }
     
-    
-    // plot rangefinder distance in cm for debugging
-
-    static uint16_t counter;
-    static uint32_t last_t, last_print;
-    uint32_t now = AP_HAL::micros();
-
-    if (last_t == 0) {
-        last_t = now;
-        return;
-    }
-    last_t = now;
-
-    counter++;
 
     time_total = AP_HAL::micros() - time_total;
     static uint32_t modecustom_max_us = 0;
@@ -296,24 +282,6 @@ void ModeCustom::update()
         "Qffff",
         AP_HAL::micros64(),
         (double)time_total, (double)time_step, (double)time_log, (double)modecustom_max_us );
-    
-    #ifdef Custom_Debug
-        if ((now - last_print >= 5e6) || (rtU_->cmd.mission_change == 1)  /* 5e6 us -> 5.0 hz */ ) {
-            
-            #ifdef Mode_Custom_Use_External_Controller
-                GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Bytes avail: %d, Bytes read: %d, Missed Frames: %d \n", bytes_avail, bytes_read, missed_frames);
-                missed_frames = 0;
-
-                GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Time in us: %d, max: %d Logs: %f %f %f %f %f %f %f %f %f  \n", (int)time_total, (int)modecustom_max_us,
-                rtY_->logs[0], rtY_->logs[1], rtY_->logs[2], rtY_->logs[3], rtY_->logs[4], rtY_->logs[5], rtY_->logs[6], rtY_->logs[7], rtY_->logs[8]);
-            #else
-                GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Time in us: %d, max: %d  \n", (int)time_total, (int)modecustom_max_us);
-            #endif
-
-            last_print = now;
-            counter = 0;
-        }
-    #endif
 
 }
 
