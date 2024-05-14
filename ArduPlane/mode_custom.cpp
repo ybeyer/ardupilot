@@ -3,6 +3,17 @@
 #include <AP_Common/MatlabController.h>
 #include <GCS_MAVLink/include/mavlink/v2.0/checksum.h>
 
+// Check if MatlabControllerClass contains parameters
+//  - if MatlabControllerClass was postprocessed for tunable parameters:
+//      - 'MatlabController.h' defines MODE_CUSTOM_VAR_INFO
+//      - 'ModeCustomParams.cpp' defines 'const AP_Param::GroupInfo ModeCustom::var_info'
+#ifndef MODE_CUSTOM_VAR_INFO
+#define MODE_CUSTOM_VAR_INFO
+const AP_Param::GroupInfo ModeCustom::var_info[] = {
+	AP_GROUPEND
+};
+#endif
+
 #ifdef Mode_Custom_Use_External_Controller
     // Matek H743-MINI: 1 = TX7, 2 = TX1, 3 = TX2, 6 = TX4, 7 = TX6
     AP_HAL::UARTDriver *fc_uart = hal.serial(2);

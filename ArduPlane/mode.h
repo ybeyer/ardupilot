@@ -344,6 +344,10 @@ public:
     void add_speed(uint16_T index, float V_k);
     void mission_updated(){updated_waypoints = true;};
 
+    MatlabControllerClass custom_controller;
+
+    static const struct AP_Param::GroupInfo var_info[];
+
 protected:
 
     bool _enter() override;
@@ -386,8 +390,6 @@ protected:
     #endif
 
 private:
-
-    MatlabControllerClass custom_controller;
 
 #ifdef CUSTOM_MATLAB_OUTPUT
     SocketAPM socket_debug; //

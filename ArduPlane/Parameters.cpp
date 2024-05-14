@@ -1002,6 +1002,12 @@ const AP_Param::Info Plane::var_info[] = {
     // @Path: ../libraries/AP_Vehicle/AP_Vehicle.cpp
     { AP_PARAM_GROUP, "", Parameters::k_param_vehicle, (const void *)&plane, {group_info : AP_Vehicle::var_info} },
 
+    // ModeCustom and MatlabControllerClass
+    // @Group: ML
+    // @Path: ../ArduPlane/mode_custom.cpp
+    // @Path: ../libraries/AC_AttitudeControl/MatlabController.cpp
+    GOBJECT(mode_custom, "ML_", ModeCustom),
+
     AP_VAREND
 };
 
