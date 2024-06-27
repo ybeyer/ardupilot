@@ -208,7 +208,7 @@ void ModeCustom::update()
     // Send all inputs of custom controller to Simulink (uncomment line 3 in mode.h)
     // Check byte alignment/padding in Simulink, while receiving (e.g. 4)
     #ifdef CUSTOM_MATLAB_OUTPUT
-        socket_debug.sendto(rtU_, sizeof(ExtU), _debug_address, _debug_port); 
+        socket_debug.sendto(&custom_controller.rtU.measure, sizeof(measureBus), _debug_address, _debug_port); 
     #endif
 
     // log signals
