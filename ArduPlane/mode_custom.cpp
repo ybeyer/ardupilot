@@ -30,6 +30,17 @@ ModeCustom::ModeCustom(void) : Mode(), socket_debug(true)
 }
 #endif
 
+AP_HAL::UARTDriver *fc_serial5 = hal.serial(5);
+uint16_t missed_frames = 0;
+float t = 0;
+float Phi = 0;
+char identifier = '$';
+float imu_a_z[4] = {0,0,0,0};
+float imu_p[4] = {0,0,0,0};
+uint8_t buffer[4];
+char identifier_read = '0';
+uint16_t bytes_avail_5 = 0;
+
 
 bool ModeCustom::_enter()
 {
@@ -43,6 +54,10 @@ bool ModeCustom::_enter()
     // init custom logging
     log_setup(log_config);
 
+    fc_serial5->begin(2000000);
+    memset(buffer, 0, sizeof(buffer));
+    Phi = 0;
+
     return true;
 }
 
@@ -51,6 +66,10 @@ void ModeCustom::update()
 {
 
     uint32_t time_total = AP_HAL::micros();
+
+    fc_serial5->write(identifier);
+    fc_serial5->write((uint8_t)0);
+    fc_serial5->flush();
 
     // get pilot inputs
     float tr_max_inv = 1.0 / 4500;
@@ -113,12 +132,46 @@ void ModeCustom::update()
 
     Vector3f position_NED;
     //if(!plane.ahrs.get_relative_position_NED_home(position_NED))
-    if(!plane.ahrs.get_relative_position_NED_origin(position_NED))
-    {
+    if(!plane.ahrs.get_relative_position_NED_origin(position_NED)) {
         position_NED[0] = 0;
         position_NED[1] = 0;
         position_NED[2] = 0;
     }
+
+
+    memset(imu_a_z, 0, sizeof(imu_a_z));
+    memset(imu_p, 0, sizeof(imu_p));
+    for (uint8_t i=0; i<4; i++) {
+        bytes_avail_5 = fc_serial5->available();
+        if (bytes_avail_5 >= 2) {
+            identifier_read = fc_serial5->read();
+            if (identifier_read == identifier) {
+                uint8_t sensor_id = fc_serial5->read();
+                fc_serial5->read(buffer, sizeof(buffer));
+                memcpy(&imu_p[sensor_id], &buffer, sizeof(buffer));
+                fc_serial5->read(buffer, sizeof(buffer));
+                memcpy(&imu_a_z[sensor_id], &buffer, sizeof(buffer));
+            } else {
+                while(fc_serial5->available()) {
+                    fc_serial5->read();
+                }
+            }
+        }
+    }
+    
+    Phi += plane.scheduler.get_loop_period_s() * imu_p[0];
+
+    t = t + plane.scheduler.get_loop_period_s();
+    if (t>0.5) {
+        
+        if (t>1) {
+            // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "A: %u, B: %u, C: %u, D: %u, E: %u", char1, char2, char3, char4, char5);
+            // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "identifier: %c, identifier_read: %c", identifier, identifier_read);
+            GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "az1: %f, p1: %f, az4: %f, p4: %f", imu_a_z[0], imu_p[0], imu_a_z[3], imu_p[3]);
+            t = 0;
+        }
+    }
+
 
 
     // assign commanded and measured values to controller inputs struct
@@ -129,7 +182,7 @@ void ModeCustom::update()
     rtU_->cmd.pitch = pitch_out;
     rtU_->cmd.yaw   = yaw_out;
     rtU_->cmd.thr   = throttle_control;
-     for (int i=0;i<16;i++) {
+    for (int i=0;i<16;i++) {
         rtU_->cmd.RC_pwm[i] = plane.g2.rc_channels.channel(i)->get_radio_in();
     }
 
