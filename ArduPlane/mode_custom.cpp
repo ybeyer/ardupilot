@@ -30,16 +30,17 @@ ModeCustom::ModeCustom(void) : Mode(), socket_debug(true)
 }
 #endif
 
+AP_HAL::UARTDriver *fc_serial6 = hal.serial(6);
 AP_HAL::UARTDriver *fc_serial5 = hal.serial(5);
 uint16_t missed_frames = 0;
 float t = 0;
 float Phi = 0;
 char identifier = '$';
-float imu_a_z[4] = {0,0,0,0};
-float imu_p[4] = {0,0,0,0};
+float imu_a_z[8] = {0,0,0,0,0,0,0,0};
+float imu_p[8] = {0,0,0,0,0,0,0,0};
 uint8_t buffer[4];
 char identifier_read = '0';
-uint16_t bytes_avail_5 = 0;
+uint16_t bytes_avail = 0;
 
 
 bool ModeCustom::_enter()
@@ -54,8 +55,9 @@ bool ModeCustom::_enter()
     // init custom logging
     log_setup(log_config);
 
+    fc_serial6->begin(2000000);
     fc_serial5->begin(2000000);
-    memset(buffer, 0, sizeof(buffer));
+
     Phi = 0;
 
     return true;
@@ -66,6 +68,10 @@ void ModeCustom::update()
 {
 
     uint32_t time_total = AP_HAL::micros();
+
+    fc_serial6->write(identifier);
+    fc_serial6->write((uint8_t)0);
+    fc_serial6->flush();
 
     fc_serial5->write(identifier);
     fc_serial5->write((uint8_t)0);
@@ -139,16 +145,37 @@ void ModeCustom::update()
     }
 
 
+    
     memset(imu_a_z, 0, sizeof(imu_a_z));
     memset(imu_p, 0, sizeof(imu_p));
+    // left wing
     for (uint8_t i=0; i<4; i++) {
-        bytes_avail_5 = fc_serial5->available();
-        if (bytes_avail_5 >= 2) {
+        bytes_avail = fc_serial6->available();
+        if (bytes_avail >= 2) {
+            identifier_read = fc_serial6->read();
+            if (identifier_read == identifier) {
+                uint8_t sensor_id = 3 - fc_serial6->read(); // flip sensor IDs
+                fc_serial6->read(buffer, sizeof(buffer));
+                memcpy(&imu_p[sensor_id], &buffer, sizeof(buffer));
+                fc_serial6->read(buffer, sizeof(buffer));
+                memcpy(&imu_a_z[sensor_id], &buffer, sizeof(buffer));
+            } else {
+                while(fc_serial6->available()) {
+                    fc_serial6->read();
+                }
+            }
+        }
+    }
+    // right wing
+    for (uint8_t i=0; i<4; i++) {
+        bytes_avail = fc_serial5->available();
+        if (bytes_avail >= 2) {
             identifier_read = fc_serial5->read();
             if (identifier_read == identifier) {
-                uint8_t sensor_id = fc_serial5->read();
+                uint8_t sensor_id = 4 + fc_serial5->read(); // start with 4
                 fc_serial5->read(buffer, sizeof(buffer));
                 memcpy(&imu_p[sensor_id], &buffer, sizeof(buffer));
+                imu_p[sensor_id] = -imu_p[sensor_id]; // reverse sign
                 fc_serial5->read(buffer, sizeof(buffer));
                 memcpy(&imu_a_z[sensor_id], &buffer, sizeof(buffer));
             } else {
@@ -161,17 +188,15 @@ void ModeCustom::update()
     
     Phi += plane.scheduler.get_loop_period_s() * imu_p[0];
 
+    /*
     t = t + plane.scheduler.get_loop_period_s();
-    if (t>0.5) {
-        
-        if (t>1) {
-            // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "A: %u, B: %u, C: %u, D: %u, E: %u", char1, char2, char3, char4, char5);
-            // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "identifier: %c, identifier_read: %c", identifier, identifier_read);
-            GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "az1: %f, p1: %f, az4: %f, p4: %f", imu_a_z[0], imu_p[0], imu_a_z[3], imu_p[3]);
+    if (t>0.5f) {
+        if (t>1.0f) {
             t = 0;
+            GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "p1: %f, p4: %f, p5: %f, p8: %f", imu_p[0], imu_p[3], imu_p[4], imu_p[7]);
         }
     }
-
+    */
 
 
     // assign commanded and measured values to controller inputs struct
@@ -218,6 +243,23 @@ void ModeCustom::update()
     rtU_->measure.rangefinder[3] = rangefinder_dist[3];
     rtU_->measure.rangefinder[4] = rangefinder_dist[4];
     rtU_->measure.rangefinder[5] = rangefinder_dist[5];
+
+    rtU_->measure.imu_p[0] = imu_p[0];
+    rtU_->measure.imu_p[1] = imu_p[1];
+    rtU_->measure.imu_p[2] = imu_p[2];
+    rtU_->measure.imu_p[3] = imu_p[3];
+    rtU_->measure.imu_p[4] = imu_p[4];
+    rtU_->measure.imu_p[5] = imu_p[5];
+    rtU_->measure.imu_p[6] = imu_p[6];
+    rtU_->measure.imu_p[7] = imu_p[7];
+    rtU_->measure.imu_a_z[0] = imu_a_z[0];
+    rtU_->measure.imu_a_z[1] = imu_a_z[1];
+    rtU_->measure.imu_a_z[2] = imu_a_z[2];
+    rtU_->measure.imu_a_z[3] = imu_a_z[3];
+    rtU_->measure.imu_a_z[4] = imu_a_z[4];
+    rtU_->measure.imu_a_z[5] = imu_a_z[5];
+    rtU_->measure.imu_a_z[6] = imu_a_z[6];
+    rtU_->measure.imu_a_z[7] = imu_a_z[7];
 
     // assign or update waypoints
     // overwrite all custom controller waypoints with 5m above home position
