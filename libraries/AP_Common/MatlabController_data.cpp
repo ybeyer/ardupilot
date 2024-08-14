@@ -5,11 +5,11 @@
 //
 // File: MatlabController_data.cpp
 //
-// Code generated for Simulink model 'ArduPlane_TemplateController'.
+// Code generated for Simulink model 'ArduPlane_LindiPlane'.
 //
-// Model version                  : 1.410
+// Model version                  : 1.775
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Tue Oct 18 19:51:49 2022
+// C/C++ source code generated on : Mon Aug 12 18:23:58 2024
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -20,19 +20,18 @@
 //
 #include "MatlabController.h"
 
-// Invariant block signals (default storage)
-const ConstB rtConstB = {
-  {
-    4U,
-    19U,
-    70U,
-    21U,
-    0U,
-    0U,
-    0U,
-    0U
-  }
-  // '<S1>/Data Type Conversion1'
+// Constant parameters (default storage)
+const ConstP rtConstP = {
+  // Computed Parameter: Gain_Gain_o
+  //  Referenced by: '<S8>/Gain'
+
+  { 1.0F, 0.75F, 0.5F, 0.25F, -0.25F, -0.5F, -0.75F, -1.0F },
+
+  // Expression: ch_fcn
+  //  Referenced by: '<S1>/Constant'
+
+  { 999U, 999U, 999U, 999U, 999U, 999U, 999U, 999U, 19U, 21U, 70U, 0U, 0U, 0U,
+    0U, 0U }
 };
 
 //

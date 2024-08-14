@@ -5,11 +5,11 @@
 //
 // File: rtwtypes.h
 //
-// Code generated for Simulink model 'ArduPlane_ManualMode'.
+// Code generated for Simulink model 'ArduPlane_LindiPlane'.
 //
-// Model version                  : 1.407
+// Model version                  : 1.775
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Sat Oct  8 13:33:22 2022
+// C/C++ source code generated on : Mon Aug 12 18:23:58 2024
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
