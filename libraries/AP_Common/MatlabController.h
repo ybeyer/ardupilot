@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'ArduPlane_LindiPlane'.
 //
-// Model version                  : 1.775
+// Model version                  : 1.777
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Mon Aug 12 18:23:58 2024
+// C/C++ source code generated on : Mon Aug 26 20:49:29 2024
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -400,8 +400,8 @@ typedef struct {
   real32_T DiscreteTimeIntegratory_dt_D_pb[3];// '<S29>/Discrete-Time Integrator y_dt' 
   real32_T DiscreteTimeIntegratory_DSTA_ff[3];// '<S28>/Discrete-Time Integrator y' 
   real32_T DiscreteTimeIntegratory_dt_D_be[3];// '<S28>/Discrete-Time Integrator y_dt' 
-  real32_T Merge;                      // '<S5>/Merge'
   real32_T Merge2;                     // '<S5>/Merge2'
+  real32_T Merge;                      // '<S5>/Merge'
   real32_T Merge1;                     // '<S5>/Merge1'
   real32_T iter;
   real32_T wp_idx;
@@ -418,24 +418,27 @@ typedef struct {
   real32_T UnitDelay_DSTATE;           // '<S38>/Unit Delay'
   real32_T DiscreteTimeIntegrator_DSTATE_c;// '<S37>/Discrete-Time Integrator'
   real32_T UnitDelay_DSTATE_a;         // '<S37>/Unit Delay'
-  real32_T DiscreteTimeIntegratory_dt_DSTA;// '<S84>/Discrete-Time Integrator y_dt' 
-  real32_T DiscreteTimeIntegratory_DSTAT_h;// '<S92>/Discrete-Time Integrator y' 
+  real32_T UnitDelay_DSTATE_f;         // '<S21>/Unit Delay'
   real32_T DiscreteTimeIntegrator_DSTATE_e;// '<S61>/Discrete-Time Integrator'
   real32_T DiscreteTimeIntegratory_DSTAT_i;// '<S63>/Discrete-Time Integrator y' 
   real32_T DiscreteTimeIntegratory_DSTAT_e;// '<S62>/Discrete-Time Integrator y' 
   real32_T DiscreteTimeIntegrator_DSTATE_h;// '<S66>/Discrete-Time Integrator'
-  real32_T DiscreteTimeIntegratory_DSTA_hy;// '<S67>/Discrete-Time Integrator y' 
-  real32_T UnitDelay_DSTATE_f;         // '<S21>/Unit Delay'
+  real32_T DiscreteTimeIntegratory_DSTAT_h;// '<S67>/Discrete-Time Integrator y' 
   real32_T DiscreteTimeIntegratory_DSTAT_p;// '<S84>/Discrete-Time Integrator y' 
+  real32_T DiscreteTimeIntegratory_dt_DSTA;// '<S84>/Discrete-Time Integrator y_dt' 
   real32_T DiscreteTimeIntegratory_DSTA_bw;// '<S85>/Discrete-Time Integrator y' 
   real32_T DiscreteTimeIntegratory_DSTAT_m;// '<S86>/Discrete-Time Integrator y' 
   real32_T DiscreteTimeIntegratory_DSTAT_f;// '<S87>/Discrete-Time Integrator y' 
+  real32_T DiscreteTimeIntegratory_DSTA_hc;// '<S92>/Discrete-Time Integrator y' 
   real32_T UnitDelay_DSTATE_fx;        // '<S22>/Unit Delay'
   real32_T DiscreteTimeIntegrator_DSTATE_o;// '<S100>/Discrete-Time Integrator'
   real32_T DiscreteTimeIntegratory_DSTA_f0;// '<S102>/Discrete-Time Integrator y' 
   real32_T DiscreteTimeIntegratory_DSTAT_o;// '<S101>/Discrete-Time Integrator y' 
   real32_T DiscreteTimeIntegratory_dt_D_oo;// '<S101>/Discrete-Time Integrator y_dt' 
   real32_T DiscreteTimeIntegratory_dt_DS_j;// '<S102>/Discrete-Time Integrator y_dt' 
+  real32_T DiscreteTimeIntegratory_dt_DS_g;// '<S92>/Discrete-Time Integrator y_dt' 
+  real32_T DiscreteTimeIntegratory_DSTAT_g;// '<S93>/Discrete-Time Integrator y' 
+  real32_T DiscreteTimeIntegratory_dt_D_ir;// '<S93>/Discrete-Time Integrator y_dt' 
   real32_T DiscreteTimeIntegratory_dt_DS_l;// '<S87>/Discrete-Time Integrator y_dt' 
   real32_T DiscreteTimeIntegratory_dt_DS_f;// '<S86>/Discrete-Time Integrator y_dt' 
   real32_T DiscreteTimeIntegratory_dt_D_pv;// '<S85>/Discrete-Time Integrator y_dt' 
@@ -444,9 +447,6 @@ typedef struct {
   real32_T DiscreteTimeIntegratory_dt_D_lv;// '<S68>/Discrete-Time Integrator y_dt' 
   real32_T DiscreteTimeIntegratory_dt_D_eo;// '<S62>/Discrete-Time Integrator y_dt' 
   real32_T DiscreteTimeIntegratory_dt_D_nr;// '<S63>/Discrete-Time Integrator y_dt' 
-  real32_T DiscreteTimeIntegratory_dt_DS_g;// '<S92>/Discrete-Time Integrator y_dt' 
-  real32_T DiscreteTimeIntegratory_DSTAT_g;// '<S93>/Discrete-Time Integrator y' 
-  real32_T DiscreteTimeIntegratory_dt_D_ir;// '<S93>/Discrete-Time Integrator y_dt' 
   real32_T DiscreteTimeIntegratory_dt_D_gf;// '<S43>/Discrete-Time Integrator y_dt' 
   real32_T DiscreteTimeIntegrator_DSTATE_p;// '<S57>/Discrete-Time Integrator'
   real32_T DiscreteTimeIntegrator_DSTATE_a;// '<S58>/Discrete-Time Integrator'

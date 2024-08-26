@@ -216,7 +216,7 @@ const AP_Param::GroupInfo MatlabControllerClass::var_info_4[] = {
   AP_GROUPINFO("ca_W9", 9, MatlabControllerClass, rtP.lindi.ca.W[8], 0),
   AP_GROUPINFO("ca_W10", 10, MatlabControllerClass, rtP.lindi.ca.W[9], 0),
   AP_GROUPINFO("ca_iMax", 11, MatlabControllerClass, rtP.lindi.ca.i_max, 15),
-  AP_GROUPINFO("mla_use", 12, MatlabControllerClass, rtP.lindi.mla.use, 1),
+  AP_GROUPINFO("mla_use", 12, MatlabControllerClass, rtP.lindi.mla.use, 0),
   AP_GROUPINFO("mla_etaNp1", 13, MatlabControllerClass, rtP.lindi.mla.eta_np[0], -4.292534e-01),
   AP_GROUPINFO("mla_etaNp2", 14, MatlabControllerClass, rtP.lindi.mla.eta_np[1], 4.292534e-01),
   AP_GROUPINFO("mla_ca_Wv1", 15, MatlabControllerClass, rtP.lindi.mla.ca.W_v[0], 1),

@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'ArduPlane_LindiPlane'.
 //
-// Model version                  : 1.775
+// Model version                  : 1.777
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Mon Aug 12 18:23:58 2024
+// C/C++ source code generated on : Mon Aug 26 20:49:29 2024
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)

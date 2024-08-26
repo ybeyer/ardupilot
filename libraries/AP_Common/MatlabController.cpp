@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'ArduPlane_LindiPlane'.
 //
-// Model version                  : 1.775
+// Model version                  : 1.777
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Mon Aug 12 18:23:58 2024
+// C/C++ source code generated on : Mon Aug 26 20:49:29 2024
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -3310,6 +3310,7 @@ void MatlabControllerClass::step()
 
   real32_T a_Kb_yz[2];
   real32_T g_b_yz[2];
+  real32_T Phi_i;
   real32_T G11_1[8];
   real32_T G11_2[8];
   real32_T umin_0[8];
@@ -3330,24 +3331,23 @@ void MatlabControllerClass::step()
   real32_T rtb_M_bg[9];
   real32_T rtb_y_j5[30];
   real32_T rtb_Sum2_ny[3];
-  real32_T rtb_Sum2_f;
-  real32_T rtb_Sum2_mz;
-  real32_T rtb_Sum2_ki;
-  real32_T rtb_Sum2_ct;
-  real32_T rtb_Sum2_k;
-  real32_T rtb_Sum2_l;
-  real32_T rtb_Sum2_co;
-  real32_T rtb_Sum2_nu;
+  real32_T rtb_Sum2_g;
+  real32_T rtb_Sum2_mn;
   real32_T rtb_Sum2_p;
-  real32_T rtb_Sum2_os;
+  real32_T rtb_Sum2_dt;
+  real32_T rtb_Sum2_ec;
+  real32_T rtb_Sum2_po;
   real32_T rtb_Sum2_n;
-  real32_T rtb_Sum2_kv[10];
-  real32_T rtb_Sum2_e[10];
+  real32_T rtb_Sum2_o3;
+  real32_T rtb_Sum2_lb;
+  real32_T rtb_Sum2_b;
+  real32_T rtb_Sum2_cx;
+  real32_T rtb_Sum2_dx[10];
+  real32_T rtb_Sum2_ha[10];
   real32_T rtb_Delta_u[10];
   real32_T rtb_y[11];
   real32_T rtb_DiscreteTimeIntegrator_l[10];
   boolean_T rtb_Compare_b;
-  real32_T rtb_Gain_cf;
   uint8_T rtb_Compare;
   boolean_T rtb_Compare_j;
   real32_T expl_temp[3];
@@ -3356,7 +3356,7 @@ void MatlabControllerClass::step()
   real32_T tmp[8];
   real32_T tmp_0[2];
   real32_T dir_next_wp_0[3];
-  real32_T rtb_Sum2_k_0[3];
+  real32_T rtb_Sum2_k[3];
   real32_T tmp_1[30];
   real32_T I_b_0[30];
   uint16_T p3_0[3];
@@ -3366,11 +3366,10 @@ void MatlabControllerClass::step()
   int32_T rtb_y_g_size_2[2];
   real32_T y_m[3];
   real32_T p_match_2[3];
-  real32_T y_m_0;
   real32_T q_bg_unsigned_idx_0;
   real32_T q_bg_unsigned_idx_1;
   real32_T q_bg_unsigned_idx_2;
-  real32_T y_idx_2;
+  real32_T q_bg_unsigned_idx_3;
   real32_T rtb_omega2_e_0;
 
   // RelationalOperator: '<S2>/Compare' incorporates:
@@ -3401,46 +3400,46 @@ void MatlabControllerClass::step()
   scale = 1.29246971E-26F;
   absxk = std::abs(rtU.measure.q_bg[0]);
   if (absxk > 1.29246971E-26F) {
-    q2_q3 = 1.0F;
+    q1_q3 = 1.0F;
     scale = absxk;
   } else {
     t = absxk / 1.29246971E-26F;
-    q2_q3 = t * t;
+    q1_q3 = t * t;
   }
 
   absxk = std::abs(rtU.measure.q_bg[1]);
   if (absxk > scale) {
     t = scale / absxk;
-    q2_q3 = q2_q3 * t * t + 1.0F;
+    q1_q3 = q1_q3 * t * t + 1.0F;
     scale = absxk;
   } else {
     t = absxk / scale;
-    q2_q3 += t * t;
+    q1_q3 += t * t;
   }
 
   absxk = std::abs(rtU.measure.q_bg[2]);
   if (absxk > scale) {
     t = scale / absxk;
-    q2_q3 = q2_q3 * t * t + 1.0F;
+    q1_q3 = q1_q3 * t * t + 1.0F;
     scale = absxk;
   } else {
     t = absxk / scale;
-    q2_q3 += t * t;
+    q1_q3 += t * t;
   }
 
   absxk = std::abs(rtU.measure.q_bg[3]);
   if (absxk > scale) {
     t = scale / absxk;
-    q2_q3 = q2_q3 * t * t + 1.0F;
+    q1_q3 = q1_q3 * t * t + 1.0F;
     scale = absxk;
   } else {
     t = absxk / scale;
-    q2_q3 += t * t;
+    q1_q3 += t * t;
   }
 
-  q2_q3 = scale * std::sqrt(q2_q3);
-  if (2.22044605E-16F < q2_q3) {
-    scale = q2_q3;
+  q1_q3 = scale * std::sqrt(q1_q3);
+  if (2.22044605E-16F < q1_q3) {
+    scale = q1_q3;
   } else {
     scale = 2.22044605E-16F;
   }
@@ -3448,7 +3447,7 @@ void MatlabControllerClass::step()
   q_bg_unsigned_idx_0 = rtU.measure.q_bg[0] / scale;
   q_bg_unsigned_idx_1 = rtU.measure.q_bg[1] / scale;
   q_bg_unsigned_idx_2 = rtU.measure.q_bg[2] / scale;
-  q2_q3 = rtU.measure.q_bg[3] / scale;
+  q_bg_unsigned_idx_3 = rtU.measure.q_bg[3] / scale;
 
   // 'quat2Dcm:33' q0_q0 = q_bg(1)^2;
   q0_q0 = q_bg_unsigned_idx_0 * q_bg_unsigned_idx_0;
@@ -3460,7 +3459,7 @@ void MatlabControllerClass::step()
   q2_q2 = q_bg_unsigned_idx_2 * q_bg_unsigned_idx_2;
 
   // 'quat2Dcm:36' q3_q3 = q_bg(4)^2;
-  scale = q2_q3 * q2_q3;
+  scale = q_bg_unsigned_idx_3 * q_bg_unsigned_idx_3;
 
   // 'quat2Dcm:37' q0_q1 = q_bg(1)*q_bg(2);
   absxk = q_bg_unsigned_idx_0 * q_bg_unsigned_idx_1;
@@ -3469,16 +3468,16 @@ void MatlabControllerClass::step()
   t = q_bg_unsigned_idx_0 * q_bg_unsigned_idx_2;
 
   // 'quat2Dcm:39' q0_q3 = q_bg(1)*q_bg(4);
-  q0_q3 = q_bg_unsigned_idx_0 * q2_q3;
+  q0_q3 = q_bg_unsigned_idx_0 * q_bg_unsigned_idx_3;
 
   // 'quat2Dcm:40' q1_q2 = q_bg(2)*q_bg(3);
   q1_q2 = q_bg_unsigned_idx_1 * q_bg_unsigned_idx_2;
 
   // 'quat2Dcm:41' q1_q3 = q_bg(2)*q_bg(4);
-  q1_q3 = q_bg_unsigned_idx_1 * q2_q3;
+  q1_q3 = q_bg_unsigned_idx_1 * q_bg_unsigned_idx_3;
 
   // 'quat2Dcm:42' q2_q3 = q_bg(3)*q_bg(4);
-  q2_q3 *= q_bg_unsigned_idx_2;
+  q2_q3 = q_bg_unsigned_idx_2 * q_bg_unsigned_idx_3;
 
   // 'quat2Dcm:45' M_bg = [
   // 'quat2Dcm:46'     q0_q0 + q1_q1 - q2_q2 - q3_q3,...
@@ -3563,11 +3562,8 @@ void MatlabControllerClass::step()
         rtDW.Delay_DSTATE_h[i] = 0.0F;
       }
 
-      // InitializeConditions for DiscreteIntegrator: '<S84>/Discrete-Time Integrator y_dt' 
-      rtDW.DiscreteTimeIntegratory_dt_DSTA = 0.0F;
-
-      // InitializeConditions for DiscreteIntegrator: '<S92>/Discrete-Time Integrator y' 
-      rtDW.DiscreteTimeIntegratory_DSTAT_h = 0.0F;
+      // InitializeConditions for UnitDelay: '<S21>/Unit Delay'
+      rtDW.UnitDelay_DSTATE_f = 0.0F;
 
       // InitializeConditions for DiscreteIntegrator: '<S61>/Discrete-Time Integrator' 
       rtDW.DiscreteTimeIntegrator_IC_LOADI = 1U;
@@ -3582,13 +3578,13 @@ void MatlabControllerClass::step()
       rtDW.DiscreteTimeIntegrator_DSTATE_h = 0.0F;
 
       // InitializeConditions for DiscreteIntegrator: '<S67>/Discrete-Time Integrator y' 
-      rtDW.DiscreteTimeIntegratory_DSTA_hy = 0.0F;
-
-      // InitializeConditions for UnitDelay: '<S21>/Unit Delay'
-      rtDW.UnitDelay_DSTATE_f = 0.0F;
+      rtDW.DiscreteTimeIntegratory_DSTAT_h = 0.0F;
 
       // InitializeConditions for DiscreteIntegrator: '<S84>/Discrete-Time Integrator y' 
       rtDW.DiscreteTimeIntegratory_DSTAT_p = 0.0F;
+
+      // InitializeConditions for DiscreteIntegrator: '<S84>/Discrete-Time Integrator y_dt' 
+      rtDW.DiscreteTimeIntegratory_dt_DSTA = 0.0F;
 
       // InitializeConditions for DiscreteIntegrator: '<S85>/Discrete-Time Integrator y' 
       rtDW.DiscreteTimeIntegratory_IC_LO_b = 1U;
@@ -3598,6 +3594,9 @@ void MatlabControllerClass::step()
 
       // InitializeConditions for DiscreteIntegrator: '<S87>/Discrete-Time Integrator y' 
       rtDW.DiscreteTimeIntegratory_IC_LO_c = 1U;
+
+      // InitializeConditions for DiscreteIntegrator: '<S92>/Discrete-Time Integrator y' 
+      rtDW.DiscreteTimeIntegratory_DSTA_hc = 0.0F;
 
       // InitializeConditions for UnitDelay: '<S22>/Unit Delay'
       rtDW.UnitDelay_DSTATE_fx = 0.0F;
@@ -3682,6 +3681,15 @@ void MatlabControllerClass::step()
       // InitializeConditions for DiscreteIntegrator: '<S102>/Discrete-Time Integrator y_dt' 
       rtDW.DiscreteTimeIntegratory_dt_DS_j = 0.0F;
 
+      // InitializeConditions for DiscreteIntegrator: '<S92>/Discrete-Time Integrator y_dt' 
+      rtDW.DiscreteTimeIntegratory_dt_DS_g = 0.0F;
+
+      // InitializeConditions for DiscreteIntegrator: '<S93>/Discrete-Time Integrator y' 
+      rtDW.DiscreteTimeIntegratory_DSTAT_g = 0.0F;
+
+      // InitializeConditions for DiscreteIntegrator: '<S93>/Discrete-Time Integrator y_dt' 
+      rtDW.DiscreteTimeIntegratory_dt_D_ir = 0.0F;
+
       // InitializeConditions for DiscreteIntegrator: '<S87>/Discrete-Time Integrator y_dt' 
       rtDW.DiscreteTimeIntegratory_dt_DS_l = 0.0F;
 
@@ -3705,15 +3713,6 @@ void MatlabControllerClass::step()
 
       // InitializeConditions for DiscreteIntegrator: '<S63>/Discrete-Time Integrator y_dt' 
       rtDW.DiscreteTimeIntegratory_dt_D_nr = 0.0F;
-
-      // InitializeConditions for DiscreteIntegrator: '<S92>/Discrete-Time Integrator y_dt' 
-      rtDW.DiscreteTimeIntegratory_dt_DS_g = 0.0F;
-
-      // InitializeConditions for DiscreteIntegrator: '<S93>/Discrete-Time Integrator y' 
-      rtDW.DiscreteTimeIntegratory_DSTAT_g = 0.0F;
-
-      // InitializeConditions for DiscreteIntegrator: '<S93>/Discrete-Time Integrator y_dt' 
-      rtDW.DiscreteTimeIntegratory_dt_D_ir = 0.0F;
 
       // InitializeConditions for DiscreteIntegrator: '<S43>/Discrete-Time Integrator y_dt' 
       rtDW.DiscreteTimeIntegratory_dt_D_gf = 0.0F;
@@ -3770,20 +3769,20 @@ void MatlabControllerClass::step()
       }
     }
 
-    q_bg_unsigned_idx_0 = x[1] / x[0];
-    x[1] = q_bg_unsigned_idx_0;
+    q_bg_unsigned_idx_1 = x[1] / x[0];
+    x[1] = q_bg_unsigned_idx_1;
     q1_q1 = x[2] / x[0];
     x[2] = q1_q1;
-    x[4] -= q_bg_unsigned_idx_0 * x[3];
+    x[4] -= q_bg_unsigned_idx_1 * x[3];
     x[5] -= q1_q1 * x[3];
-    x[7] -= q_bg_unsigned_idx_0 * x[6];
+    x[7] -= q_bg_unsigned_idx_1 * x[6];
     x[8] -= q1_q1 * x[6];
     if (std::abs(x[5]) > std::abs(x[4])) {
       itmp = p2;
       p2 = p3;
       p3 = itmp;
       x[1] = q1_q1;
-      x[2] = q_bg_unsigned_idx_0;
+      x[2] = q_bg_unsigned_idx_1;
       q0_q0 = x[4];
       x[4] = x[5];
       x[5] = q0_q0;
@@ -3792,14 +3791,14 @@ void MatlabControllerClass::step()
       x[8] = q0_q0;
     }
 
-    q_bg_unsigned_idx_0 = x[5] / x[4];
-    x[8] -= q_bg_unsigned_idx_0 * x[7];
-    q0_q0 = (q_bg_unsigned_idx_0 * x[1] - x[2]) / x[8];
+    q_bg_unsigned_idx_1 = x[5] / x[4];
+    x[8] -= q_bg_unsigned_idx_1 * x[7];
+    q0_q0 = (q_bg_unsigned_idx_1 * x[1] - x[2]) / x[8];
     q1_q1 = -(x[7] * q0_q0 + x[1]) / x[4];
     I_b[i] = ((1.0F - x[3] * q1_q1) - x[6] * q0_q0) / x[0];
     I_b[i + 1] = q1_q1;
     I_b[i + 2] = q0_q0;
-    q0_q0 = -q_bg_unsigned_idx_0 / x[8];
+    q0_q0 = -q_bg_unsigned_idx_1 / x[8];
     q1_q1 = (1.0F - x[7] * q0_q0) / x[4];
     I_b[p2] = -(x[3] * q1_q1 + x[6] * q0_q0) / x[0];
     I_b[p2 + 1] = q1_q1;
@@ -4058,7 +4057,7 @@ void MatlabControllerClass::step()
 
       // :  a = zeros(3,1,superiorfloat(waypoints));
       t = 0.0F;
-      q1_q3 = 0.0F;
+      q1_q2 = 0.0F;
       absxk = 0.0F;
 
       // :  v = zeros(3,1,superiorfloat(waypoints));
@@ -4139,71 +4138,71 @@ void MatlabControllerClass::step()
 
       // :  e_pos = norm(p_match-p,2);
       // :  if e_pos > e_pos_max
-      rtb_Sum2_k_0[0] = rtb_Sum2_ny[0] - rtDW.DiscreteTimeIntegratory_DSTA_n2[0];
-      rtb_Sum2_k_0[1] = rtb_Sum2_ny[1] - rtDW.DiscreteTimeIntegratory_DSTA_n2[1];
-      rtb_Sum2_k_0[2] = rtb_Sum2_ny[2] - rtDW.DiscreteTimeIntegratory_DSTA_n2[2];
-      if (xnrm2_f(rtb_Sum2_k_0) > rtP.lindi.psc.rm.eposmax) {
+      rtb_Sum2_k[0] = rtb_Sum2_ny[0] - rtDW.DiscreteTimeIntegratory_DSTA_n2[0];
+      rtb_Sum2_k[1] = rtb_Sum2_ny[1] - rtDW.DiscreteTimeIntegratory_DSTA_n2[1];
+      rtb_Sum2_k[2] = rtb_Sum2_ny[2] - rtDW.DiscreteTimeIntegratory_DSTA_n2[2];
+      if (xnrm2_f(rtb_Sum2_k) > rtP.lindi.psc.rm.eposmax) {
         // :  dir_next_wp = waypoints(:,wp_idx) - p;
         stage_app_2 = (rtDW.UnitDelay_DSTATE_b - 1) * 3;
         dir_next_wp[0] = rtb_y_j5[stage_app_2] -
           rtDW.DiscreteTimeIntegratory_DSTA_n2[0];
         scale = rtb_y_j5[stage_app_2 + 1];
         dir_next_wp[1] = scale - rtDW.DiscreteTimeIntegratory_DSTA_n2[1];
-        q1_q2 = rtb_y_j5[stage_app_2 + 2];
-        dir_next_wp[2] = q1_q2 - rtDW.DiscreteTimeIntegratory_DSTA_n2[2];
+        q0_q3 = rtb_y_j5[stage_app_2 + 2];
+        dir_next_wp[2] = q0_q3 - rtDW.DiscreteTimeIntegratory_DSTA_n2[2];
 
         // :  dist_next_wp = norm( dir_next_wp );
         q1_q1 = xnrm2_f(dir_next_wp);
 
         // :  flight_dir = divideFinite( V_Kg, norm(V_Kg,2) );
-        q2_q3 = xnrm2_f(rtDW.DiscreteTimeIntegratory_DSTAT_j);
+        q1_q3 = xnrm2_f(rtDW.DiscreteTimeIntegratory_DSTAT_j);
 
         // 'divideFinite:29' if numel(B)>1
         // 'divideFinite:31' else
         // 'divideFinite:32' if abs(B)<eps
-        if (std::abs(q2_q3) < 2.22044605E-16F) {
+        if (std::abs(q1_q3) < 2.22044605E-16F) {
           // 'divideFinite:33' B(:) = eps;
-          q2_q3 = 2.22044605E-16F;
+          q1_q3 = 2.22044605E-16F;
         }
 
         // 'divideFinite:36' C = A ./ B;
         // :  angle_next_wp = acosReal( divideFinite( dot( dir_next_wp, flight_dir ), norm(dir_next_wp,2)*norm(flight_dir,2) ) ); 
-        q_bg_unsigned_idx_0 = rtDW.DiscreteTimeIntegratory_DSTAT_j[0] / q2_q3;
-        q2_q2 = dir_next_wp[0] * q_bg_unsigned_idx_0;
-        flight_dir[0] = q_bg_unsigned_idx_0;
-        q_bg_unsigned_idx_0 = rtDW.DiscreteTimeIntegratory_DSTAT_j[1] / q2_q3;
-        q2_q2 += dir_next_wp[1] * q_bg_unsigned_idx_0;
-        flight_dir[1] = q_bg_unsigned_idx_0;
-        q_bg_unsigned_idx_0 = rtDW.DiscreteTimeIntegratory_DSTAT_j[2] / q2_q3;
-        q2_q2 += dir_next_wp[2] * q_bg_unsigned_idx_0;
-        flight_dir[2] = q_bg_unsigned_idx_0;
-        rtb_Gain_cf = q1_q1 * xnrm2_f(flight_dir);
+        q2_q3 = rtDW.DiscreteTimeIntegratory_DSTAT_j[0] / q1_q3;
+        q2_q2 = dir_next_wp[0] * q2_q3;
+        flight_dir[0] = q2_q3;
+        q2_q3 = rtDW.DiscreteTimeIntegratory_DSTAT_j[1] / q1_q3;
+        q2_q2 += dir_next_wp[1] * q2_q3;
+        flight_dir[1] = q2_q3;
+        q2_q3 = rtDW.DiscreteTimeIntegratory_DSTAT_j[2] / q1_q3;
+        q2_q2 += dir_next_wp[2] * q2_q3;
+        flight_dir[2] = q2_q3;
+        q_bg_unsigned_idx_3 = q1_q1 * xnrm2_f(flight_dir);
 
         // 'divideFinite:29' if numel(B)>1
         // 'divideFinite:31' else
         // 'divideFinite:32' if abs(B)<eps
-        if (std::abs(rtb_Gain_cf) < 2.22044605E-16F) {
+        if (std::abs(q_bg_unsigned_idx_3) < 2.22044605E-16F) {
           // 'divideFinite:33' B(:) = eps;
-          rtb_Gain_cf = 2.22044605E-16F;
+          q_bg_unsigned_idx_3 = 2.22044605E-16F;
         }
 
         // 'divideFinite:36' C = A ./ B;
-        q0_q3 = q2_q2 / rtb_Gain_cf;
+        Phi_i = q2_q2 / q_bg_unsigned_idx_3;
 
         // 'acosReal:28' if numel(y) > 1
         // 'acosReal:31' else
         // 'acosReal:32' y = max(-1,min(1,y));
-        if (1.0F <= q0_q3) {
-          q0_q3 = 1.0F;
+        if (1.0F <= Phi_i) {
+          Phi_i = 1.0F;
         }
 
         // 'acosReal:34' y = acos(y);
         // :  if angle_next_wp < 0.5 && dist_next_wp < wp_radius
-        if (-1.0F >= q0_q3) {
-          q0_q3 = -1.0F;
+        if (-1.0F >= Phi_i) {
+          Phi_i = -1.0F;
         }
 
-        if ((std::acos(q0_q3) < 0.5F) && (q1_q1 < rtP.lindi.psc.rm.wprad)) {
+        if ((std::acos(Phi_i) < 0.5F) && (q1_q1 < rtP.lindi.psc.rm.wprad)) {
           // :  dist_app_wp = 0.5 * dist_next_wp;
           q1_q1 *= 0.5F;
         } else {
@@ -4223,10 +4222,10 @@ void MatlabControllerClass::step()
         wp_approach_out[1] = rtDW.DiscreteTimeIntegratory_DSTA_n2[1] - q2_q2;
         wp_approach_out[4] = rtDW.DiscreteTimeIntegratory_DSTA_n2[1] + q2_q2;
         wp_approach_out[7] = scale;
-        q2_q2 = q_bg_unsigned_idx_0 * q1_q1;
+        q2_q2 = q2_q3 * q1_q1;
         wp_approach_out[2] = rtDW.DiscreteTimeIntegratory_DSTA_n2[2] - q2_q2;
         wp_approach_out[5] = rtDW.DiscreteTimeIntegratory_DSTA_n2[2] + q2_q2;
-        wp_approach_out[8] = q1_q2;
+        wp_approach_out[8] = q0_q3;
 
         // :  if wp_idx == num_wp-1
         if (p3 - 1 == rtDW.UnitDelay_DSTATE_b) {
@@ -4236,7 +4235,7 @@ void MatlabControllerClass::step()
           wp_approach_out[12] = rtb_y_j5[0];
           wp_approach_out[10] = scale;
           wp_approach_out[13] = rtb_y_j5[1];
-          wp_approach_out[11] = q1_q2;
+          wp_approach_out[11] = q0_q3;
           wp_approach_out[14] = rtb_y_j5[2];
         } else if (rtDW.UnitDelay_DSTATE_b == p3) {
           // :  elseif wp_idx == num_wp
@@ -4358,7 +4357,7 @@ void MatlabControllerClass::step()
       }
 
       // :  V_K = norm(V_Kg,2);
-      rtb_Gain_cf = xnrm2_f(rtDW.DiscreteTimeIntegratory_DSTAT_j);
+      q_bg_unsigned_idx_3 = xnrm2_f(rtDW.DiscreteTimeIntegratory_DSTAT_j);
 
       // :  if (stage_2 == 0 && ~is_approach) || (stage_app_2 == 0 && is_approach) 
       if (((stage_2 == 0) && (!is_approach)) || ((stage_app_2 == 0) &&
@@ -4435,20 +4434,18 @@ void MatlabControllerClass::step()
 
         // :  circ_seg = wpnavCircSeg(waypoints3x3,wp_radius);
         wpnavCircSeg(I_b, rtP.lindi.psc.rm.wprad, &scale, rtb_Sum2_ci,
-                     dir_next_wp, &t, rtb_Sum2_k_0, flight_dir, &absxk,
-                     expl_temp);
+                     dir_next_wp, &t, rtb_Sum2_k, flight_dir, &absxk, expl_temp);
 
         // :  v(:) = wpnavCircSegGetVel(circ_seg,t_2,V_K);
         // 'wpnavCircSegGetVel:27' tangent_vec_p1_unit = cross( circ_seg.n, circ_seg.start-circ_seg.center ); 
-        rtb_Sum2_k_0[0] -= rtb_Sum2_ci[0];
-        rtb_Sum2_k_0[1] -= rtb_Sum2_ci[1];
-        q2_q2 = rtb_Sum2_k_0[2] - rtb_Sum2_ci[2];
-        rtb_Sum2_k_0[2] = q2_q2;
-        flight_dir[0] = dir_next_wp[1] * q2_q2 - dir_next_wp[2] * rtb_Sum2_k_0[1];
-        flight_dir[1] = dir_next_wp[2] * rtb_Sum2_k_0[0] - dir_next_wp[0] *
-          q2_q2;
-        flight_dir[2] = dir_next_wp[0] * rtb_Sum2_k_0[1] - dir_next_wp[1] *
-          rtb_Sum2_k_0[0];
+        rtb_Sum2_k[0] -= rtb_Sum2_ci[0];
+        rtb_Sum2_k[1] -= rtb_Sum2_ci[1];
+        q2_q2 = rtb_Sum2_k[2] - rtb_Sum2_ci[2];
+        rtb_Sum2_k[2] = q2_q2;
+        flight_dir[0] = dir_next_wp[1] * q2_q2 - dir_next_wp[2] * rtb_Sum2_k[1];
+        flight_dir[1] = dir_next_wp[2] * rtb_Sum2_k[0] - dir_next_wp[0] * q2_q2;
+        flight_dir[2] = dir_next_wp[0] * rtb_Sum2_k[1] - dir_next_wp[1] *
+          rtb_Sum2_k[0];
 
         // 'wpnavCircSegGetVel:28' tangent_vec_p1_unit = divideFinite( tangent_vec_p1_unit, norm( tangent_vec_p1_unit, 2 ) ); 
         absxk = xnrm2_f(flight_dir);
@@ -4471,20 +4468,20 @@ void MatlabControllerClass::step()
         flight_dir[1] /= absxk;
         dir_next_wp_0[2] = dir_next_wp[2];
         flight_dir[2] /= absxk;
-        q_bg_unsigned_idx_0 = q1_q1 * t;
-        axisAngle(flight_dir, dir_next_wp_0, q_bg_unsigned_idx_0, expl_temp);
+        Phi_i = q1_q1 * t;
+        axisAngle(flight_dir, dir_next_wp_0, Phi_i, expl_temp);
 
         // :  a(:) = wpnavCircSegGetAcc(circ_seg,t_2,V_K);
         // 'wpnavCircSegGetAcc:29' p = wpnavCircSegGetPos( circ_seg, t );
         // 'wpnavCircSegGetPos:26' angle = t * circ_seg.angle;
         // 'wpnavCircSegGetPos:27' s_g = circ_seg.center + axisAngle(circ_seg.start-circ_seg.center,circ_seg.n,angle); 
         // 'wpnavCircSegGetAcc:30' dir_vec_unit = circ_seg.center - p;
-        axisAngle(rtb_Sum2_k_0, dir_next_wp, q_bg_unsigned_idx_0, dir_next_wp_0);
-        q2_q2 = expl_temp[0] * rtb_Gain_cf;
+        axisAngle(rtb_Sum2_k, dir_next_wp, Phi_i, dir_next_wp_0);
+        q2_q2 = expl_temp[0] * q_bg_unsigned_idx_3;
         flight_dir[0] = rtb_Sum2_ci[0] - (rtb_Sum2_ci[0] + dir_next_wp_0[0]);
-        q0_q3 = expl_temp[1] * rtb_Gain_cf;
+        q1_q3 = expl_temp[1] * q_bg_unsigned_idx_3;
         flight_dir[1] = rtb_Sum2_ci[1] - (rtb_Sum2_ci[1] + dir_next_wp_0[1]);
-        q1_q2 = expl_temp[2] * rtb_Gain_cf;
+        Phi_i = expl_temp[2] * q_bg_unsigned_idx_3;
         flight_dir[2] = rtb_Sum2_ci[2] - (rtb_Sum2_ci[2] + dir_next_wp_0[2]);
 
         // 'wpnavCircSegGetAcc:31' dir_vec_unit = divideFinite( dir_vec_unit, norm( dir_vec_unit, 2 ) ); 
@@ -4512,9 +4509,9 @@ void MatlabControllerClass::step()
         }
 
         // 'divideFinite:36' C = A ./ B;
-        q2_q3 = rtb_Gain_cf * rtb_Gain_cf / scale;
+        q2_q3 = q_bg_unsigned_idx_3 * q_bg_unsigned_idx_3 / scale;
         t = q2_q3 * flight_dir[0];
-        q1_q3 = q2_q3 * flight_dir[1];
+        q1_q2 = q2_q3 * flight_dir[1];
         absxk = flight_dir[2] / absxk * q2_q3;
       } else {
         // :  else
@@ -4583,9 +4580,9 @@ void MatlabControllerClass::step()
 
         // 'divideFinite:36' C = A ./ B;
         // 'wpnavLineGetVel:30' V_Kg = V * dir_vec_unit;
-        q2_q2 = rtb_Sum2_ci[0] / scale * rtb_Gain_cf;
-        q0_q3 = rtb_Sum2_ci[1] / scale * rtb_Gain_cf;
-        q1_q2 = rtb_Sum2_ci[2] / scale * rtb_Gain_cf;
+        q2_q2 = rtb_Sum2_ci[0] / scale * q_bg_unsigned_idx_3;
+        q1_q3 = rtb_Sum2_ci[1] / scale * q_bg_unsigned_idx_3;
+        Phi_i = rtb_Sum2_ci[2] / scale * q_bg_unsigned_idx_3;
       }
 
       rtDW.p_match[0] = rtb_Sum2_ny[0];
@@ -4687,9 +4684,9 @@ void MatlabControllerClass::step()
         rtDW.DiscreteTimeIntegratory_DSTA_df[2] = rtb_Sum2_ny[2];
       }
 
-      q2_q3 = rtDW.DiscreteTimeIntegratory_DSTA_df[0];
-      scale = rtDW.DiscreteTimeIntegratory_DSTA_df[1];
-      y_idx_2 = rtDW.DiscreteTimeIntegratory_DSTA_df[2];
+      scale = rtDW.DiscreteTimeIntegratory_DSTA_df[0];
+      q0_q3 = rtDW.DiscreteTimeIntegratory_DSTA_df[1];
+      q2_q3 = rtDW.DiscreteTimeIntegratory_DSTA_df[2];
 
       // End of DiscreteIntegrator: '<S30>/Discrete-Time Integrator y'
 
@@ -4706,7 +4703,7 @@ void MatlabControllerClass::step()
       //   Gain: '<S29>/Gain'
       //   Product: '<S30>/Divide'
 
-      q_bg_unsigned_idx_1 = 1.0F / q1_q1 * 2.0F;
+      q_bg_unsigned_idx_0 = 1.0F / q1_q1 * 2.0F;
 
       // Product: '<S30>/omega^2' incorporates:
       //   Product: '<S28>/omega^2'
@@ -4717,12 +4714,12 @@ void MatlabControllerClass::step()
       // DiscreteIntegrator: '<S29>/Discrete-Time Integrator y'
       if (rtDW.DiscreteTimeIntegratory_IC_L_ld != 0) {
         rtDW.DiscreteTimeIntegratory_DSTA_jr[0] = q2_q2;
-        rtDW.DiscreteTimeIntegratory_DSTA_jr[1] = q0_q3;
-        rtDW.DiscreteTimeIntegratory_DSTA_jr[2] = q1_q2;
+        rtDW.DiscreteTimeIntegratory_DSTA_jr[1] = q1_q3;
+        rtDW.DiscreteTimeIntegratory_DSTA_jr[2] = Phi_i;
       }
 
-      rtb_Gain_cf = rtDW.DiscreteTimeIntegratory_DSTA_jr[0];
-      q_bg_unsigned_idx_0 = rtDW.DiscreteTimeIntegratory_DSTA_jr[1];
+      q_bg_unsigned_idx_3 = rtDW.DiscreteTimeIntegratory_DSTA_jr[0];
+      q_bg_unsigned_idx_1 = rtDW.DiscreteTimeIntegratory_DSTA_jr[1];
       q_bg_unsigned_idx_2 = rtDW.DiscreteTimeIntegratory_DSTA_jr[2];
 
       // End of DiscreteIntegrator: '<S29>/Discrete-Time Integrator y'
@@ -4730,7 +4727,7 @@ void MatlabControllerClass::step()
       // DiscreteIntegrator: '<S28>/Discrete-Time Integrator y'
       if (rtDW.DiscreteTimeIntegratory_IC_LO_h != 0) {
         rtDW.DiscreteTimeIntegratory_DSTA_ff[0] = t;
-        rtDW.DiscreteTimeIntegratory_DSTA_ff[1] = q1_q3;
+        rtDW.DiscreteTimeIntegratory_DSTA_ff[1] = q1_q2;
         rtDW.DiscreteTimeIntegratory_DSTA_ff[2] = absxk;
       }
 
@@ -4744,7 +4741,7 @@ void MatlabControllerClass::step()
       rtDW.DiscreteTimeIntegratory_IC_LO_h = 0U;
 
       // DiscreteIntegrator: '<S28>/Discrete-Time Integrator y'
-      y_m_0 = rtDW.DiscreteTimeIntegratory_DSTA_ff[0];
+      rtb_Sum2_o3 = rtDW.DiscreteTimeIntegratory_DSTA_ff[0];
 
       // Update for DiscreteIntegrator: '<S30>/Discrete-Time Integrator y' incorporates:
       //   DiscreteIntegrator: '<S30>/Discrete-Time Integrator y_dt'
@@ -4761,7 +4758,7 @@ void MatlabControllerClass::step()
       //   Sum: '<S30>/Sum3'
 
       rtDW.DiscreteTimeIntegratory_dt_D_nq[0] += (p_match_2[0] -
-        (rtDW.DiscreteTimeIntegratory_dt_D_nq[0] * q_bg_unsigned_idx_1 + q2_q3))
+        (rtDW.DiscreteTimeIntegratory_dt_D_nq[0] * q_bg_unsigned_idx_0 + scale))
         * q1_q1 * 0.0025F;
 
       // Update for DiscreteIntegrator: '<S29>/Discrete-Time Integrator y' incorporates:
@@ -4777,8 +4774,8 @@ void MatlabControllerClass::step()
       //   Sum: '<S29>/Sum3'
 
       rtDW.DiscreteTimeIntegratory_dt_D_pb[0] += (q2_q2 -
-        (rtDW.DiscreteTimeIntegratory_dt_D_pb[0] * q_bg_unsigned_idx_1 +
-         rtb_Gain_cf)) * q1_q1 * 0.0025F;
+        (rtDW.DiscreteTimeIntegratory_dt_D_pb[0] * q_bg_unsigned_idx_0 +
+         q_bg_unsigned_idx_3)) * q1_q1 * 0.0025F;
 
       // Update for DiscreteIntegrator: '<S28>/Discrete-Time Integrator y' incorporates:
       //   DiscreteIntegrator: '<S28>/Discrete-Time Integrator y_dt'
@@ -4793,12 +4790,12 @@ void MatlabControllerClass::step()
       //   Sum: '<S28>/Sum3'
 
       rtDW.DiscreteTimeIntegratory_dt_D_be[0] += (t -
-        (rtDW.DiscreteTimeIntegratory_dt_D_be[0] * q_bg_unsigned_idx_1 + y_m_0))
-        * q1_q1 * 0.0025F;
-      y_m[0] = y_m_0;
+        (rtDW.DiscreteTimeIntegratory_dt_D_be[0] * q_bg_unsigned_idx_0 +
+         rtb_Sum2_o3)) * q1_q1 * 0.0025F;
+      y_m[0] = rtb_Sum2_o3;
 
       // DiscreteIntegrator: '<S28>/Discrete-Time Integrator y'
-      y_m_0 = rtDW.DiscreteTimeIntegratory_DSTA_ff[1];
+      rtb_Sum2_o3 = rtDW.DiscreteTimeIntegratory_DSTA_ff[1];
 
       // Update for DiscreteIntegrator: '<S30>/Discrete-Time Integrator y' incorporates:
       //   DiscreteIntegrator: '<S30>/Discrete-Time Integrator y_dt'
@@ -4815,7 +4812,7 @@ void MatlabControllerClass::step()
       //   Sum: '<S30>/Sum3'
 
       rtDW.DiscreteTimeIntegratory_dt_D_nq[1] += (p_match_2[1] -
-        (rtDW.DiscreteTimeIntegratory_dt_D_nq[1] * q_bg_unsigned_idx_1 + scale))
+        (rtDW.DiscreteTimeIntegratory_dt_D_nq[1] * q_bg_unsigned_idx_0 + q0_q3))
         * q1_q1 * 0.0025F;
 
       // Update for DiscreteIntegrator: '<S29>/Discrete-Time Integrator y' incorporates:
@@ -4830,9 +4827,9 @@ void MatlabControllerClass::step()
       //   Sum: '<S29>/Sum2'
       //   Sum: '<S29>/Sum3'
 
-      rtDW.DiscreteTimeIntegratory_dt_D_pb[1] += (q0_q3 -
-        (rtDW.DiscreteTimeIntegratory_dt_D_pb[1] * q_bg_unsigned_idx_1 +
-         q_bg_unsigned_idx_0)) * q1_q1 * 0.0025F;
+      rtDW.DiscreteTimeIntegratory_dt_D_pb[1] += (q1_q3 -
+        (rtDW.DiscreteTimeIntegratory_dt_D_pb[1] * q_bg_unsigned_idx_0 +
+         q_bg_unsigned_idx_1)) * q1_q1 * 0.0025F;
 
       // Update for DiscreteIntegrator: '<S28>/Discrete-Time Integrator y' incorporates:
       //   DiscreteIntegrator: '<S28>/Discrete-Time Integrator y_dt'
@@ -4846,13 +4843,13 @@ void MatlabControllerClass::step()
       //   Sum: '<S28>/Sum2'
       //   Sum: '<S28>/Sum3'
 
-      rtDW.DiscreteTimeIntegratory_dt_D_be[1] += (q1_q3 -
-        (rtDW.DiscreteTimeIntegratory_dt_D_be[1] * q_bg_unsigned_idx_1 + y_m_0))
-        * q1_q1 * 0.0025F;
-      y_m[1] = y_m_0;
+      rtDW.DiscreteTimeIntegratory_dt_D_be[1] += (q1_q2 -
+        (rtDW.DiscreteTimeIntegratory_dt_D_be[1] * q_bg_unsigned_idx_0 +
+         rtb_Sum2_o3)) * q1_q1 * 0.0025F;
+      y_m[1] = rtb_Sum2_o3;
 
       // DiscreteIntegrator: '<S28>/Discrete-Time Integrator y'
-      y_m_0 = rtDW.DiscreteTimeIntegratory_DSTA_ff[2];
+      rtb_Sum2_o3 = rtDW.DiscreteTimeIntegratory_DSTA_ff[2];
 
       // Update for DiscreteIntegrator: '<S30>/Discrete-Time Integrator y' incorporates:
       //   DiscreteIntegrator: '<S30>/Discrete-Time Integrator y_dt'
@@ -4869,7 +4866,7 @@ void MatlabControllerClass::step()
       //   Sum: '<S30>/Sum3'
 
       rtDW.DiscreteTimeIntegratory_dt_D_nq[2] += (p_match_2[2] -
-        (rtDW.DiscreteTimeIntegratory_dt_D_nq[2] * q_bg_unsigned_idx_1 + y_idx_2))
+        (rtDW.DiscreteTimeIntegratory_dt_D_nq[2] * q_bg_unsigned_idx_0 + q2_q3))
         * q1_q1 * 0.0025F;
 
       // Update for DiscreteIntegrator: '<S29>/Discrete-Time Integrator y' incorporates:
@@ -4884,8 +4881,8 @@ void MatlabControllerClass::step()
       //   Sum: '<S29>/Sum2'
       //   Sum: '<S29>/Sum3'
 
-      rtDW.DiscreteTimeIntegratory_dt_D_pb[2] += (q1_q2 -
-        (rtDW.DiscreteTimeIntegratory_dt_D_pb[2] * q_bg_unsigned_idx_1 +
+      rtDW.DiscreteTimeIntegratory_dt_D_pb[2] += (Phi_i -
+        (rtDW.DiscreteTimeIntegratory_dt_D_pb[2] * q_bg_unsigned_idx_0 +
          q_bg_unsigned_idx_2)) * q1_q1 * 0.0025F;
 
       // Update for DiscreteIntegrator: '<S28>/Discrete-Time Integrator y' incorporates:
@@ -4901,9 +4898,9 @@ void MatlabControllerClass::step()
       //   Sum: '<S28>/Sum3'
 
       rtDW.DiscreteTimeIntegratory_dt_D_be[2] += (absxk -
-        (rtDW.DiscreteTimeIntegratory_dt_D_be[2] * q_bg_unsigned_idx_1 + y_m_0))
-        * q1_q1 * 0.0025F;
-      y_m[2] = y_m_0;
+        (rtDW.DiscreteTimeIntegratory_dt_D_be[2] * q_bg_unsigned_idx_0 +
+         rtb_Sum2_o3)) * q1_q1 * 0.0025F;
+      y_m[2] = rtb_Sum2_o3;
       if (!rtDW.NDIPositionController_MODE) {
         // InitializeConditions for DiscreteIntegrator: '<S50>/Discrete-Time Integrator y' 
         rtDW.DiscreteTimeIntegratory_IC_LO_d = 1U;
@@ -4972,7 +4969,7 @@ void MatlabControllerClass::step()
       //   Product: '<S50>/Product2'
       //   Sum: '<S50>/Sum3'
 
-      rtb_y_pd[0] = q2_q3 - (rtDW.DiscreteTimeIntegratory_dt_D_jv[0] * q1_q1 +
+      rtb_y_pd[0] = scale - (rtDW.DiscreteTimeIntegratory_dt_D_jv[0] * q1_q1 +
         rtDW.DiscreteTimeIntegratory_DSTA_nm[0]);
 
       // Sum: '<S16>/Add' incorporates:
@@ -4989,7 +4986,7 @@ void MatlabControllerClass::step()
       //   Product: '<S50>/Product2'
       //   Sum: '<S50>/Sum3'
 
-      rtb_y_pd[1] = scale - (rtDW.DiscreteTimeIntegratory_dt_D_jv[1] * q1_q1 +
+      rtb_y_pd[1] = q0_q3 - (rtDW.DiscreteTimeIntegratory_dt_D_jv[1] * q1_q1 +
         rtDW.DiscreteTimeIntegratory_DSTA_nm[1]);
 
       // Sum: '<S16>/Add' incorporates:
@@ -5006,7 +5003,7 @@ void MatlabControllerClass::step()
       //   Product: '<S50>/Product2'
       //   Sum: '<S50>/Sum3'
 
-      rtb_y_pd[2] = y_idx_2 - (rtDW.DiscreteTimeIntegratory_dt_D_jv[2] * q1_q1 +
+      rtb_y_pd[2] = q2_q3 - (rtDW.DiscreteTimeIntegratory_dt_D_jv[2] * q1_q1 +
         rtDW.DiscreteTimeIntegratory_DSTA_nm[2]);
 
       // Sum: '<S16>/Add' incorporates:
@@ -5021,12 +5018,12 @@ void MatlabControllerClass::step()
       //   Product: '<S49>/omega^2'
       //   Product: '<S51>/omega^2'
 
-      q_bg_unsigned_idx_1 = rtP.lindi.atc.rm.rfreq * rtP.lindi.atc.rm.rfreq;
+      q_bg_unsigned_idx_0 = rtP.lindi.atc.rm.rfreq * rtP.lindi.atc.rm.rfreq;
 
       // DiscreteIntegrator: '<S49>/Discrete-Time Integrator y'
       if (rtDW.DiscreteTimeIntegratory_IC_LO_p != 0) {
-        rtDW.DiscreteTimeIntegratory_DSTA_e3[0] = rtb_Gain_cf;
-        rtDW.DiscreteTimeIntegratory_DSTA_e3[1] = q_bg_unsigned_idx_0;
+        rtDW.DiscreteTimeIntegratory_DSTA_e3[0] = q_bg_unsigned_idx_3;
+        rtDW.DiscreteTimeIntegratory_DSTA_e3[1] = q_bg_unsigned_idx_1;
         rtDW.DiscreteTimeIntegratory_DSTA_e3[2] = q_bg_unsigned_idx_2;
       }
 
@@ -5036,8 +5033,8 @@ void MatlabControllerClass::step()
       //   Product: '<S49>/Product2'
       //   Sum: '<S49>/Sum3'
 
-      rtb_y_ai[0] = rtb_Gain_cf - (rtDW.DiscreteTimeIntegratory_dt_D_ip[0] *
-        q1_q1 + rtDW.DiscreteTimeIntegratory_DSTA_e3[0]);
+      rtb_y_ai[0] = q_bg_unsigned_idx_3 - (rtDW.DiscreteTimeIntegratory_dt_D_ip
+        [0] * q1_q1 + rtDW.DiscreteTimeIntegratory_DSTA_e3[0]);
 
       // Sum: '<S16>/Add1' incorporates:
       //   DiscreteIntegrator: '<S42>/Discrete-Time Integrator y'
@@ -5052,7 +5049,7 @@ void MatlabControllerClass::step()
       //   Product: '<S49>/Product2'
       //   Sum: '<S49>/Sum3'
 
-      rtb_y_ai[1] = q_bg_unsigned_idx_0 - (rtDW.DiscreteTimeIntegratory_dt_D_ip
+      rtb_y_ai[1] = q_bg_unsigned_idx_1 - (rtDW.DiscreteTimeIntegratory_dt_D_ip
         [1] * q1_q1 + rtDW.DiscreteTimeIntegratory_DSTA_e3[1]);
 
       // Sum: '<S16>/Add1' incorporates:
@@ -5082,7 +5079,7 @@ void MatlabControllerClass::step()
       if (rtDW.DiscreteTimeIntegratory_IC_LO_l != 0) {
         rtDW.DiscreteTimeIntegratory_DSTAT_k[0] = y_m[0];
         rtDW.DiscreteTimeIntegratory_DSTAT_k[1] = y_m[1];
-        rtDW.DiscreteTimeIntegratory_DSTAT_k[2] = y_m_0;
+        rtDW.DiscreteTimeIntegratory_DSTAT_k[2] = rtb_Sum2_o3;
       }
 
       for (i = 0; i < 3; i++) {
@@ -5101,7 +5098,7 @@ void MatlabControllerClass::step()
 
         rtDW.e_s_g_dt2_k[i] = rtDW.DiscreteTimeIntegratory_DSTAT_k[i] -
           rtDW.DiscreteTimeIntegratory_DSTAT_n[i];
-        rtb_y_k[i] = rtDW.DiscreteTimeIntegratory_DSTAT_b[i + 6] * y_m_0 +
+        rtb_y_k[i] = rtDW.DiscreteTimeIntegratory_DSTAT_b[i + 6] * rtb_Sum2_o3 +
           (rtDW.DiscreteTimeIntegratory_DSTAT_b[i + 3] * y_m[1] +
            rtDW.DiscreteTimeIntegratory_DSTAT_b[i] * y_m[0]);
       }
@@ -5112,17 +5109,17 @@ void MatlabControllerClass::step()
         //   Product: '<S16>/Matrix Multiply1'
         //   Product: '<S16>/Matrix Multiply2'
 
-        rtb_Gain_cf = rtDW.DiscreteTimeIntegratory_DSTAT_b[stage_app_2 + 3];
-        q_bg_unsigned_idx_0 = rtDW.DiscreteTimeIntegratory_DSTAT_b[stage_app_2 +
-          6];
-        expl_temp[stage_app_2] = q_bg_unsigned_idx_0 * rtDW.e_s_g_e[2] +
-          (rtb_Gain_cf * rtDW.e_s_g_e[1] +
-           rtDW.DiscreteTimeIntegratory_DSTAT_b[stage_app_2] * rtDW.e_s_g_e[0]);
-        dir_next_wp_0[stage_app_2] = q_bg_unsigned_idx_0 * rtDW.e_s_g_dt_i[2] +
-          (rtb_Gain_cf * rtDW.e_s_g_dt_i[1] +
+        q_bg_unsigned_idx_3 = rtDW.DiscreteTimeIntegratory_DSTAT_b[stage_app_2 +
+          3];
+        Phi_i = rtDW.DiscreteTimeIntegratory_DSTAT_b[stage_app_2 + 6];
+        expl_temp[stage_app_2] = Phi_i * rtDW.e_s_g_e[2] + (q_bg_unsigned_idx_3 *
+          rtDW.e_s_g_e[1] + rtDW.DiscreteTimeIntegratory_DSTAT_b[stage_app_2] *
+          rtDW.e_s_g_e[0]);
+        dir_next_wp_0[stage_app_2] = Phi_i * rtDW.e_s_g_dt_i[2] +
+          (q_bg_unsigned_idx_3 * rtDW.e_s_g_dt_i[1] +
            rtDW.DiscreteTimeIntegratory_DSTAT_b[stage_app_2] * rtDW.e_s_g_dt_i[0]);
-        p_match_2[stage_app_2] = q_bg_unsigned_idx_0 * rtDW.e_s_g_dt2_k[2] +
-          (rtb_Gain_cf * rtDW.e_s_g_dt2_k[1] +
+        p_match_2[stage_app_2] = Phi_i * rtDW.e_s_g_dt2_k[2] +
+          (q_bg_unsigned_idx_3 * rtDW.e_s_g_dt2_k[1] +
            rtDW.DiscreteTimeIntegratory_DSTAT_b[stage_app_2] * rtDW.e_s_g_dt2_k
            [0]);
       }
@@ -5155,7 +5152,7 @@ void MatlabControllerClass::step()
       rtDW.DiscreteTimeIntegratory_IC_LO_l = 0U;
 
       // SignalConversion: '<S16>/BusConversion_InsertedFor_pos_control_at_inport_0' 
-      rtDW.s_g_ref_d[0] = q2_q3;
+      rtDW.s_g_ref_d[0] = scale;
 
       // SignalConversion: '<S16>/BusConversion_InsertedFor_pos_control_at_inport_0' incorporates:
       //   DiscreteIntegrator: '<S41>/Discrete-Time Integrator y'
@@ -5173,7 +5170,7 @@ void MatlabControllerClass::step()
       //   Product: '<S50>/omega^2'
 
       rtDW.DiscreteTimeIntegratory_dt_D_jv[0] += rtb_y_pd[0] *
-        q_bg_unsigned_idx_1 * 0.0025F;
+        q_bg_unsigned_idx_0 * 0.0025F;
 
       // Update for DiscreteIntegrator: '<S49>/Discrete-Time Integrator y' incorporates:
       //   DiscreteIntegrator: '<S49>/Discrete-Time Integrator y_dt'
@@ -5185,7 +5182,7 @@ void MatlabControllerClass::step()
       //   Product: '<S49>/Product1'
 
       rtDW.DiscreteTimeIntegratory_dt_D_ip[0] += rtb_y_ai[0] *
-        q_bg_unsigned_idx_1 * 0.0025F;
+        q_bg_unsigned_idx_0 * 0.0025F;
 
       // Update for DiscreteIntegrator: '<S51>/Discrete-Time Integrator y' incorporates:
       //   DiscreteIntegrator: '<S51>/Discrete-Time Integrator y_dt'
@@ -5197,10 +5194,10 @@ void MatlabControllerClass::step()
       //   Product: '<S51>/Product1'
 
       rtDW.DiscreteTimeIntegratory_dt_DS_c[0] += rtb_Sum2_ny[0] *
-        q_bg_unsigned_idx_1 * 0.0025F;
+        q_bg_unsigned_idx_0 * 0.0025F;
 
       // SignalConversion: '<S16>/BusConversion_InsertedFor_pos_control_at_inport_0' 
-      rtDW.s_g_ref_d[1] = scale;
+      rtDW.s_g_ref_d[1] = q0_q3;
 
       // SignalConversion: '<S16>/BusConversion_InsertedFor_pos_control_at_inport_0' incorporates:
       //   DiscreteIntegrator: '<S41>/Discrete-Time Integrator y'
@@ -5218,7 +5215,7 @@ void MatlabControllerClass::step()
       //   Product: '<S50>/omega^2'
 
       rtDW.DiscreteTimeIntegratory_dt_D_jv[1] += rtb_y_pd[1] *
-        q_bg_unsigned_idx_1 * 0.0025F;
+        q_bg_unsigned_idx_0 * 0.0025F;
 
       // Update for DiscreteIntegrator: '<S49>/Discrete-Time Integrator y' incorporates:
       //   DiscreteIntegrator: '<S49>/Discrete-Time Integrator y_dt'
@@ -5230,7 +5227,7 @@ void MatlabControllerClass::step()
       //   Product: '<S49>/Product1'
 
       rtDW.DiscreteTimeIntegratory_dt_D_ip[1] += rtb_y_ai[1] *
-        q_bg_unsigned_idx_1 * 0.0025F;
+        q_bg_unsigned_idx_0 * 0.0025F;
 
       // Update for DiscreteIntegrator: '<S51>/Discrete-Time Integrator y' incorporates:
       //   DiscreteIntegrator: '<S51>/Discrete-Time Integrator y_dt'
@@ -5242,10 +5239,10 @@ void MatlabControllerClass::step()
       //   Product: '<S51>/Product1'
 
       rtDW.DiscreteTimeIntegratory_dt_DS_c[1] += rtb_Sum2_ny[1] *
-        q_bg_unsigned_idx_1 * 0.0025F;
+        q_bg_unsigned_idx_0 * 0.0025F;
 
       // SignalConversion: '<S16>/BusConversion_InsertedFor_pos_control_at_inport_0' 
-      rtDW.s_g_ref_d[2] = y_idx_2;
+      rtDW.s_g_ref_d[2] = q2_q3;
 
       // SignalConversion: '<S16>/BusConversion_InsertedFor_pos_control_at_inport_0' incorporates:
       //   DiscreteIntegrator: '<S41>/Discrete-Time Integrator y'
@@ -5263,7 +5260,7 @@ void MatlabControllerClass::step()
       //   Product: '<S50>/omega^2'
 
       rtDW.DiscreteTimeIntegratory_dt_D_jv[2] += rtb_y_pd[2] *
-        q_bg_unsigned_idx_1 * 0.0025F;
+        q_bg_unsigned_idx_0 * 0.0025F;
 
       // Update for DiscreteIntegrator: '<S49>/Discrete-Time Integrator y' incorporates:
       //   DiscreteIntegrator: '<S49>/Discrete-Time Integrator y_dt'
@@ -5275,7 +5272,7 @@ void MatlabControllerClass::step()
       //   Product: '<S49>/Product1'
 
       rtDW.DiscreteTimeIntegratory_dt_D_ip[2] += rtb_y_ai[2] *
-        q_bg_unsigned_idx_1 * 0.0025F;
+        q_bg_unsigned_idx_0 * 0.0025F;
 
       // Update for DiscreteIntegrator: '<S51>/Discrete-Time Integrator y' incorporates:
       //   DiscreteIntegrator: '<S51>/Discrete-Time Integrator y_dt'
@@ -5287,7 +5284,7 @@ void MatlabControllerClass::step()
       //   Product: '<S51>/Product1'
 
       rtDW.DiscreteTimeIntegratory_dt_DS_c[2] += rtb_Sum2_ny[2] *
-        q_bg_unsigned_idx_1 * 0.0025F;
+        q_bg_unsigned_idx_0 * 0.0025F;
     } else {
       if (rtDW.FlightPathSmoothing_MODE) {
         rtDW.FlightPathSmoothing_MODE = false;
@@ -5326,17 +5323,18 @@ void MatlabControllerClass::step()
     for (i = 0; i < 3; i++) {
       // :  y_dt(:,i) = [ -2*d*omega, -omega^2; 1, 0 ] * y_0(:,i) + [omega^2;0] * u(i); 
       p2 = i << 1;
-      q2_q3 = rtP.lindi.sflt.omega * rtP.lindi.sflt.omega;
+      q_bg_unsigned_idx_3 = rtP.lindi.sflt.omega * rtP.lindi.sflt.omega;
       rtb_y_n[p2] = (-2.0F * rtP.lindi.sflt.d * rtP.lindi.sflt.omega *
-                     rtDW.Delay_DSTATE[p2] + rtDW.Delay_DSTATE[p2 + 1] * -q2_q3)
-        + q2_q3 * rtU.measure.omega_Kb[i];
+                     rtDW.Delay_DSTATE[p2] + rtDW.Delay_DSTATE[p2 + 1] *
+                     -q_bg_unsigned_idx_3) + q_bg_unsigned_idx_3 *
+        rtU.measure.omega_Kb[i];
       rtb_y_n[1 + p2] = rtDW.Delay_DSTATE[i << 1];
     }
 
     // :  k2 = f(y_0+0.5*h*k1,u,omega,d);
-    q2_q3 = 0.5F * q2_q2;
+    q1_q3 = 0.5F * q2_q2;
     for (stage_app_2 = 0; stage_app_2 < 6; stage_app_2++) {
-      y_0[stage_app_2] = q2_q3 * rtb_y_n[stage_app_2] +
+      y_0[stage_app_2] = q1_q3 * rtb_y_n[stage_app_2] +
         rtDW.Delay_DSTATE[stage_app_2];
     }
 
@@ -5428,9 +5426,9 @@ void MatlabControllerClass::step()
     }
 
     // :  k2 = f(y_0+0.5*h*k1,u,omega,d);
-    q2_q3 = 0.5F * absxk;
+    q1_q3 = 0.5F * absxk;
     for (stage_app_2 = 0; stage_app_2 < 6; stage_app_2++) {
-      y_0[stage_app_2] = q2_q3 * rtb_y_n_g[stage_app_2] +
+      y_0[stage_app_2] = q1_q3 * rtb_y_n_g[stage_app_2] +
         rtDW.Delay_DSTATE_h[stage_app_2];
     }
 
@@ -5616,43 +5614,43 @@ void MatlabControllerClass::step()
        case 0:
         // 'dcm2Quat:62' case 0
         // 'dcm2Quat:63' q_1 = sign_m23_minus * q_1;
-        q2_q3 = rtDW.DiscreteTimeIntegratory_DSTAT_b[7] -
+        q_bg_unsigned_idx_3 = rtDW.DiscreteTimeIntegratory_DSTAT_b[7] -
           rtDW.DiscreteTimeIntegratory_DSTAT_b[5];
-        if (q2_q3 < 0.0F) {
-          q2_q3 = -1.0F;
+        if (q_bg_unsigned_idx_3 < 0.0F) {
+          q_bg_unsigned_idx_3 = -1.0F;
         } else {
-          if (q2_q3 > 0.0F) {
-            q2_q3 = 1.0F;
+          if (q_bg_unsigned_idx_3 > 0.0F) {
+            q_bg_unsigned_idx_3 = 1.0F;
           }
         }
 
-        absxk *= q2_q3;
+        absxk *= q_bg_unsigned_idx_3;
 
         // 'dcm2Quat:64' q_2 = sign_m13_minus * q_2;
-        q2_q3 = rtDW.DiscreteTimeIntegratory_DSTAT_b[2] -
+        q_bg_unsigned_idx_3 = rtDW.DiscreteTimeIntegratory_DSTAT_b[2] -
           rtDW.DiscreteTimeIntegratory_DSTAT_b[6];
-        if (q2_q3 < 0.0F) {
-          q2_q3 = -1.0F;
+        if (q_bg_unsigned_idx_3 < 0.0F) {
+          q_bg_unsigned_idx_3 = -1.0F;
         } else {
-          if (q2_q3 > 0.0F) {
-            q2_q3 = 1.0F;
+          if (q_bg_unsigned_idx_3 > 0.0F) {
+            q_bg_unsigned_idx_3 = 1.0F;
           }
         }
 
-        t *= q2_q3;
+        t *= q_bg_unsigned_idx_3;
 
         // 'dcm2Quat:65' q_3 = sign_m12_minus * q_3;
-        q2_q3 = rtDW.DiscreteTimeIntegratory_DSTAT_b[3] -
+        q_bg_unsigned_idx_3 = rtDW.DiscreteTimeIntegratory_DSTAT_b[3] -
           rtDW.DiscreteTimeIntegratory_DSTAT_b[1];
-        if (q2_q3 < 0.0F) {
-          q2_q3 = -1.0F;
+        if (q_bg_unsigned_idx_3 < 0.0F) {
+          q_bg_unsigned_idx_3 = -1.0F;
         } else {
-          if (q2_q3 > 0.0F) {
-            q2_q3 = 1.0F;
+          if (q_bg_unsigned_idx_3 > 0.0F) {
+            q_bg_unsigned_idx_3 = 1.0F;
           }
         }
 
-        q0_q3 *= q2_q3;
+        q0_q3 *= q_bg_unsigned_idx_3;
         break;
 
        case 1:
@@ -5671,30 +5669,30 @@ void MatlabControllerClass::step()
         scale *= q1_q2;
 
         // 'dcm2Quat:68' q_2 = sign_m12_plus * q_2;
-        q2_q3 = rtDW.DiscreteTimeIntegratory_DSTAT_b[3] +
+        q_bg_unsigned_idx_3 = rtDW.DiscreteTimeIntegratory_DSTAT_b[3] +
           rtDW.DiscreteTimeIntegratory_DSTAT_b[1];
-        if (q2_q3 < 0.0F) {
-          q2_q3 = -1.0F;
+        if (q_bg_unsigned_idx_3 < 0.0F) {
+          q_bg_unsigned_idx_3 = -1.0F;
         } else {
-          if (q2_q3 > 0.0F) {
-            q2_q3 = 1.0F;
+          if (q_bg_unsigned_idx_3 > 0.0F) {
+            q_bg_unsigned_idx_3 = 1.0F;
           }
         }
 
-        t *= q2_q3;
+        t *= q_bg_unsigned_idx_3;
 
         // 'dcm2Quat:69' q_3 = sign_m13_plus * q_3;
-        q2_q3 = rtDW.DiscreteTimeIntegratory_DSTAT_b[2] +
+        q_bg_unsigned_idx_3 = rtDW.DiscreteTimeIntegratory_DSTAT_b[2] +
           rtDW.DiscreteTimeIntegratory_DSTAT_b[6];
-        if (q2_q3 < 0.0F) {
-          q2_q3 = -1.0F;
+        if (q_bg_unsigned_idx_3 < 0.0F) {
+          q_bg_unsigned_idx_3 = -1.0F;
         } else {
-          if (q2_q3 > 0.0F) {
-            q2_q3 = 1.0F;
+          if (q_bg_unsigned_idx_3 > 0.0F) {
+            q_bg_unsigned_idx_3 = 1.0F;
           }
         }
 
-        q0_q3 *= q2_q3;
+        q0_q3 *= q_bg_unsigned_idx_3;
         break;
 
        case 2:
@@ -5726,17 +5724,17 @@ void MatlabControllerClass::step()
         absxk *= q1_q2;
 
         // 'dcm2Quat:73' q_3 = sign_m23_plus * q_3;
-        q2_q3 = rtDW.DiscreteTimeIntegratory_DSTAT_b[7] +
+        q_bg_unsigned_idx_3 = rtDW.DiscreteTimeIntegratory_DSTAT_b[7] +
           rtDW.DiscreteTimeIntegratory_DSTAT_b[5];
-        if (q2_q3 < 0.0F) {
-          q2_q3 = -1.0F;
+        if (q_bg_unsigned_idx_3 < 0.0F) {
+          q_bg_unsigned_idx_3 = -1.0F;
         } else {
-          if (q2_q3 > 0.0F) {
-            q2_q3 = 1.0F;
+          if (q_bg_unsigned_idx_3 > 0.0F) {
+            q_bg_unsigned_idx_3 = 1.0F;
           }
         }
 
-        q0_q3 *= q2_q3;
+        q0_q3 *= q_bg_unsigned_idx_3;
         break;
 
        case 3:
@@ -5786,7 +5784,7 @@ void MatlabControllerClass::step()
       q_bg_unsigned_idx_0 = scale;
       q_bg_unsigned_idx_1 = absxk;
       q_bg_unsigned_idx_2 = t;
-      q2_q3 = q0_q3;
+      q_bg_unsigned_idx_3 = q0_q3;
 
       // 'dcm2Quat:84' q_bg = quatNormalize( q_bg );
       // 'quatNormalize:31' q_out = q / max( eps, norm(q, 2) );
@@ -5820,7 +5818,7 @@ void MatlabControllerClass::step()
         q0_q3 += t * t;
       }
 
-      absxk = std::abs(q2_q3);
+      absxk = std::abs(q_bg_unsigned_idx_3);
       if (absxk > scale) {
         t = scale / absxk;
         q0_q3 = q0_q3 * t * t + 1.0F;
@@ -5842,7 +5840,7 @@ void MatlabControllerClass::step()
       q_bg_unsigned_idx_2 /= scale;
 
       // MATLAB Function: '<S52>/DCM to quaternions1'
-      y_m_0 = q2_q3 / scale;
+      q0_q3 = q_bg_unsigned_idx_3 / scale;
 
       // MATLAB Function: '<S52>/Quaternions to Euler angles1'
       // :  EulerAngles  = quat2Euler( q_bg );
@@ -5851,46 +5849,46 @@ void MatlabControllerClass::step()
       scale = 1.29246971E-26F;
       absxk = std::abs(q_bg_unsigned_idx_0);
       if (absxk > 1.29246971E-26F) {
-        q2_q3 = 1.0F;
+        q1_q3 = 1.0F;
         scale = absxk;
       } else {
         t = absxk / 1.29246971E-26F;
-        q2_q3 = t * t;
+        q1_q3 = t * t;
       }
 
       absxk = std::abs(q_bg_unsigned_idx_1);
       if (absxk > scale) {
         t = scale / absxk;
-        q2_q3 = q2_q3 * t * t + 1.0F;
+        q1_q3 = q1_q3 * t * t + 1.0F;
         scale = absxk;
       } else {
         t = absxk / scale;
-        q2_q3 += t * t;
+        q1_q3 += t * t;
       }
 
       absxk = std::abs(q_bg_unsigned_idx_2);
       if (absxk > scale) {
         t = scale / absxk;
-        q2_q3 = q2_q3 * t * t + 1.0F;
+        q1_q3 = q1_q3 * t * t + 1.0F;
         scale = absxk;
       } else {
         t = absxk / scale;
-        q2_q3 += t * t;
+        q1_q3 += t * t;
       }
 
-      absxk = std::abs(y_m_0);
+      absxk = std::abs(q0_q3);
       if (absxk > scale) {
         t = scale / absxk;
-        q2_q3 = q2_q3 * t * t + 1.0F;
+        q1_q3 = q1_q3 * t * t + 1.0F;
         scale = absxk;
       } else {
         t = absxk / scale;
-        q2_q3 += t * t;
+        q1_q3 += t * t;
       }
 
-      q2_q3 = scale * std::sqrt(q2_q3);
-      if (2.22044605E-16F < q2_q3) {
-        scale = q2_q3;
+      q1_q3 = scale * std::sqrt(q1_q3);
+      if (2.22044605E-16F < q1_q3) {
+        scale = q1_q3;
       } else {
         scale = 2.22044605E-16F;
       }
@@ -5900,7 +5898,7 @@ void MatlabControllerClass::step()
       q_bg_unsigned_idx_2 /= scale;
 
       // MATLAB Function: '<S52>/Quaternions to Euler angles1'
-      y_m_0 /= scale;
+      q0_q3 /= scale;
 
       // MATLAB Function: '<S17>/Outer Loop INDI' incorporates:
       //   DiscreteIntegrator: '<S39>/Discrete-Time Integrator y'
@@ -5997,31 +5995,32 @@ void MatlabControllerClass::step()
       q2_q3 = norm(g_b_yz);
 
       // 'indiPlaneAcc2PhiQR:68' nu_abs = norm(nu_a_Kb_yz);
-      y_idx_2 = norm(rtDW.nu);
+      scale = norm(rtDW.nu);
 
       // 'indiPlaneAcc2PhiQR:70' a_K_abs = norm(a_Kb_yz);
-      q0_q3 = norm(a_Kb_yz);
+      q_bg_unsigned_idx_3 = norm(a_Kb_yz);
 
       // 'indiPlaneAcc2PhiQR:73' Phi_i = acosReal( divideFinite( g_abs^2 + a_abs^2 - a_K_abs^2, 2*g_abs*a_abs ) ); 
-      rtb_Gain_cf = 2.0F * q2_q3 * q1_q2;
+      Phi_i = 2.0F * q2_q3 * q1_q2;
 
       // 'divideFinite:29' if numel(B)>1
       // 'divideFinite:31' else
       // 'divideFinite:32' if abs(B)<eps
-      if (std::abs(rtb_Gain_cf) < 2.22044605E-16F) {
+      if (std::abs(Phi_i) < 2.22044605E-16F) {
         // 'divideFinite:33' B(:) = eps;
-        rtb_Gain_cf = 2.22044605E-16F;
+        Phi_i = 2.22044605E-16F;
       }
 
       // 'divideFinite:36' C = A ./ B;
-      scale = q2_q3 * q2_q3;
-      q0_q3 = ((scale + q1_q2 * q1_q2) - q0_q3 * q0_q3) / rtb_Gain_cf;
+      absxk = q2_q3 * q2_q3;
+      Phi_i = ((absxk + q1_q2 * q1_q2) - q_bg_unsigned_idx_3 *
+               q_bg_unsigned_idx_3) / Phi_i;
 
       // 'acosReal:28' if numel(y) > 1
       // 'acosReal:31' else
       // 'acosReal:32' y = max(-1,min(1,y));
-      if (1.0F <= q0_q3) {
-        q0_q3 = 1.0F;
+      if (1.0F <= Phi_i) {
+        Phi_i = 1.0F;
       }
 
       // 'acosReal:34' y = acos(y);
@@ -6038,18 +6037,18 @@ void MatlabControllerClass::step()
         * rtDW.DiscreteTimeIntegratory_DSTAT_n[0];
 
       // 'indiPlaneAcc2PhiQR:81' Phi_des = acosReal( divideFinite( g_abs^2 + a_des_abs^2 - nu_abs^2, 2*g_abs*a_des_abs ) ); 
-      rtb_Gain_cf = 2.0F * q2_q3 * q1_q3;
+      q_bg_unsigned_idx_3 = 2.0F * q2_q3 * q1_q3;
 
       // 'divideFinite:29' if numel(B)>1
       // 'divideFinite:31' else
       // 'divideFinite:32' if abs(B)<eps
-      if (std::abs(rtb_Gain_cf) < 2.22044605E-16F) {
+      if (std::abs(q_bg_unsigned_idx_3) < 2.22044605E-16F) {
         // 'divideFinite:33' B(:) = eps;
-        rtb_Gain_cf = 2.22044605E-16F;
+        q_bg_unsigned_idx_3 = 2.22044605E-16F;
       }
 
       // 'divideFinite:36' C = A ./ B;
-      q2_q3 = ((scale + q1_q3 * q1_q3) - y_idx_2 * y_idx_2) / rtb_Gain_cf;
+      q2_q3 = ((absxk + q1_q3 * q1_q3) - scale * scale) / q_bg_unsigned_idx_3;
 
       // 'acosReal:28' if numel(y) > 1
       // 'acosReal:31' else
@@ -6067,52 +6066,52 @@ void MatlabControllerClass::step()
       // 'indiPlaneAcc2PhiQR:112' nu_a_Kf_yz = M_fb*nu_a_Kb_yz;
       // 'indiPlaneAcc2PhiQR:114' if method == 1
       // 'indiPlaneAcc2PhiQR:116' omega_i = divideFinite( a_Kb_yz, V );
-      y_idx_2 = q0_q0;
+      scale = q0_q0;
 
       // 'divideFinite:29' if numel(B)>1
       // 'divideFinite:31' else
       // 'divideFinite:32' if abs(B)<eps
-      rtb_Gain_cf = std::abs(q0_q0);
-      if (rtb_Gain_cf < 2.22044605E-16F) {
+      q_bg_unsigned_idx_3 = std::abs(q0_q0);
+      if (q_bg_unsigned_idx_3 < 2.22044605E-16F) {
         // 'divideFinite:33' B(:) = eps;
-        y_idx_2 = 2.22044605E-16F;
+        scale = 2.22044605E-16F;
       }
 
       // 'divideFinite:36' C = A ./ B;
-      a_Kb_yz[0] = expl_temp[1] / y_idx_2;
+      a_Kb_yz[0] = expl_temp[1] / scale;
 
       // MATLAB Function: '<S17>/Outer Loop INDI' incorporates:
       //   UnitDelay: '<S17>/Unit Delay1'
 
-      scale = expl_temp[2] / y_idx_2;
+      q1_q3 = expl_temp[2] / scale;
 
       // 'indiPlaneAcc2PhiQR:117' q_i = -omega_i(2);
       // 'indiPlaneAcc2PhiQR:118' r_i = omega_i(1);
       // 'indiPlaneAcc2PhiQR:121' omega_des = divideFinite( nu_a_Kf_yz, V );
-      y_idx_2 = q0_q0;
+      scale = q0_q0;
 
       // 'divideFinite:29' if numel(B)>1
       // 'divideFinite:31' else
       // 'divideFinite:32' if abs(B)<eps
-      if (rtb_Gain_cf < 2.22044605E-16F) {
+      if (q_bg_unsigned_idx_3 < 2.22044605E-16F) {
         // 'divideFinite:33' B(:) = eps;
-        y_idx_2 = 2.22044605E-16F;
+        scale = 2.22044605E-16F;
       }
 
       // 'divideFinite:36' C = A ./ B;
-      absxk = std::cos(rtDW.UnitDelay1_DSTATE_d);
-      t = std::sin(rtDW.UnitDelay1_DSTATE_d);
+      q_bg_unsigned_idx_3 = std::cos(rtDW.UnitDelay1_DSTATE_d);
+      absxk = std::sin(rtDW.UnitDelay1_DSTATE_d);
 
       // 'indiPlaneAcc2PhiQR:122' q_des = -omega_des(2);
       // 'indiPlaneAcc2PhiQR:123' r_des = omega_des(1);
       // 'indiPlaneAcc2PhiQR:126' Delta_q = q_des - q_i;
       // 'indiPlaneAcc2PhiQR:127' Delta_r = r_des - r_i;
-      q1_q3 = dir_next_wp_0[1] * rtDW.nu[1] - dir_next_wp_0[2] * rtDW.nu[0];
-      if (q1_q3 < 0.0F) {
-        q1_q3 = -1.0F;
+      t = dir_next_wp_0[1] * rtDW.nu[1] - dir_next_wp_0[2] * rtDW.nu[0];
+      if (t < 0.0F) {
+        t = -1.0F;
       } else {
-        if (q1_q3 > 0.0F) {
-          q1_q3 = 1.0F;
+        if (t > 0.0F) {
+          t = 1.0F;
         }
       }
 
@@ -6128,11 +6127,11 @@ void MatlabControllerClass::step()
         }
       }
 
-      if (-1.0F >= q0_q3) {
-        q0_q3 = -1.0F;
+      if (-1.0F >= Phi_i) {
+        Phi_i = -1.0F;
       }
 
-      q2_q3 = -q1_q3 * std::acos(q2_q3) - q1_q2 * std::acos(q0_q3);
+      q2_q3 = -t * std::acos(q2_q3) - q1_q2 * std::acos(Phi_i);
 
       // DiscreteIntegrator: '<S54>/Discrete-Time Integrator'
       if (rtDW.DiscreteTimeIntegrator_IC_LOA_l != 0) {
@@ -6158,24 +6157,24 @@ void MatlabControllerClass::step()
       //   MATLAB Function: '<S52>/Quaternions to Euler angles1'
       //   Sum: '<S17>/Add7'
 
-      rtDW.Merge2 = std::atan2((q_bg_unsigned_idx_2 * y_m_0 +
+      rtDW.Merge2 = std::atan2((q_bg_unsigned_idx_2 * q0_q3 +
         q_bg_unsigned_idx_0 * q_bg_unsigned_idx_1) * 2.0F, ((q_bg_unsigned_idx_0
         * q_bg_unsigned_idx_0 - q_bg_unsigned_idx_1 * q_bg_unsigned_idx_1) -
-        q_bg_unsigned_idx_2 * q_bg_unsigned_idx_2) + y_m_0 * y_m_0) + q2_q3;
+        q_bg_unsigned_idx_2 * q_bg_unsigned_idx_2) + q0_q3 * q0_q3) + q2_q3;
 
       // SignalConversion: '<S12>/OutportBufferForq_d' incorporates:
       //   MATLAB Function: '<S17>/Outer Loop INDI'
       //   Sum: '<S17>/Add8'
 
-      rtDW.Merge = (-((-t * rtDW.nu[0] + absxk * rtDW.nu[1]) / y_idx_2) -
-                    (-scale)) + rtb_y_k[1];
+      rtDW.Merge = (-((-absxk * rtDW.nu[0] + q_bg_unsigned_idx_3 * rtDW.nu[1]) /
+                      scale) - (-q1_q3)) + rtb_y_k[1];
 
       // SignalConversion: '<S12>/OutportBufferForr_d' incorporates:
       //   MATLAB Function: '<S17>/Outer Loop INDI'
       //   Sum: '<S17>/Add9'
 
-      rtDW.Merge1 = ((absxk * rtDW.nu[0] + t * rtDW.nu[1]) / y_idx_2 - a_Kb_yz[0])
-        + rtb_y_k[2];
+      rtDW.Merge1 = ((q_bg_unsigned_idx_3 * rtDW.nu[0] + absxk * rtDW.nu[1]) /
+                     scale - a_Kb_yz[0]) + rtb_y_k[2];
     } else {
       if (rtDW.OuterLoopINDI_MODE) {
         rtDW.OuterLoopINDI_MODE = false;
@@ -6185,49 +6184,84 @@ void MatlabControllerClass::step()
     // End of Outputs for SubSystem: '<S5>/Outer Loop INDI'
     // End of Outputs for SubSystem: '<S5>/Demux'
 
-    // DiscreteIntegrator: '<S84>/Discrete-Time Integrator y_dt' incorporates:
+    // Outputs for Enabled SubSystem: '<S5>/Cmd 2 Roll Angle' incorporates:
+    //   EnablePort: '<S10>/Enable'
+
+    if (rtb_Compare > 0) {
+      // Gain: '<S10>/Gain' incorporates:
+      //   Inport: '<Root>/cmd'
+
+      rtDW.Merge2 = rtP.lindi.atc.rm.rangmax * 3.14159274F / 180.0F *
+        rtU.cmd.roll;
+    }
+
+    // End of Outputs for SubSystem: '<S5>/Cmd 2 Roll Angle'
+
+    // Saturate: '<S21>/Saturation' incorporates:
     //   MATLAB Function: '<S17>/Outer Loop INDI'
     //   MATLAB Function: '<S52>/DCM to quaternions1'
     //   MATLAB Function: '<S52>/Quaternions to Euler angles1'
 
-    scale = rtDW.DiscreteTimeIntegratory_dt_DSTA;
+    scale = -rtP.lindi.atc.rm.rangmax * 3.14159274F / 180.0F;
+    q_bg_unsigned_idx_3 = rtP.lindi.atc.rm.rangmax * 3.14159274F / 180.0F;
+    if (rtDW.Merge2 > q_bg_unsigned_idx_3) {
+      scale = q_bg_unsigned_idx_3;
+    } else {
+      if (rtDW.Merge2 >= scale) {
+        scale = rtDW.Merge2;
+      }
+    }
 
-    // Sum: '<S21>/Add3' incorporates:
-    //   DiscreteIntegrator: '<S84>/Discrete-Time Integrator y_dt'
-    //   DiscreteIntegrator: '<S92>/Discrete-Time Integrator y'
-    //   Gain: '<S88>/Gain'
-    //   Gain: '<S88>/Gain1'
-    //   Gain: '<S88>/Gain3'
-    //   Gain: '<S88>/Gain4'
-    //   Product: '<S88>/Product'
-    //   Product: '<S88>/Product1'
-    //   Sum: '<S88>/Add2'
+    // End of Saturate: '<S21>/Saturation'
 
-    q2_q3 = rtP.lindi.eig.b / 2.0F * (rtDW.DiscreteTimeIntegratory_dt_DSTA -
-      rtDW.DiscreteTimeIntegratory_DSTAT_h) * rtP.lindi.eig.clp * (q0_q0 *
-      0.6125F) * (rtP.lindi.eig.s * rtP.lindi.eig.b) * (1.0F / rtP.lindi.ceb.ixx)
-      + rtb_y_pd[0];
+    // MATLAB Function: '<S21>/Avoid Angle Steps' incorporates:
+    //   UnitDelay: '<S21>/Unit Delay'
+
+    // :  Delta_angle = angle - angle_last;
+    absxk = scale - rtDW.UnitDelay_DSTATE_f;
+
+    // :  if Delta_angle > deg2rad(180)
+    // 'deg2rad:11' angle_rad = angle_deg * pi/180;
+    if (absxk > 3.1415926535897931) {
+      // :  angle_cum = angle - deg2rad(360);
+      // 'deg2rad:11' angle_rad = angle_deg * pi/180;
+      scale -= 6.28318548F;
+    } else {
+      // 'deg2rad:11' angle_rad = angle_deg * pi/180;
+      if (absxk < -3.1415926535897931) {
+        // :  elseif Delta_angle < -deg2rad(180)
+        // :  angle_cum = angle + deg2rad(360);
+        // 'deg2rad:11' angle_rad = angle_deg * pi/180;
+        scale += 6.28318548F;
+      } else {
+        // :  else
+        // :  angle_cum = angle_last + Delta_angle;
+        scale = rtDW.UnitDelay_DSTATE_f + absxk;
+      }
+    }
+
+    // End of MATLAB Function: '<S21>/Avoid Angle Steps'
 
     // Outputs for Enabled SubSystem: '<S5>/Turn Coordination' incorporates:
     //   EnablePort: '<S24>/Enable'
 
     if (rtb_Compare > 0) {
       // MATLAB Function: '<S24>/Turn Coordination'
-      absxk = q2_q3;
+      absxk = scale;
       t = q0_q0;
 
       // :  if abs(Phi) > 0.8*pi/2
-      if (std::abs(q2_q3) > 1.2566370614359172) {
+      if (std::abs(scale) > 1.2566370614359172) {
         // :  Phi = sign(Phi)*0.8*pi/2;
-        if (q2_q3 < 0.0F) {
-          absxk = -1.0F;
+        if (scale < 0.0F) {
+          q_bg_unsigned_idx_3 = -1.0F;
+        } else if (scale > 0.0F) {
+          q_bg_unsigned_idx_3 = 1.0F;
         } else {
-          if (q2_q3 > 0.0F) {
-            absxk = 1.0F;
-          }
+          q_bg_unsigned_idx_3 = scale;
         }
 
-        absxk = absxk * 0.8F * 3.14159274F / 2.0F;
+        absxk = q_bg_unsigned_idx_3 * 0.8F * 3.14159274F / 2.0F;
       }
 
       // :  a = 9.81 * tan(Phi);
@@ -6265,21 +6299,21 @@ void MatlabControllerClass::step()
     // 'asinReal:31' else
     // 'asinReal:32' y = max(-1,min(1,y));
     if (1.0F > rtDW.DiscreteTimeIntegratory_DSTAT_b[6]) {
-      q0_q3 = rtDW.DiscreteTimeIntegratory_DSTAT_b[6];
+      Phi_i = rtDW.DiscreteTimeIntegratory_DSTAT_b[6];
     } else {
-      q0_q3 = 1.0F;
+      Phi_i = 1.0F;
     }
 
     // 'asinReal:34' y = asin(y);
     // 'dcm2Euler:32' Psi = atan2( M_bg(1,2), M_bg(1,1) );
     // 'dcm2Euler:35' EulerAngles = [ Phi; Theta; Psi ];
-    rtb_Gain_cf = std::atan2(rtDW.DiscreteTimeIntegratory_DSTAT_b[7],
+    q_bg_unsigned_idx_3 = std::atan2(rtDW.DiscreteTimeIntegratory_DSTAT_b[7],
       rtDW.DiscreteTimeIntegratory_DSTAT_b[8]);
-    if (-1.0F >= q0_q3) {
-      q0_q3 = -1.0F;
+    if (-1.0F >= Phi_i) {
+      Phi_i = -1.0F;
     }
 
-    q_bg_unsigned_idx_0 = std::asin(q0_q3);
+    Phi_i = std::asin(Phi_i);
 
     // Outputs for Enabled SubSystem: '<S5>/add' incorporates:
     //   EnablePort: '<S27>/Enable'
@@ -6345,14 +6379,16 @@ void MatlabControllerClass::step()
           rtDW.DiscreteTimeIntegrator_DSTATE_a;
       }
 
+      q1_q2 = rtDW.DiscreteTimeIntegratory_DSTA_pe;
+
       // Sum: '<S18>/Add3' incorporates:
       //   DiscreteIntegrator: '<S59>/Discrete-Time Integrator y'
       //   MATLAB Function: '<S15>/Rotations matrix to Euler angles'
 
-      y_idx_2 = rtDW.DiscreteTimeIntegratory_DSTA_pe - (-q_bg_unsigned_idx_0);
+      q1_q3 = rtDW.DiscreteTimeIntegratory_DSTA_pe - (-Phi_i);
 
       // Gain: '<S18>/Gain'
-      rtDW.nu_q_dt_ptchcntrl = rtP.lindi.atc.k.pang * y_idx_2;
+      rtDW.nu_q_dt_ptchcntrl = rtP.lindi.atc.k.pang * q1_q3;
 
       // Product: '<S59>/Divide' incorporates:
       //   Constant: '<S59>/omega'
@@ -6524,18 +6560,18 @@ void MatlabControllerClass::step()
       // 'caIndiWls:77' umin    = max( umin, -Delta_u_max );
       // 'caIndiWls:78' umax    = min( umax, Delta_u_max );
       for (i = 0; i < 8; i++) {
-        t = std::abs(rtP.lindi.ca.u_max[i] - rtP.lindi.ca.u_min[i]);
-        if (rtP.lindi.ca.u_min[i] > -t) {
+        q1_q3 = std::abs(rtP.lindi.ca.u_max[i] - rtP.lindi.ca.u_min[i]);
+        if (rtP.lindi.ca.u_min[i] > -q1_q3) {
           z1[i] = rtP.lindi.ca.u_min[i];
         } else {
-          z1[i] = -t;
+          z1[i] = -q1_q3;
         }
 
         umin_0[i] = rtP.lindi.ca.u_min[i];
-        if (rtP.lindi.ca.u_max[i] < t) {
+        if (rtP.lindi.ca.u_max[i] < q1_q3) {
           varargin_2[i] = rtP.lindi.ca.u_max[i];
         } else {
-          varargin_2[i] = t;
+          varargin_2[i] = q1_q3;
         }
 
         umax_0[i] = rtP.lindi.ca.u_max[i];
@@ -6565,13 +6601,13 @@ void MatlabControllerClass::step()
       rtb_y_ai[2] = 0.0F;
       for (i = 0; i < 8; i++) {
         W_u_0[i + (i << 3)] = rtP.lindi.mla.ca.W_u[i];
-        q_bg_unsigned_idx_1 = (umin_0[i] + umax_0[i]) * 0.5F;
+        q2_q3 = (umin_0[i] + umax_0[i]) * 0.5F;
         G11_1_0[3 * i] = G11_1[i];
         G11_1_0[1 + 3 * i] = G11_2[i];
         G11_1_0[2 + 3 * i] = rtb_Product2[6 * i + 5];
         tmp[i] = rtP.lindi.ca.u_d[i];
         umin_0[i] = 0.0F;
-        umax_0[i] = q_bg_unsigned_idx_1;
+        umax_0[i] = q2_q3;
       }
 
       wls_alloc(G11_1_0, rtb_y_ai, z1, varargin_2, I_b, W_u_0, tmp,
@@ -6606,11 +6642,11 @@ void MatlabControllerClass::step()
     Onlyrotationalcontroleffectiven(rtb_Product4, force_dir);
     for (stage_app_2 = 0; stage_app_2 < 30; stage_app_2++) {
       // Gain: '<S69>/Gain1'
-      absxk = 160000.0F * force_dir[stage_app_2];
-      force_dir[stage_app_2] = absxk;
+      q1_q3 = 160000.0F * force_dir[stage_app_2];
+      force_dir[stage_app_2] = q1_q3;
       rtb_y_j5[stage_app_2] = (rtb_y_j5[stage_app_2] + c_XYZ[stage_app_2]) +
-        absxk;
-      c_XYZ[stage_app_2] += 2.0F * absxk;
+        q1_q3;
+      c_XYZ[stage_app_2] += 2.0F * q1_q3;
     }
 
     // Product: '<S61>/Divide' incorporates:
@@ -6643,61 +6679,7 @@ void MatlabControllerClass::step()
     //   DiscreteIntegrator: '<S67>/Discrete-Time Integrator y'
 
     t = rtDW.DiscreteTimeIntegrator_DSTATE_e -
-      rtDW.DiscreteTimeIntegratory_DSTA_hy;
-
-    // Outputs for Enabled SubSystem: '<S5>/Cmd 2 Roll Angle' incorporates:
-    //   EnablePort: '<S10>/Enable'
-
-    if (rtb_Compare > 0) {
-      // Gain: '<S10>/Gain' incorporates:
-      //   Inport: '<Root>/cmd'
-
-      rtDW.Merge2 = rtP.lindi.atc.rm.rangmax * 3.14159274F / 180.0F *
-        rtU.cmd.roll;
-    }
-
-    // End of Outputs for SubSystem: '<S5>/Cmd 2 Roll Angle'
-
-    // Saturate: '<S21>/Saturation'
-    q0_q3 = -rtP.lindi.atc.rm.rangmax * 3.14159274F / 180.0F;
-    q1_q3 = rtP.lindi.atc.rm.rangmax * 3.14159274F / 180.0F;
-    if (rtDW.Merge2 > q1_q3) {
-      q0_q3 = q1_q3;
-    } else {
-      if (rtDW.Merge2 >= q0_q3) {
-        q0_q3 = rtDW.Merge2;
-      }
-    }
-
-    // End of Saturate: '<S21>/Saturation'
-
-    // MATLAB Function: '<S21>/Avoid Angle Steps' incorporates:
-    //   UnitDelay: '<S21>/Unit Delay'
-
-    // :  Delta_angle = angle - angle_last;
-    q1_q2 = q0_q3 - rtDW.UnitDelay_DSTATE_f;
-
-    // :  if Delta_angle > deg2rad(180)
-    // 'deg2rad:11' angle_rad = angle_deg * pi/180;
-    if (q1_q2 > 3.1415926535897931) {
-      // :  angle_cum = angle - deg2rad(360);
-      // 'deg2rad:11' angle_rad = angle_deg * pi/180;
-      q0_q3 -= 6.28318548F;
-    } else {
-      // 'deg2rad:11' angle_rad = angle_deg * pi/180;
-      if (q1_q2 < -3.1415926535897931) {
-        // :  elseif Delta_angle < -deg2rad(180)
-        // :  angle_cum = angle + deg2rad(360);
-        // 'deg2rad:11' angle_rad = angle_deg * pi/180;
-        q0_q3 += 6.28318548F;
-      } else {
-        // :  else
-        // :  angle_cum = angle_last + Delta_angle;
-        q0_q3 = rtDW.UnitDelay_DSTATE_f + q1_q2;
-      }
-    }
-
-    // End of MATLAB Function: '<S21>/Avoid Angle Steps'
+      rtDW.DiscreteTimeIntegratory_DSTAT_h;
 
     // Product: '<S84>/Product1' incorporates:
     //   Constant: '<S84>/d'
@@ -6711,7 +6693,7 @@ void MatlabControllerClass::step()
     //   Sum: '<S84>/Sum2'
     //   Sum: '<S84>/Sum3'
 
-    q1_q2 = (q0_q3 - (1.0F / rtP.lindi.atc.rm.rfreq * 2.0F *
+    q0_q3 = (scale - (1.0F / rtP.lindi.atc.rm.rfreq * 2.0F *
                       rtDW.DiscreteTimeIntegratory_dt_DSTA +
                       rtDW.DiscreteTimeIntegratory_DSTAT_p)) *
       (rtP.lindi.atc.rm.rfreq * rtP.lindi.atc.rm.rfreq);
@@ -6727,27 +6709,27 @@ void MatlabControllerClass::step()
     // MATLAB Function: '<S83>/wrap angle' incorporates:
     //   DiscreteIntegrator: '<S85>/Discrete-Time Integrator y'
 
-    wrapangle(rtDW.DiscreteTimeIntegratory_DSTA_bw, &y_idx_2);
+    wrapangle(rtDW.DiscreteTimeIntegratory_DSTA_bw, &q1_q3);
 
     // MATLAB Function: '<S83>/wrap angle1' incorporates:
     //   MATLAB Function: '<S15>/Rotations matrix to Euler angles'
 
-    wrapangle(rtb_Gain_cf, &q1_q3);
+    wrapangle(q_bg_unsigned_idx_3, &q1_q2);
 
     // MATLAB Function: '<S83>/angle error'
     // :  error = errorAngle(angle_ref,angle);
     // 'errorAngle:22' error = angle_ref - angle;
-    y_idx_2 -= q1_q3;
+    q1_q3 -= q1_q2;
 
     // 'errorAngle:25' if error > pi
-    if (y_idx_2 > 3.1415926535897931) {
+    if (q1_q3 > 3.1415926535897931) {
       // 'errorAngle:26' error = error - 2*pi;
-      y_idx_2 -= 6.28318548F;
+      q1_q3 -= 6.28318548F;
     } else {
-      if (y_idx_2 < -3.1415926535897931) {
+      if (q1_q3 < -3.1415926535897931) {
         // 'errorAngle:27' elseif error < -pi
         // 'errorAngle:28' error = error + 2*pi;
-        y_idx_2 += 6.28318548F;
+        q1_q3 += 6.28318548F;
       }
     }
 
@@ -6763,17 +6745,17 @@ void MatlabControllerClass::step()
 
     // DiscreteIntegrator: '<S87>/Discrete-Time Integrator y'
     if (rtDW.DiscreteTimeIntegratory_IC_LO_c != 0) {
-      rtDW.DiscreteTimeIntegratory_DSTAT_f = q1_q2;
+      rtDW.DiscreteTimeIntegratory_DSTAT_f = q0_q3;
     }
 
     // Sum: '<S5>/Add1' incorporates:
     //   UnitDelay: '<S22>/Unit Delay'
 
-    q1_q3 = rtDW.Merge1 + rtDW.UnitDelay_DSTATE_fx;
+    q1_q2 = rtDW.Merge1 + rtDW.UnitDelay_DSTATE_fx;
 
     // DiscreteIntegrator: '<S100>/Discrete-Time Integrator'
     if (rtDW.DiscreteTimeIntegrator_IC_LOA_g != 0) {
-      rtDW.DiscreteTimeIntegrator_DSTATE_o = q1_q3;
+      rtDW.DiscreteTimeIntegrator_DSTATE_o = q1_q2;
     }
 
     // Product: '<S100>/Divide' incorporates:
@@ -6781,7 +6763,7 @@ void MatlabControllerClass::step()
     //   DiscreteIntegrator: '<S100>/Discrete-Time Integrator'
     //   Sum: '<S100>/Sum2'
 
-    q1_q3 = (q1_q3 - rtDW.DiscreteTimeIntegrator_DSTATE_o) / (1.0F /
+    q1_q2 = (q1_q2 - rtDW.DiscreteTimeIntegrator_DSTATE_o) / (1.0F /
       rtP.lindi.atc.rm.yfreq);
 
     // DiscreteIntegrator: '<S102>/Discrete-Time Integrator y' incorporates:
@@ -6794,7 +6776,7 @@ void MatlabControllerClass::step()
 
     // DiscreteIntegrator: '<S101>/Discrete-Time Integrator y'
     if (rtDW.DiscreteTimeIntegratory_IC_L_bc != 0) {
-      rtDW.DiscreteTimeIntegratory_DSTAT_o = q1_q3;
+      rtDW.DiscreteTimeIntegratory_DSTAT_o = q1_q2;
     }
 
     // :  [ Delta_u, W, iter ] = caIndiWls( ca, ...
@@ -6827,25 +6809,25 @@ void MatlabControllerClass::step()
       //   Constant: '<S77>/Delta u_max'
       //   DiscreteIntegrator: '<S74>/Discrete-Time Integrator y'
 
-      q_bg_unsigned_idx_2 = rtP.lindi.ca.u_min[itmp] -
+      q_bg_unsigned_idx_0 = rtP.lindi.ca.u_min[itmp] -
         rtDW.DiscreteTimeIntegratory_DSTAT_l[itmp];
-      q_bg_unsigned_idx_1 = rtP.lindi.ca.u_max[itmp] -
+      q2_q3 = rtP.lindi.ca.u_max[itmp] -
         rtDW.DiscreteTimeIntegratory_DSTAT_l[itmp];
-      rtb_Delta_u[itmp] = q_bg_unsigned_idx_2 + q_bg_unsigned_idx_1;
-      rtb_Sum2_k = rtP.lindi.ca.u_max[itmp] - rtP.lindi.ca.u_min[itmp];
-      umax[itmp] = q_bg_unsigned_idx_1;
+      rtb_Delta_u[itmp] = q_bg_unsigned_idx_0 + q2_q3;
+      q_bg_unsigned_idx_2 = rtP.lindi.ca.u_max[itmp] - rtP.lindi.ca.u_min[itmp];
+      umax[itmp] = q2_q3;
 
       // MATLAB Function: '<S77>/caIndiWls' incorporates:
       //   Constant: '<S77>/Delta u_max'
 
-      y_m_0 = std::abs(rtb_Sum2_k);
-      if (q_bg_unsigned_idx_2 > -y_m_0) {
-        rtb_DiscreteTimeIntegrator_l[itmp] = q_bg_unsigned_idx_2;
+      q_bg_unsigned_idx_1 = std::abs(q_bg_unsigned_idx_2);
+      if (q_bg_unsigned_idx_0 > -q_bg_unsigned_idx_1) {
+        rtb_DiscreteTimeIntegrator_l[itmp] = q_bg_unsigned_idx_0;
       } else {
-        rtb_DiscreteTimeIntegrator_l[itmp] = -y_m_0;
+        rtb_DiscreteTimeIntegrator_l[itmp] = -q_bg_unsigned_idx_1;
       }
 
-      rtb_Sum2_e[itmp] = rtb_Sum2_k;
+      rtb_Sum2_ha[itmp] = q_bg_unsigned_idx_2;
     }
 
     // MATLAB Function: '<S77>/caIndiWls' incorporates:
@@ -6854,7 +6836,7 @@ void MatlabControllerClass::step()
     // 'caIndiWls:78' umax    = min( umax, Delta_u_max );
     for (i = 0; i < 10; i++) {
       for (itmp = 0; itmp < 10; itmp++) {
-        rtb_u[itmp] = std::abs(rtb_Sum2_e[itmp]);
+        rtb_u[itmp] = std::abs(rtb_Sum2_ha[itmp]);
       }
 
       if (umax[i] < rtb_u[i]) {
@@ -6893,8 +6875,10 @@ void MatlabControllerClass::step()
     //   DiscreteIntegrator: '<S62>/Discrete-Time Integrator y'
     //   DiscreteIntegrator: '<S63>/Discrete-Time Integrator y'
     //   DiscreteIntegrator: '<S66>/Discrete-Time Integrator'
+    //   DiscreteIntegrator: '<S84>/Discrete-Time Integrator y_dt'
     //   DiscreteIntegrator: '<S86>/Discrete-Time Integrator y'
     //   DiscreteIntegrator: '<S87>/Discrete-Time Integrator y'
+    //   DiscreteIntegrator: '<S92>/Discrete-Time Integrator y'
     //   Gain: '<S60>/Gain3'
     //   Gain: '<S60>/Gain5'
     //   Gain: '<S64>/Gain14'
@@ -6908,16 +6892,23 @@ void MatlabControllerClass::step()
     //   Gain: '<S83>/Gain1'
     //   Gain: '<S83>/Gain3'
     //   Gain: '<S83>/Gain5'
+    //   Gain: '<S88>/Gain'
+    //   Gain: '<S88>/Gain1'
+    //   Gain: '<S88>/Gain3'
+    //   Gain: '<S88>/Gain4'
     //   Gain: '<S99>/Gain3'
     //   Gain: '<S99>/Gain5'
     //   Product: '<S64>/Product2'
     //   Product: '<S64>/Product3'
     //   Product: '<S64>/Product4'
+    //   Product: '<S88>/Product'
+    //   Product: '<S88>/Product1'
     //   Sum: '<S19>/Add1'
     //   Sum: '<S19>/Add2'
     //   Sum: '<S19>/Add9'
     //   Sum: '<S21>/Add1'
     //   Sum: '<S21>/Add2'
+    //   Sum: '<S21>/Add3'
     //   Sum: '<S26>/Add1'
     //   Sum: '<S26>/Add2'
     //   Sum: '<S5>/Add'
@@ -6928,14 +6919,19 @@ void MatlabControllerClass::step()
     //   Sum: '<S83>/Add'
     //   Sum: '<S83>/Add1'
     //   Sum: '<S83>/Add2'
+    //   Sum: '<S88>/Add2'
     //   Sum: '<S99>/Add'
     //   Sum: '<S99>/Add1'
     //   Sum: '<S99>/Add2'
 
     rtb_Sum2_ny[0] = ((((rtDW.DiscreteTimeIntegratory_DSTAT_m - rtb_y_k[0]) *
-                        rtP.lindi.atc.k.rrat + rtP.lindi.atc.k.rang * y_idx_2) +
+                        rtP.lindi.atc.k.rrat + rtP.lindi.atc.k.rang * q1_q3) +
                        (rtDW.DiscreteTimeIntegratory_DSTAT_f - rtb_y_pd[0]) *
-                       rtP.lindi.atc.k.racc) + q1_q2) - q2_q3;
+                       rtP.lindi.atc.k.racc) + q0_q3) - (rtP.lindi.eig.b / 2.0F *
+      (rtDW.DiscreteTimeIntegratory_dt_DSTA -
+       rtDW.DiscreteTimeIntegratory_DSTA_hc) * rtP.lindi.eig.clp * (q0_q0 *
+      0.6125F) * (rtP.lindi.eig.s * rtP.lindi.eig.b) * (1.0F / rtP.lindi.ceb.ixx)
+      + rtb_y_pd[0]);
     rtb_Sum2_ny[1] = ((((rtDW.DiscreteTimeIntegratory_DSTAT_i - rtb_y_k[1]) *
                         rtP.lindi.atc.k.prat +
                         (rtDW.DiscreteTimeIntegratory_DSTAT_e - rtb_y_pd[1]) *
@@ -6949,13 +6945,13 @@ void MatlabControllerClass::step()
     rtb_Sum2_ny[2] = (((rtDW.DiscreteTimeIntegratory_DSTA_f0 - rtb_y_k[2]) *
                        rtP.lindi.atc.k.yrat +
                        (rtDW.DiscreteTimeIntegratory_DSTAT_o - rtb_y_pd[2]) *
-                       rtP.lindi.atc.k.yacc) + q1_q3) - rtb_y_pd[2];
+                       rtP.lindi.atc.k.yacc) + q1_q2) - rtb_y_pd[2];
     for (stage_app_2 = 0; stage_app_2 < 3; stage_app_2++) {
       // Product: '<S69>/MatrixMultiply2'
       p_match_2[stage_app_2] = 0.0F;
 
       // Sum: '<S69>/Add2'
-      y_idx_2 = 0.0F;
+      q2_q3 = 0.0F;
       for (i = 0; i < 10; i++) {
         // Product: '<S69>/MatrixMultiply3' incorporates:
         //   Product: '<S69>/MatrixMultiply2'
@@ -6966,7 +6962,7 @@ void MatlabControllerClass::step()
         //   Product: '<S69>/MatrixMultiply3'
         //   UnitDelay: '<S69>/Unit Delay2'
 
-        y_idx_2 += force_dir[p2] * rtDW.UnitDelay2_DSTATE[i];
+        q2_q3 += force_dir[p2] * rtDW.UnitDelay2_DSTATE[i];
         p_match_2[stage_app_2] += c_XYZ[p2] * rtDW.UnitDelay1_DSTATE[i];
       }
 
@@ -6976,7 +6972,7 @@ void MatlabControllerClass::step()
       //   UnitDelay: '<S69>/Unit Delay1'
 
       rtb_y_ai[stage_app_2] = (rtb_Sum2_ny[stage_app_2] + p_match_2[stage_app_2])
-        - y_idx_2;
+        - q2_q3;
     }
 
     // MATLAB Function: '<S77>/caIndiWls' incorporates:
@@ -7000,12 +6996,12 @@ void MatlabControllerClass::step()
     //   Gain: '<S80>/Gain2'
     //   Gain: '<S80>/Gain3'
 
-    q2_q3 = rtP.lindi.servo.boost / (1.0F / rtP.lindi.servo.omega);
+    q1_q3 = rtP.lindi.servo.boost / (1.0F / rtP.lindi.servo.omega);
     for (i = 0; i < 10; i++) {
       // Sum: '<S20>/Add6' incorporates:
       //   DiscreteIntegrator: '<S73>/Discrete-Time Integrator y'
 
-      q_bg_unsigned_idx_2 = rtb_Delta_u[i] +
+      q_bg_unsigned_idx_0 = rtb_Delta_u[i] +
         rtDW.DiscreteTimeIntegratory_DSTA_j2[i];
 
       // Sum: '<S79>/Add1' incorporates:
@@ -7016,9 +7012,9 @@ void MatlabControllerClass::step()
       //   Gain: '<S79>/Gain3'
 
       rtb_DiscreteTimeIntegrator_l[i] = (rtP.lindi.servo.boost *
-        q_bg_unsigned_idx_2 + q2_q3 * rtDW.DiscreteTimeIntegrator1_DSTATE[i]) -
-        q2_q3 * rtDW.DiscreteTimeIntegrator_DSTATE_l[i];
-      umin[i] = q_bg_unsigned_idx_2;
+        q_bg_unsigned_idx_0 + q1_q3 * rtDW.DiscreteTimeIntegrator1_DSTATE[i]) -
+        q1_q3 * rtDW.DiscreteTimeIntegrator_DSTATE_l[i];
+      umin[i] = q_bg_unsigned_idx_0;
     }
 
     for (i = 0; i < 10; i++) {
@@ -7029,24 +7025,23 @@ void MatlabControllerClass::step()
       //   Gain: '<S80>/Gain2'
       //   Gain: '<S80>/Gain3'
 
-      q_bg_unsigned_idx_1 = (rtP.lindi.servo.boost *
-        rtb_DiscreteTimeIntegrator_l[i] + q2_q3 *
-        rtDW.DiscreteTimeIntegrator1_DSTAT_j[i]) - q2_q3 *
+      q2_q3 = (rtP.lindi.servo.boost * rtb_DiscreteTimeIntegrator_l[i] + q1_q3 *
+               rtDW.DiscreteTimeIntegrator1_DSTAT_j[i]) - q1_q3 *
         rtDW.DiscreteTimeIntegrator_DSTATE_g[i];
 
       // Saturate: '<S20>/Saturation3'
-      if (q_bg_unsigned_idx_1 > rtP.lindi.ca.u_max[i]) {
-        y_m_0 = rtP.lindi.ca.u_max[i];
-      } else if (q_bg_unsigned_idx_1 < rtP.lindi.ca.u_min[i]) {
-        y_m_0 = rtP.lindi.ca.u_min[i];
+      if (q2_q3 > rtP.lindi.ca.u_max[i]) {
+        q_bg_unsigned_idx_1 = rtP.lindi.ca.u_max[i];
+      } else if (q2_q3 < rtP.lindi.ca.u_min[i]) {
+        q_bg_unsigned_idx_1 = rtP.lindi.ca.u_min[i];
       } else {
-        y_m_0 = q_bg_unsigned_idx_1;
+        q_bg_unsigned_idx_1 = q2_q3;
       }
 
       // SignalConversion: '<S5>/BusConversion_InsertedFor_ap_bus_at_inport_0'
-      rtDW.u[i] = y_m_0;
-      umax[i] = q_bg_unsigned_idx_1;
-      rtb_u[i] = y_m_0;
+      rtDW.u[i] = q_bg_unsigned_idx_1;
+      umax[i] = q2_q3;
+      rtb_u[i] = q_bg_unsigned_idx_1;
     }
 
     // SignalConversion: '<S5>/BusConversion_InsertedFor_ap_bus_at_inport_0' incorporates:
@@ -7062,7 +7057,7 @@ void MatlabControllerClass::step()
     //   Constant: '<S74>/omega'
     //   Product: '<S74>/Divide'
 
-    q2_q3 = 1.0F / rtP.lindi.servo.omega * 2.0F;
+    q1_q3 = 1.0F / rtP.lindi.servo.omega * 2.0F;
 
     // Sum: '<S74>/Sum2' incorporates:
     //   DiscreteIntegrator: '<S74>/Discrete-Time Integrator y'
@@ -7071,8 +7066,8 @@ void MatlabControllerClass::step()
     //   Sum: '<S74>/Sum3'
 
     for (i = 0; i < 10; i++) {
-      rtb_Sum2_e[i] = rtb_u[i] - (rtDW.DiscreteTimeIntegratory_dt_DS_o[i] *
-        q2_q3 + rtDW.DiscreteTimeIntegratory_DSTAT_l[i]);
+      rtb_Sum2_ha[i] = rtb_u[i] - (rtDW.DiscreteTimeIntegratory_dt_DS_o[i] *
+        q1_q3 + rtDW.DiscreteTimeIntegratory_DSTAT_l[i]);
     }
 
     // End of Sum: '<S74>/Sum2'
@@ -7080,7 +7075,7 @@ void MatlabControllerClass::step()
     // Product: '<S74>/omega^2' incorporates:
     //   Constant: '<S74>/omega'
 
-    q2_q3 = rtP.lindi.servo.omega * rtP.lindi.servo.omega;
+    q1_q3 = rtP.lindi.servo.omega * rtP.lindi.servo.omega;
 
     // Gain: '<S73>/Gain' incorporates:
     //   Constant: '<S73>/d'
@@ -7091,7 +7086,7 @@ void MatlabControllerClass::step()
     //   Gain: '<S42>/Gain'
     //   Product: '<S73>/Divide'
 
-    rtb_Sum2_k = rtP.lindi.sflt.d / rtP.lindi.sflt.omega * 2.0F;
+    q_bg_unsigned_idx_1 = rtP.lindi.sflt.d / rtP.lindi.sflt.omega * 2.0F;
 
     // Sum: '<S73>/Sum2' incorporates:
     //   DiscreteIntegrator: '<S73>/Discrete-Time Integrator y'
@@ -7102,8 +7097,8 @@ void MatlabControllerClass::step()
     //   Sum: '<S73>/Sum3'
 
     for (i = 0; i < 10; i++) {
-      rtb_Sum2_kv[i] = rtDW.DiscreteTimeIntegratory_DSTAT_l[i] -
-        (rtDW.DiscreteTimeIntegratory_dt_DS_n[i] * rtb_Sum2_k +
+      rtb_Sum2_dx[i] = rtDW.DiscreteTimeIntegratory_DSTAT_l[i] -
+        (rtDW.DiscreteTimeIntegratory_dt_DS_n[i] * q_bg_unsigned_idx_1 +
          rtDW.DiscreteTimeIntegratory_DSTA_j2[i]);
     }
 
@@ -7112,7 +7107,7 @@ void MatlabControllerClass::step()
     // Product: '<S73>/omega^2' incorporates:
     //   Constant: '<S73>/omega'
 
-    y_idx_2 = rtP.lindi.sflt.omega * rtP.lindi.sflt.omega;
+    q2_q3 = rtP.lindi.sflt.omega * rtP.lindi.sflt.omega;
 
     // Sum: '<S39>/Sum2' incorporates:
     //   DiscreteIntegrator: '<S39>/Discrete-Time Integrator y'
@@ -7122,7 +7117,7 @@ void MatlabControllerClass::step()
 
     for (stage_app_2 = 0; stage_app_2 < 9; stage_app_2++) {
       rtb_M_bg[stage_app_2] -= rtDW.DiscreteTimeIntegratory_dt_D_ni[stage_app_2]
-        * rtb_Sum2_k + rtDW.DiscreteTimeIntegratory_DSTAT_b[stage_app_2];
+        * q_bg_unsigned_idx_1 + rtDW.DiscreteTimeIntegratory_DSTAT_b[stage_app_2];
     }
 
     // End of Sum: '<S39>/Sum2'
@@ -7130,7 +7125,7 @@ void MatlabControllerClass::step()
     // Product: '<S39>/omega^2' incorporates:
     //   Constant: '<S39>/omega'
 
-    q_bg_unsigned_idx_1 = rtP.lindi.sflt.omega * rtP.lindi.sflt.omega;
+    q_bg_unsigned_idx_0 = rtP.lindi.sflt.omega * rtP.lindi.sflt.omega;
 
     // Product: '<S42>/omega^2' incorporates:
     //   Constant: '<S42>/omega'
@@ -7140,7 +7135,7 @@ void MatlabControllerClass::step()
     // SignalConversion: '<S5>/BusConversion_InsertedFor_ap_bus_at_inport_0' incorporates:
     //   MATLAB Function: '<S15>/Rotations matrix to Euler angles'
 
-    rtDW.Euler_angles_f[0] = rtb_Gain_cf;
+    rtDW.Euler_angles_f[0] = q_bg_unsigned_idx_3;
 
     // SignalConversion: '<S5>/BusConversion_InsertedFor_ap_bus_at_inport_0'
     rtDW.Omega_Kb_f[0] = rtb_y_k[0];
@@ -7166,7 +7161,7 @@ void MatlabControllerClass::step()
     // SignalConversion: '<S5>/BusConversion_InsertedFor_ap_bus_at_inport_0'
     rtDW.s_g_match[0] = rtDW.p_match[0];
     rtb_y_k[0] = (rtU.measure.V_Kg[0] - (rtDW.DiscreteTimeIntegratory_dt_DS_e[0]
-      * rtb_Sum2_k + rtDW.DiscreteTimeIntegratory_DSTAT_j[0])) *
+      * q_bg_unsigned_idx_1 + rtDW.DiscreteTimeIntegratory_DSTAT_j[0])) *
       q_bg_unsigned_idx_2;
 
     // SignalConversion: '<S5>/BusConversion_InsertedFor_ap_bus_at_inport_0' incorporates:
@@ -7180,7 +7175,7 @@ void MatlabControllerClass::step()
     //   Sum: '<S42>/Sum2'
     //   Sum: '<S42>/Sum3'
 
-    rtDW.Euler_angles_f[1] = -q_bg_unsigned_idx_0;
+    rtDW.Euler_angles_f[1] = -Phi_i;
 
     // SignalConversion: '<S5>/BusConversion_InsertedFor_ap_bus_at_inport_0'
     rtDW.Omega_Kb_f[1] = rtb_y_k[1];
@@ -7206,7 +7201,7 @@ void MatlabControllerClass::step()
     // SignalConversion: '<S5>/BusConversion_InsertedFor_ap_bus_at_inport_0'
     rtDW.s_g_match[1] = rtDW.p_match[1];
     rtb_y_k[1] = (rtU.measure.V_Kg[1] - (rtDW.DiscreteTimeIntegratory_dt_DS_e[1]
-      * rtb_Sum2_k + rtDW.DiscreteTimeIntegratory_DSTAT_j[1])) *
+      * q_bg_unsigned_idx_1 + rtDW.DiscreteTimeIntegratory_DSTAT_j[1])) *
       q_bg_unsigned_idx_2;
 
     // SignalConversion: '<S5>/BusConversion_InsertedFor_ap_bus_at_inport_0' incorporates:
@@ -7257,9 +7252,9 @@ void MatlabControllerClass::step()
     //   Sum: '<S42>/Sum2'
     //   Sum: '<S42>/Sum3'
 
-    y_m_0 = (rtU.measure.V_Kg[2] - (rtDW.DiscreteTimeIntegratory_dt_DS_e[2] *
-              rtb_Sum2_k + rtDW.DiscreteTimeIntegratory_DSTAT_j[2])) *
-      q_bg_unsigned_idx_2;
+    q_bg_unsigned_idx_2 *= rtU.measure.V_Kg[2] -
+      (rtDW.DiscreteTimeIntegratory_dt_DS_e[2] * q_bg_unsigned_idx_1 +
+       rtDW.DiscreteTimeIntegratory_DSTAT_j[2]);
 
     // Sum: '<S41>/Sum2' incorporates:
     //   DiscreteIntegrator: '<S41>/Discrete-Time Integrator y'
@@ -7269,19 +7264,19 @@ void MatlabControllerClass::step()
     //   Sum: '<S41>/Sum3'
 
     rtb_Sum2_ci[0] = rtU.measure.s_Kg[0] -
-      (rtDW.DiscreteTimeIntegratory_dt_DS_p[0] * rtb_Sum2_k +
+      (rtDW.DiscreteTimeIntegratory_dt_DS_p[0] * q_bg_unsigned_idx_1 +
        rtDW.DiscreteTimeIntegratory_DSTA_n2[0]);
     rtb_Sum2_ci[1] = rtU.measure.s_Kg[1] -
-      (rtDW.DiscreteTimeIntegratory_dt_DS_p[1] * rtb_Sum2_k +
+      (rtDW.DiscreteTimeIntegratory_dt_DS_p[1] * q_bg_unsigned_idx_1 +
        rtDW.DiscreteTimeIntegratory_DSTA_n2[1]);
     rtb_Sum2_ci[2] = rtU.measure.s_Kg[2] -
-      (rtDW.DiscreteTimeIntegratory_dt_DS_p[2] * rtb_Sum2_k +
+      (rtDW.DiscreteTimeIntegratory_dt_DS_p[2] * q_bg_unsigned_idx_1 +
        rtDW.DiscreteTimeIntegratory_DSTA_n2[2]);
 
     // Product: '<S41>/omega^2' incorporates:
     //   Constant: '<S41>/omega'
 
-    q_bg_unsigned_idx_2 = rtP.lindi.sflt.omega * rtP.lindi.sflt.omega;
+    q_bg_unsigned_idx_3 = rtP.lindi.sflt.omega * rtP.lindi.sflt.omega;
 
     // Sum: '<S40>/Sum2' incorporates:
     //   DiscreteIntegrator: '<S40>/Discrete-Time Integrator y'
@@ -7292,11 +7287,11 @@ void MatlabControllerClass::step()
     //   Sum: '<S40>/Sum3'
 
     rtb_y_pd[0] = rtU.measure.a_Kg[0] - (rtDW.DiscreteTimeIntegratory_dt_DS_i[0]
-      * rtb_Sum2_k + rtDW.DiscreteTimeIntegratory_DSTAT_n[0]);
+      * q_bg_unsigned_idx_1 + rtDW.DiscreteTimeIntegratory_DSTAT_n[0]);
     rtb_y_pd[1] = rtU.measure.a_Kg[1] - (rtDW.DiscreteTimeIntegratory_dt_DS_i[1]
-      * rtb_Sum2_k + rtDW.DiscreteTimeIntegratory_DSTAT_n[1]);
+      * q_bg_unsigned_idx_1 + rtDW.DiscreteTimeIntegratory_DSTAT_n[1]);
     rtb_y_pd[2] = (rtU.measure.a_Kg[2] + 9.81F) -
-      (rtDW.DiscreteTimeIntegratory_dt_DS_i[2] * rtb_Sum2_k +
+      (rtDW.DiscreteTimeIntegratory_dt_DS_i[2] * q_bg_unsigned_idx_1 +
        rtDW.DiscreteTimeIntegratory_DSTAT_n[2]);
 
     // Product: '<S40>/omega^2' incorporates:
@@ -7315,10 +7310,10 @@ void MatlabControllerClass::step()
     //   Sum: '<S101>/Sum3'
 
     // :  y = u(end-1);
-    rtb_Sum2_n = q1_q3 - (1.0F / (2.0F / (2.0F / (rtP.lindi.servo.omega *
+    rtb_Sum2_cx = q1_q2 - (1.0F / (2.0F / (2.0F / (rtP.lindi.servo.omega *
       rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * 2.0F *
-                          rtDW.DiscreteTimeIntegratory_dt_D_oo +
-                          rtDW.DiscreteTimeIntegratory_DSTAT_o);
+      rtDW.DiscreteTimeIntegratory_dt_D_oo +
+      rtDW.DiscreteTimeIntegratory_DSTAT_o);
 
     // Sum: '<S102>/Sum2' incorporates:
     //   Constant: '<S102>/d'
@@ -7331,10 +7326,41 @@ void MatlabControllerClass::step()
     //   Product: '<S102>/Product2'
     //   Sum: '<S102>/Sum3'
 
-    rtb_Sum2_os = rtDW.DiscreteTimeIntegrator_DSTATE_o - (1.0F / (2.0F / (2.0F /
+    rtb_Sum2_b = rtDW.DiscreteTimeIntegrator_DSTATE_o - (1.0F / (2.0F / (2.0F /
       (rtP.lindi.servo.omega * rtP.lindi.servo.boost) + 2.0F /
       rtP.lindi.sflt.omega)) * 2.0F * rtDW.DiscreteTimeIntegratory_dt_DS_j +
       rtDW.DiscreteTimeIntegratory_DSTA_f0);
+
+    // Sum: '<S92>/Sum2' incorporates:
+    //   Constant: '<S92>/d'
+    //   Constant: '<S92>/omega'
+    //   DiscreteIntegrator: '<S92>/Discrete-Time Integrator y'
+    //   DiscreteIntegrator: '<S92>/Discrete-Time Integrator y_dt'
+    //   DiscreteIntegrator: '<S93>/Discrete-Time Integrator y'
+    //   Gain: '<S92>/Gain'
+    //   Product: '<S92>/Divide'
+    //   Product: '<S92>/Product2'
+    //   Sum: '<S92>/Sum3'
+
+    rtb_Sum2_lb = rtDW.DiscreteTimeIntegratory_DSTAT_g - (1.0F /
+      rtP.lindi.sflt.omega * 2.0F * rtDW.DiscreteTimeIntegratory_dt_DS_g +
+      rtDW.DiscreteTimeIntegratory_DSTA_hc);
+
+    // Sum: '<S93>/Sum2' incorporates:
+    //   Constant: '<S93>/d'
+    //   Constant: '<S93>/omega'
+    //   DiscreteIntegrator: '<S84>/Discrete-Time Integrator y_dt'
+    //   DiscreteIntegrator: '<S93>/Discrete-Time Integrator y'
+    //   DiscreteIntegrator: '<S93>/Discrete-Time Integrator y_dt'
+    //   Gain: '<S93>/Gain'
+    //   Product: '<S93>/Divide'
+    //   Product: '<S93>/Product2'
+    //   Sum: '<S93>/Sum3'
+
+    rtb_Sum2_o3 = rtDW.DiscreteTimeIntegratory_dt_DSTA - (1.0F /
+      (rtP.lindi.servo.omega * rtP.lindi.servo.boost) * 2.0F *
+      rtDW.DiscreteTimeIntegratory_dt_D_ir +
+      rtDW.DiscreteTimeIntegratory_DSTAT_g);
 
     // Sum: '<S87>/Sum2' incorporates:
     //   Constant: '<S87>/d'
@@ -7346,7 +7372,7 @@ void MatlabControllerClass::step()
     //   Product: '<S87>/Product2'
     //   Sum: '<S87>/Sum3'
 
-    rtb_Sum2_p = q1_q2 - (1.0F / (2.0F / (2.0F / (rtP.lindi.servo.omega *
+    rtb_Sum2_n = q0_q3 - (1.0F / (2.0F / (2.0F / (rtP.lindi.servo.omega *
       rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * 2.0F *
                           rtDW.DiscreteTimeIntegratory_dt_DS_l +
                           rtDW.DiscreteTimeIntegratory_DSTAT_f);
@@ -7362,7 +7388,7 @@ void MatlabControllerClass::step()
     //   Product: '<S86>/Product2'
     //   Sum: '<S86>/Sum3'
 
-    rtb_Sum2_nu = rtDW.DiscreteTimeIntegratory_dt_DSTA - (1.0F / (2.0F / (2.0F /
+    rtb_Sum2_po = rtDW.DiscreteTimeIntegratory_dt_DSTA - (1.0F / (2.0F / (2.0F /
       (rtP.lindi.servo.omega * rtP.lindi.servo.boost) + 2.0F /
       rtP.lindi.sflt.omega)) * 2.0F * rtDW.DiscreteTimeIntegratory_dt_DS_f +
       rtDW.DiscreteTimeIntegratory_DSTAT_m);
@@ -7378,7 +7404,7 @@ void MatlabControllerClass::step()
     //   Product: '<S85>/Product2'
     //   Sum: '<S85>/Sum3'
 
-    rtb_Sum2_co = rtDW.DiscreteTimeIntegratory_DSTAT_p - (1.0F / (2.0F / (2.0F /
+    rtb_Sum2_ec = rtDW.DiscreteTimeIntegratory_DSTAT_p - (1.0F / (2.0F / (2.0F /
       (rtP.lindi.servo.omega * rtP.lindi.servo.boost) + 2.0F /
       rtP.lindi.sflt.omega)) * 2.0F * rtDW.DiscreteTimeIntegratory_dt_D_pv +
       rtDW.DiscreteTimeIntegratory_DSTA_bw);
@@ -7389,27 +7415,27 @@ void MatlabControllerClass::step()
     //   Constant: '<S64>/Constant8'
 
     // :  A_alpha = divideFinite(V,m)*rho/2*S*C_La;
-    rtb_Gain_cf = rtP.lindi.ceb.m;
+    Phi_i = rtP.lindi.ceb.m;
 
     // 'divideFinite:29' if numel(B)>1
     // 'divideFinite:31' else
     // 'divideFinite:32' if abs(B)<eps
     if (std::abs(rtP.lindi.ceb.m) < 2.22044605E-16F) {
       // 'divideFinite:33' B(:) = eps;
-      rtb_Gain_cf = 2.22044605E-16F;
+      Phi_i = 2.22044605E-16F;
     }
 
     // 'divideFinite:36' C = A ./ B;
-    rtb_Gain_cf = q0_q0 / rtb_Gain_cf * 1.225F / 2.0F * rtP.lindi.eig.s *
+    Phi_i = q0_q0 / Phi_i * 1.225F / 2.0F * rtP.lindi.eig.s *
       rtP.lindi.eig.cla_h;
 
     // :  T = divideFinite( 1, A_alpha );
     // 'divideFinite:29' if numel(B)>1
     // 'divideFinite:31' else
     // 'divideFinite:32' if abs(B)<eps
-    if (std::abs(rtb_Gain_cf) < 2.22044605E-16F) {
+    if (std::abs(Phi_i) < 2.22044605E-16F) {
       // 'divideFinite:33' B(:) = eps;
-      rtb_Gain_cf = 2.22044605E-16F;
+      Phi_i = 2.22044605E-16F;
     }
 
     // Sum: '<S67>/Sum2' incorporates:
@@ -7424,9 +7450,9 @@ void MatlabControllerClass::step()
     //   Sum: '<S67>/Sum3'
 
     // 'divideFinite:36' C = A ./ B;
-    rtb_Sum2_l = rtDW.DiscreteTimeIntegratory_DSTAT_d - (1.0F /
+    rtb_Sum2_dt = rtDW.DiscreteTimeIntegratory_DSTAT_d - (1.0F /
       rtP.lindi.sflt.omega * 2.0F * rtDW.DiscreteTimeIntegratory_dt_DS_b +
-      rtDW.DiscreteTimeIntegratory_DSTA_hy);
+      rtDW.DiscreteTimeIntegratory_DSTAT_h);
 
     // Sum: '<S68>/Sum2' incorporates:
     //   Constant: '<S68>/d'
@@ -7439,7 +7465,7 @@ void MatlabControllerClass::step()
     //   Product: '<S68>/Product2'
     //   Sum: '<S68>/Sum3'
 
-    rtb_Sum2_k = rtDW.DiscreteTimeIntegrator_DSTATE_e - (1.0F /
+    rtb_Sum2_p = rtDW.DiscreteTimeIntegrator_DSTATE_e - (1.0F /
       (rtP.lindi.servo.omega * rtP.lindi.servo.boost) * 2.0F *
       rtDW.DiscreteTimeIntegratory_dt_D_lv +
       rtDW.DiscreteTimeIntegratory_DSTAT_d);
@@ -7454,7 +7480,7 @@ void MatlabControllerClass::step()
     //   Product: '<S62>/Product2'
     //   Sum: '<S62>/Sum3'
 
-    rtb_Sum2_ct = absxk - (1.0F / (2.0F / (2.0F / (rtP.lindi.servo.omega *
+    rtb_Sum2_mn = absxk - (1.0F / (2.0F / (2.0F / (rtP.lindi.servo.omega *
       rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * 2.0F *
       rtDW.DiscreteTimeIntegratory_dt_D_eo +
       rtDW.DiscreteTimeIntegratory_DSTAT_e);
@@ -7470,41 +7496,10 @@ void MatlabControllerClass::step()
     //   Product: '<S63>/Product2'
     //   Sum: '<S63>/Sum3'
 
-    rtb_Sum2_ki = rtDW.DiscreteTimeIntegrator_DSTATE_e - (1.0F / (2.0F / (2.0F /
+    rtb_Sum2_g = rtDW.DiscreteTimeIntegrator_DSTATE_e - (1.0F / (2.0F / (2.0F /
       (rtP.lindi.servo.omega * rtP.lindi.servo.boost) + 2.0F /
       rtP.lindi.sflt.omega)) * 2.0F * rtDW.DiscreteTimeIntegratory_dt_D_nr +
       rtDW.DiscreteTimeIntegratory_DSTAT_i);
-
-    // Sum: '<S92>/Sum2' incorporates:
-    //   Constant: '<S92>/d'
-    //   Constant: '<S92>/omega'
-    //   DiscreteIntegrator: '<S92>/Discrete-Time Integrator y'
-    //   DiscreteIntegrator: '<S92>/Discrete-Time Integrator y_dt'
-    //   DiscreteIntegrator: '<S93>/Discrete-Time Integrator y'
-    //   Gain: '<S92>/Gain'
-    //   Product: '<S92>/Divide'
-    //   Product: '<S92>/Product2'
-    //   Sum: '<S92>/Sum3'
-
-    rtb_Sum2_mz = rtDW.DiscreteTimeIntegratory_DSTAT_g - (1.0F /
-      rtP.lindi.sflt.omega * 2.0F * rtDW.DiscreteTimeIntegratory_dt_DS_g +
-      rtDW.DiscreteTimeIntegratory_DSTAT_h);
-
-    // Sum: '<S93>/Sum2' incorporates:
-    //   Constant: '<S93>/d'
-    //   Constant: '<S93>/omega'
-    //   DiscreteIntegrator: '<S84>/Discrete-Time Integrator y_dt'
-    //   DiscreteIntegrator: '<S93>/Discrete-Time Integrator y'
-    //   DiscreteIntegrator: '<S93>/Discrete-Time Integrator y_dt'
-    //   Gain: '<S93>/Gain'
-    //   Product: '<S93>/Divide'
-    //   Product: '<S93>/Product2'
-    //   Sum: '<S93>/Sum3'
-
-    rtb_Sum2_f = rtDW.DiscreteTimeIntegratory_dt_DSTA - (1.0F /
-      (rtP.lindi.servo.omega * rtP.lindi.servo.boost) * 2.0F *
-      rtDW.DiscreteTimeIntegratory_dt_D_ir +
-      rtDW.DiscreteTimeIntegratory_DSTAT_g);
 
     // SignalConversion: '<S5>/BusConversion_InsertedFor_ap_bus_at_inport_0'
     rtDW.wp_idx = rtDW.wp_idx_j;
@@ -7522,7 +7517,7 @@ void MatlabControllerClass::step()
     //   Constant: '<S43>/omega'
     //   Product: '<S43>/omega^2'
 
-    q_bg_unsigned_idx_0 = 2.0F / rtP.lindi.aspd.flttc;
+    q_bg_unsigned_idx_1 = 2.0F / rtP.lindi.aspd.flttc;
 
     // Sum: '<S43>/Sum2' incorporates:
     //   Constant: '<S43>/d'
@@ -7535,7 +7530,7 @@ void MatlabControllerClass::step()
     //   Product: '<S43>/Product2'
     //   Sum: '<S43>/Sum3'
 
-    q0_q0 = rtU.measure.airspeed - (1.0F / q_bg_unsigned_idx_0 * 2.0F *
+    q0_q0 = rtU.measure.airspeed - (1.0F / q_bg_unsigned_idx_1 * 2.0F *
       rtDW.DiscreteTimeIntegratory_dt_D_gf + rtDW.DiscreteTimeIntegratory_DSTATE);
 
     // Update for DiscreteIntegrator: '<S43>/Discrete-Time Integrator y' incorporates:
@@ -7635,14 +7630,8 @@ void MatlabControllerClass::step()
       rtDW.Delay_DSTATE_h[i] = rtb_y_n_g[i];
     }
 
-    // Update for DiscreteIntegrator: '<S84>/Discrete-Time Integrator y_dt'
-    rtDW.DiscreteTimeIntegratory_dt_DSTA += 0.0025F * q1_q2;
-
-    // Update for DiscreteIntegrator: '<S92>/Discrete-Time Integrator y' incorporates:
-    //   DiscreteIntegrator: '<S92>/Discrete-Time Integrator y_dt'
-
-    rtDW.DiscreteTimeIntegratory_DSTAT_h += 0.0025F *
-      rtDW.DiscreteTimeIntegratory_dt_DS_g;
+    // Update for UnitDelay: '<S21>/Unit Delay'
+    rtDW.UnitDelay_DSTATE_f = scale;
 
     // Update for DiscreteIntegrator: '<S61>/Discrete-Time Integrator'
     rtDW.DiscreteTimeIntegrator_IC_LOADI = 0U;
@@ -7668,19 +7657,22 @@ void MatlabControllerClass::step()
     //   Sum: '<S66>/Sum2'
 
     rtDW.DiscreteTimeIntegrator_DSTATE_h += (t -
-      rtDW.DiscreteTimeIntegrator_DSTATE_h) / (1.0F / rtb_Gain_cf) * 0.0025F;
+      rtDW.DiscreteTimeIntegrator_DSTATE_h) / (1.0F / Phi_i) * 0.0025F;
 
     // Update for DiscreteIntegrator: '<S67>/Discrete-Time Integrator y' incorporates:
     //   DiscreteIntegrator: '<S67>/Discrete-Time Integrator y_dt'
 
-    rtDW.DiscreteTimeIntegratory_DSTA_hy += 0.0025F *
+    rtDW.DiscreteTimeIntegratory_DSTAT_h += 0.0025F *
       rtDW.DiscreteTimeIntegratory_dt_DS_b;
 
-    // Update for UnitDelay: '<S21>/Unit Delay'
-    rtDW.UnitDelay_DSTATE_f = q0_q3;
+    // Update for DiscreteIntegrator: '<S84>/Discrete-Time Integrator y' incorporates:
+    //   DiscreteIntegrator: '<S84>/Discrete-Time Integrator y_dt'
 
-    // Update for DiscreteIntegrator: '<S84>/Discrete-Time Integrator y'
-    rtDW.DiscreteTimeIntegratory_DSTAT_p += 0.0025F * scale;
+    rtDW.DiscreteTimeIntegratory_DSTAT_p += 0.0025F *
+      rtDW.DiscreteTimeIntegratory_dt_DSTA;
+
+    // Update for DiscreteIntegrator: '<S84>/Discrete-Time Integrator y_dt'
+    rtDW.DiscreteTimeIntegratory_dt_DSTA += 0.0025F * q0_q3;
 
     // Update for DiscreteIntegrator: '<S85>/Discrete-Time Integrator y' incorporates:
     //   DiscreteIntegrator: '<S85>/Discrete-Time Integrator y_dt'
@@ -7703,6 +7695,12 @@ void MatlabControllerClass::step()
     rtDW.DiscreteTimeIntegratory_DSTAT_f += 0.0025F *
       rtDW.DiscreteTimeIntegratory_dt_DS_l;
 
+    // Update for DiscreteIntegrator: '<S92>/Discrete-Time Integrator y' incorporates:
+    //   DiscreteIntegrator: '<S92>/Discrete-Time Integrator y_dt'
+
+    rtDW.DiscreteTimeIntegratory_DSTA_hc += 0.0025F *
+      rtDW.DiscreteTimeIntegratory_dt_DS_g;
+
     // Update for UnitDelay: '<S22>/Unit Delay' incorporates:
     //   Gain: '<S22>/Gain5'
     //   MATLAB Function: '<S22>/Rudder command'
@@ -7712,7 +7710,7 @@ void MatlabControllerClass::step()
 
     // Update for DiscreteIntegrator: '<S100>/Discrete-Time Integrator'
     rtDW.DiscreteTimeIntegrator_IC_LOA_g = 0U;
-    rtDW.DiscreteTimeIntegrator_DSTATE_o += 0.0025F * q1_q3;
+    rtDW.DiscreteTimeIntegrator_DSTATE_o += 0.0025F * q1_q2;
 
     // Update for DiscreteIntegrator: '<S102>/Discrete-Time Integrator y' incorporates:
     //   DiscreteIntegrator: '<S102>/Discrete-Time Integrator y_dt'
@@ -7765,13 +7763,14 @@ void MatlabControllerClass::step()
       // Update for DiscreteIntegrator: '<S74>/Discrete-Time Integrator y_dt' incorporates:
       //   Product: '<S74>/Product1'
 
-      rtDW.DiscreteTimeIntegratory_dt_DS_o[i] += rtb_Sum2_e[i] * q2_q3 * 0.0025F;
+      rtDW.DiscreteTimeIntegratory_dt_DS_o[i] += rtb_Sum2_ha[i] * q1_q3 *
+        0.0025F;
 
       // Update for DiscreteIntegrator: '<S73>/Discrete-Time Integrator y_dt' incorporates:
       //   Product: '<S73>/Product1'
       //   Product: '<S73>/omega^2'
 
-      rtDW.DiscreteTimeIntegratory_dt_DS_n[i] += rtb_Sum2_kv[i] * y_idx_2 *
+      rtDW.DiscreteTimeIntegratory_dt_DS_n[i] += rtb_Sum2_dx[i] * q2_q3 *
         0.0025F;
     }
 
@@ -7781,7 +7780,7 @@ void MatlabControllerClass::step()
 
     for (stage_app_2 = 0; stage_app_2 < 9; stage_app_2++) {
       rtDW.DiscreteTimeIntegratory_dt_D_ni[stage_app_2] += rtb_M_bg[stage_app_2]
-        * q_bg_unsigned_idx_1 * 0.0025F;
+        * q_bg_unsigned_idx_0 * 0.0025F;
     }
 
     // End of Update for DiscreteIntegrator: '<S39>/Discrete-Time Integrator y_dt' 
@@ -7794,7 +7793,7 @@ void MatlabControllerClass::step()
     //   Product: '<S41>/omega^2'
 
     rtDW.DiscreteTimeIntegratory_dt_DS_p[0] += rtb_Sum2_ci[0] *
-      q_bg_unsigned_idx_2 * 0.0025F;
+      q_bg_unsigned_idx_3 * 0.0025F;
 
     // Update for DiscreteIntegrator: '<S40>/Discrete-Time Integrator y_dt' incorporates:
     //   Product: '<S40>/Product1'
@@ -7811,7 +7810,7 @@ void MatlabControllerClass::step()
     //   Product: '<S41>/omega^2'
 
     rtDW.DiscreteTimeIntegratory_dt_DS_p[1] += rtb_Sum2_ci[1] *
-      q_bg_unsigned_idx_2 * 0.0025F;
+      q_bg_unsigned_idx_3 * 0.0025F;
 
     // Update for DiscreteIntegrator: '<S40>/Discrete-Time Integrator y_dt' incorporates:
     //   Product: '<S40>/Product1'
@@ -7821,14 +7820,14 @@ void MatlabControllerClass::step()
       0.0025F;
 
     // Update for DiscreteIntegrator: '<S42>/Discrete-Time Integrator y_dt'
-    rtDW.DiscreteTimeIntegratory_dt_DS_e[2] += 0.0025F * y_m_0;
+    rtDW.DiscreteTimeIntegratory_dt_DS_e[2] += 0.0025F * q_bg_unsigned_idx_2;
 
     // Update for DiscreteIntegrator: '<S41>/Discrete-Time Integrator y_dt' incorporates:
     //   Product: '<S41>/Product1'
     //   Product: '<S41>/omega^2'
 
     rtDW.DiscreteTimeIntegratory_dt_DS_p[2] += rtb_Sum2_ci[2] *
-      q_bg_unsigned_idx_2 * 0.0025F;
+      q_bg_unsigned_idx_3 * 0.0025F;
 
     // Update for DiscreteIntegrator: '<S40>/Discrete-Time Integrator y_dt' incorporates:
     //   Product: '<S40>/Product1'
@@ -7845,7 +7844,7 @@ void MatlabControllerClass::step()
     rtDW.DiscreteTimeIntegratory_dt_D_oo += 2.0F / (2.0F /
       (rtP.lindi.servo.omega * rtP.lindi.servo.boost) + 2.0F /
       rtP.lindi.sflt.omega) * (2.0F / (2.0F / (rtP.lindi.servo.omega *
-      rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * rtb_Sum2_n *
+      rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * rtb_Sum2_cx *
       0.0025F;
 
     // Update for DiscreteIntegrator: '<S102>/Discrete-Time Integrator y_dt' incorporates:
@@ -7856,8 +7855,35 @@ void MatlabControllerClass::step()
     rtDW.DiscreteTimeIntegratory_dt_DS_j += 2.0F / (2.0F /
       (rtP.lindi.servo.omega * rtP.lindi.servo.boost) + 2.0F /
       rtP.lindi.sflt.omega) * (2.0F / (2.0F / (rtP.lindi.servo.omega *
-      rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * rtb_Sum2_os *
+      rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * rtb_Sum2_b *
       0.0025F;
+
+    // Update for DiscreteIntegrator: '<S92>/Discrete-Time Integrator y_dt' incorporates:
+    //   Constant: '<S92>/omega'
+    //   Product: '<S92>/Product1'
+    //   Product: '<S92>/omega^2'
+
+    rtDW.DiscreteTimeIntegratory_dt_DS_g += rtP.lindi.sflt.omega *
+      rtP.lindi.sflt.omega * rtb_Sum2_lb * 0.0025F;
+
+    // Update for DiscreteIntegrator: '<S93>/Discrete-Time Integrator y' incorporates:
+    //   DiscreteIntegrator: '<S93>/Discrete-Time Integrator y_dt'
+
+    rtDW.DiscreteTimeIntegratory_DSTAT_g += 0.0025F *
+      rtDW.DiscreteTimeIntegratory_dt_D_ir;
+
+    // Product: '<S93>/omega^2' incorporates:
+    //   Constant: '<S93>/omega'
+    //   Product: '<S68>/omega^2'
+
+    q1_q1 = rtP.lindi.servo.omega * rtP.lindi.servo.boost *
+      (rtP.lindi.servo.omega * rtP.lindi.servo.boost);
+
+    // Update for DiscreteIntegrator: '<S93>/Discrete-Time Integrator y_dt' incorporates:
+    //   Product: '<S93>/Product1'
+    //   Product: '<S93>/omega^2'
+
+    rtDW.DiscreteTimeIntegratory_dt_D_ir += q1_q1 * rtb_Sum2_o3 * 0.0025F;
 
     // Update for DiscreteIntegrator: '<S87>/Discrete-Time Integrator y_dt' incorporates:
     //   Constant: '<S87>/omega'
@@ -7867,7 +7893,7 @@ void MatlabControllerClass::step()
     rtDW.DiscreteTimeIntegratory_dt_DS_l += 2.0F / (2.0F /
       (rtP.lindi.servo.omega * rtP.lindi.servo.boost) + 2.0F /
       rtP.lindi.sflt.omega) * (2.0F / (2.0F / (rtP.lindi.servo.omega *
-      rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * rtb_Sum2_p *
+      rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * rtb_Sum2_n *
       0.0025F;
 
     // Update for DiscreteIntegrator: '<S86>/Discrete-Time Integrator y_dt' incorporates:
@@ -7878,7 +7904,7 @@ void MatlabControllerClass::step()
     rtDW.DiscreteTimeIntegratory_dt_DS_f += 2.0F / (2.0F /
       (rtP.lindi.servo.omega * rtP.lindi.servo.boost) + 2.0F /
       rtP.lindi.sflt.omega) * (2.0F / (2.0F / (rtP.lindi.servo.omega *
-      rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * rtb_Sum2_nu *
+      rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * rtb_Sum2_po *
       0.0025F;
 
     // Update for DiscreteIntegrator: '<S85>/Discrete-Time Integrator y_dt' incorporates:
@@ -7889,7 +7915,7 @@ void MatlabControllerClass::step()
     rtDW.DiscreteTimeIntegratory_dt_D_pv += 2.0F / (2.0F /
       (rtP.lindi.servo.omega * rtP.lindi.servo.boost) + 2.0F /
       rtP.lindi.sflt.omega) * (2.0F / (2.0F / (rtP.lindi.servo.omega *
-      rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * rtb_Sum2_co *
+      rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * rtb_Sum2_ec *
       0.0025F;
 
     // Update for DiscreteIntegrator: '<S67>/Discrete-Time Integrator y_dt' incorporates:
@@ -7898,7 +7924,7 @@ void MatlabControllerClass::step()
     //   Product: '<S67>/omega^2'
 
     rtDW.DiscreteTimeIntegratory_dt_DS_b += rtP.lindi.sflt.omega *
-      rtP.lindi.sflt.omega * rtb_Sum2_l * 0.0025F;
+      rtP.lindi.sflt.omega * rtb_Sum2_dt * 0.0025F;
 
     // Update for DiscreteIntegrator: '<S68>/Discrete-Time Integrator y' incorporates:
     //   DiscreteIntegrator: '<S68>/Discrete-Time Integrator y_dt'
@@ -7906,18 +7932,10 @@ void MatlabControllerClass::step()
     rtDW.DiscreteTimeIntegratory_DSTAT_d += 0.0025F *
       rtDW.DiscreteTimeIntegratory_dt_D_lv;
 
-    // Product: '<S68>/omega^2' incorporates:
-    //   Constant: '<S68>/omega'
-    //   Product: '<S93>/omega^2'
-
-    q1_q1 = rtP.lindi.servo.omega * rtP.lindi.servo.boost *
-      (rtP.lindi.servo.omega * rtP.lindi.servo.boost);
-
     // Update for DiscreteIntegrator: '<S68>/Discrete-Time Integrator y_dt' incorporates:
     //   Product: '<S68>/Product1'
-    //   Product: '<S68>/omega^2'
 
-    rtDW.DiscreteTimeIntegratory_dt_D_lv += q1_q1 * rtb_Sum2_k * 0.0025F;
+    rtDW.DiscreteTimeIntegratory_dt_D_lv += q1_q1 * rtb_Sum2_p * 0.0025F;
 
     // Update for DiscreteIntegrator: '<S62>/Discrete-Time Integrator y_dt' incorporates:
     //   Constant: '<S62>/omega'
@@ -7927,7 +7945,7 @@ void MatlabControllerClass::step()
     rtDW.DiscreteTimeIntegratory_dt_D_eo += 2.0F / (2.0F /
       (rtP.lindi.servo.omega * rtP.lindi.servo.boost) + 2.0F /
       rtP.lindi.sflt.omega) * (2.0F / (2.0F / (rtP.lindi.servo.omega *
-      rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * rtb_Sum2_ct *
+      rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * rtb_Sum2_mn *
       0.0025F;
 
     // Update for DiscreteIntegrator: '<S63>/Discrete-Time Integrator y_dt' incorporates:
@@ -7938,34 +7956,15 @@ void MatlabControllerClass::step()
     rtDW.DiscreteTimeIntegratory_dt_D_nr += 2.0F / (2.0F /
       (rtP.lindi.servo.omega * rtP.lindi.servo.boost) + 2.0F /
       rtP.lindi.sflt.omega) * (2.0F / (2.0F / (rtP.lindi.servo.omega *
-      rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * rtb_Sum2_ki *
+      rtP.lindi.servo.boost) + 2.0F / rtP.lindi.sflt.omega)) * rtb_Sum2_g *
       0.0025F;
-
-    // Update for DiscreteIntegrator: '<S92>/Discrete-Time Integrator y_dt' incorporates:
-    //   Constant: '<S92>/omega'
-    //   Product: '<S92>/Product1'
-    //   Product: '<S92>/omega^2'
-
-    rtDW.DiscreteTimeIntegratory_dt_DS_g += rtP.lindi.sflt.omega *
-      rtP.lindi.sflt.omega * rtb_Sum2_mz * 0.0025F;
-
-    // Update for DiscreteIntegrator: '<S93>/Discrete-Time Integrator y' incorporates:
-    //   DiscreteIntegrator: '<S93>/Discrete-Time Integrator y_dt'
-
-    rtDW.DiscreteTimeIntegratory_DSTAT_g += 0.0025F *
-      rtDW.DiscreteTimeIntegratory_dt_D_ir;
-
-    // Update for DiscreteIntegrator: '<S93>/Discrete-Time Integrator y_dt' incorporates:
-    //   Product: '<S93>/Product1'
-
-    rtDW.DiscreteTimeIntegratory_dt_D_ir += q1_q1 * rtb_Sum2_f * 0.0025F;
 
     // Update for DiscreteIntegrator: '<S43>/Discrete-Time Integrator y_dt' incorporates:
     //   Product: '<S43>/Product1'
     //   Product: '<S43>/omega^2'
 
-    rtDW.DiscreteTimeIntegratory_dt_D_gf += q_bg_unsigned_idx_0 *
-      q_bg_unsigned_idx_0 * q0_q0 * 0.0025F;
+    rtDW.DiscreteTimeIntegratory_dt_D_gf += q_bg_unsigned_idx_1 *
+      q_bg_unsigned_idx_1 * q0_q0 * 0.0025F;
   } else {
     if (rtDW.LindiPlaneAutopilot_MODE) {
       // Disable for Enabled SubSystem: '<S5>/Flight Path Smoothing'
