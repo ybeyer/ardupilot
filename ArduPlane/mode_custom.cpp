@@ -32,6 +32,7 @@ ModeCustom::ModeCustom(void) : Mode(), socket_debug(true)
 
 AP_HAL::UARTDriver *fc_serial6 = hal.serial(6);
 AP_HAL::UARTDriver *fc_serial5 = hal.serial(5);
+
 uint16_t missed_frames = 0;
 float t = 0;
 float Phi = 0;
@@ -49,14 +50,14 @@ bool ModeCustom::_enter()
         fc_uart->begin(6000000, sizeof(ExtU), sizeof(ExtY));
     #endif
 
+    fc_serial6->begin(2000000);
+    fc_serial5->begin(2000000);
+
     custom_controller.initialize(); 
     updated_waypoints = true;
 
     // init custom logging
     log_setup(log_config);
-
-    fc_serial6->begin(2000000);
-    fc_serial5->begin(2000000);
 
     Phi = 0;
 
@@ -69,13 +70,72 @@ void ModeCustom::update()
 
     uint32_t time_total = AP_HAL::micros();
 
+
+    uint8_t sensor_id;
+    memset(imu_a_z, 0, sizeof(imu_a_z));
+    memset(imu_p, 0, sizeof(imu_p));
+    // left wing
+    bytes_avail = fc_serial6->available();
+    //uint16_t bytes_avail6 = bytes_avail;
+    while (bytes_avail > 0) {
+        identifier_read = fc_serial6->read();
+        bytes_avail--;
+        if (identifier_read == identifier) {
+            if (bytes_avail >= 9) {
+                sensor_id = 3 - fc_serial6->read(); // flip sensor IDs
+                if (sensor_id <= 7) {
+                    fc_serial6->read(buffer, sizeof(buffer));
+                    memcpy(&imu_p[sensor_id], &buffer, sizeof(buffer));
+                    fc_serial6->read(buffer, sizeof(buffer));
+                    memcpy(&imu_a_z[sensor_id], &buffer, sizeof(buffer));
+                } else {
+                    fc_serial6->read(buffer, sizeof(buffer));
+                    fc_serial6->read(buffer, sizeof(buffer));
+                }
+                bytes_avail = bytes_avail - 9;
+            }
+        }
+    }
+    // right wing
+    bytes_avail = fc_serial5->available();
+    //uint16_t bytes_avail5 = bytes_avail;
+    while (bytes_avail > 0) {
+        identifier_read = fc_serial5->read();
+        bytes_avail--;
+        if (identifier_read == identifier) {
+            if (bytes_avail >= 9) {
+                sensor_id = 4 + fc_serial5->read(); // flip sensor IDs
+                if (sensor_id <= 7) {
+                    fc_serial5->read(buffer, sizeof(buffer));
+                    memcpy(&imu_p[sensor_id], &buffer, sizeof(buffer));
+                    fc_serial5->read(buffer, sizeof(buffer));
+                    memcpy(&imu_a_z[sensor_id], &buffer, sizeof(buffer));
+                } else {
+                    fc_serial5->read(buffer, sizeof(buffer));
+                    fc_serial5->read(buffer, sizeof(buffer));
+                }
+                bytes_avail = bytes_avail - 9;
+            }
+        }
+    }
+    
+    /*
+    t = t + plane.scheduler.get_loop_period_s();
+    if (t>0.5) {
+        if (t>1) {
+            GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "bytes_avail1: %f, bytes_avail2: %f", (float)bytes_avail6, (float)bytes_avail5);
+            t = 0;
+        }
+    }
+    */
+
+    
     fc_serial6->write(identifier);
     fc_serial6->write((uint8_t)0);
-    fc_serial6->flush();
 
     fc_serial5->write(identifier);
     fc_serial5->write((uint8_t)0);
-    fc_serial5->flush();
+
 
     // get pilot inputs
     float tr_max_inv = 1.0 / 4500;
@@ -145,46 +205,8 @@ void ModeCustom::update()
     }
 
 
-    
-    memset(imu_a_z, 0, sizeof(imu_a_z));
-    memset(imu_p, 0, sizeof(imu_p));
-    // left wing
-    for (uint8_t i=0; i<4; i++) {
-        bytes_avail = fc_serial6->available();
-        if (bytes_avail >= 2) {
-            identifier_read = fc_serial6->read();
-            if (identifier_read == identifier) {
-                uint8_t sensor_id = 3 - fc_serial6->read(); // flip sensor IDs
-                fc_serial6->read(buffer, sizeof(buffer));
-                memcpy(&imu_p[sensor_id], &buffer, sizeof(buffer));
-                fc_serial6->read(buffer, sizeof(buffer));
-                memcpy(&imu_a_z[sensor_id], &buffer, sizeof(buffer));
-            } else {
-                while(fc_serial6->available()) {
-                    fc_serial6->read();
-                }
-            }
-        }
-    }
-    // right wing
-    for (uint8_t i=0; i<4; i++) {
-        bytes_avail = fc_serial5->available();
-        if (bytes_avail >= 2) {
-            identifier_read = fc_serial5->read();
-            if (identifier_read == identifier) {
-                uint8_t sensor_id = 4 + fc_serial5->read(); // start with 4
-                fc_serial5->read(buffer, sizeof(buffer));
-                memcpy(&imu_p[sensor_id], &buffer, sizeof(buffer));
-                imu_p[sensor_id] = -imu_p[sensor_id]; // reverse sign
-                fc_serial5->read(buffer, sizeof(buffer));
-                memcpy(&imu_a_z[sensor_id], &buffer, sizeof(buffer));
-            } else {
-                while(fc_serial5->available()) {
-                    fc_serial5->read();
-                }
-            }
-        }
-    }
+
+
     
     Phi += plane.scheduler.get_loop_period_s() * imu_p[0];
 
