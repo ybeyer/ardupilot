@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'ArduPlane_LindiPlane'.
 //
-// Model version                  : 1.777
+// Model version                  : 1.795
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Mon Aug 26 20:49:29 2024
+// C/C++ source code generated on : Mon Feb 17 19:39:54 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -59,14 +59,14 @@ typedef unsigned int uint32_T;
 typedef long int64_T;
 typedef unsigned long uint64_T;
 typedef float real32_T;
-typedef float real64_T;
+typedef double real64_T;
 
 //===========================================================================*
 //  Generic type definitions: boolean_T, char_T, byte_T, int_T, uint_T,       *
 //                            real_T, time_T, ulong_T, ulonglong_T.           *
 // ===========================================================================
-typedef float real_T;
-typedef float time_T;
+typedef double real_T;
+typedef double time_T;
 typedef unsigned char boolean_T;
 typedef int int_T;
 typedef unsigned int uint_T;

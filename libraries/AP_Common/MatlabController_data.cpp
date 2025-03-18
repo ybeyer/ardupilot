@@ -7,9 +7,9 @@
 //
 // Code generated for Simulink model 'ArduPlane_LindiPlane'.
 //
-// Model version                  : 1.777
+// Model version                  : 1.795
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Mon Aug 26 20:49:29 2024
+// C/C++ source code generated on : Mon Feb 17 19:39:54 2025
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: Intel->x86-64 (Linux 64)
@@ -23,12 +23,12 @@
 // Constant parameters (default storage)
 const ConstP rtConstP = {
   // Computed Parameter: Gain_Gain_o
-  //  Referenced by: '<S8>/Gain'
+  //  Referenced by: '<S13>/Gain'
 
   { 1.0F, 0.75F, 0.5F, 0.25F, -0.25F, -0.5F, -0.75F, -1.0F },
 
   // Expression: ch_fcn
-  //  Referenced by: '<S1>/Constant'
+  //  Referenced by: '<S2>/Constant'
 
   { 999U, 999U, 999U, 999U, 999U, 999U, 999U, 999U, 19U, 21U, 70U, 0U, 0U, 0U,
     0U, 0U }
