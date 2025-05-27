@@ -540,11 +540,7 @@ void AP_Logger_MAVLink::periodic_1Hz()
          _front._params.disarm_ratemax > 0 ||
          _front._log_pause)) {
         // setup rate limiting if log rate max > 0Hz or log pause of streaming entries is requested
-<<<<<<< HEAD
-        rate_limiter = new AP_Logger_RateLimiter(_front, _front._params.mav_ratemax, _front._params.disarm_ratemax);
-=======
         rate_limiter = NEW_NOTHROW AP_Logger_RateLimiter(_front, _front._params.mav_ratemax, _front._params.disarm_ratemax);
->>>>>>> Copter-4.6.0
     }
 
     if (_sending_to_client &&

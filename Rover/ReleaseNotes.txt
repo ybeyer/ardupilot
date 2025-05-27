@@ -1,7 +1,5 @@
 Rover Release Notes:
 ------------------------------------------------------------------
-<<<<<<< HEAD:Rover/release-notes.txt
-=======
 Release 4.6.0 21-May-2025
 
 Changes from 4.6.0-beta6
@@ -1295,7 +1293,6 @@ Changes from 4.4.0-beta5
 5) Custom build server gets mission storage on SDCard selection
 6) SITL default parameter handling bug fix
 ------------------------------------------------------------------
->>>>>>> Copter-4.6.0:Rover/ReleaseNotes.txt
 Rover 4.4.0-beta5 12-Aug-2023
 Changes from 4.4.0-beta4
 1) Autopilots specific changes
@@ -1550,8 +1547,6 @@ Changes from 4.3.0-beta12
     - Webots 2023a simulator support
     - XPlane support for wider range of aircraft
 ------------------------------------------------------------------
-<<<<<<< HEAD:Rover/release-notes.txt
-=======
 Rover 4.3.0-beta14 12-Aug-2023
 Changes from 4.3.0-beta13
 1) Bug fixes
@@ -1570,7 +1565,6 @@ Changes from 4.3.0-beta12
     e) Memory corruption bug in the STM32H757 (very rare)
     f) RC input on IOMCU bug fix (RC might not be regained if lost)
 ------------------------------------------------------------------
->>>>>>> Copter-4.6.0:Rover/ReleaseNotes.txt
 Rover 4.3.0-beta11/beta12 27-Mar-2023
 Changes from 4.3.0-beta10
 1) Bi-directional DShot fix for possible motor stop approx 72min after startup 

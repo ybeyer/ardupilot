@@ -9827,11 +9827,7 @@ class AutoTestCopter(vehicle_test_suite.TestSuite):
         self.progress("fly 50m North (or whatever)")
         old_pos = self.mav.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
         self.fly_guided_move_global_relative_alt(50, 0, 50)
-<<<<<<< HEAD
-        self.set_parameter('GPS_TYPE', 0)
-=======
         self.set_parameter('GPS1_TYPE', 0)
->>>>>>> Copter-4.6.0
         self.drain_mav()
         tstart = self.get_sim_time()
         while True:

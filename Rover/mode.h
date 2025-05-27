@@ -262,12 +262,6 @@ public:
     float crosstrack_error() const override;
     float get_desired_lat_accel() const override;
 
-    // return heading (in degrees) and cross track error (in meters) for reporting to ground station (NAV_CONTROLLER_OUTPUT message)
-    float wp_bearing() const override;
-    float nav_bearing() const override;
-    float crosstrack_error() const override;
-    float get_desired_lat_accel() const override;
-
     // return distance (in meters) to destination
     float get_distance_to_destination() const override;
 
@@ -310,17 +304,6 @@ protected:
     bool _enter() override;
     void _exit() override;
 
-<<<<<<< HEAD
-    enum AutoSubMode {
-        Auto_WP,                // drive to a given location
-        Auto_HeadingAndSpeed,   // turn to a given heading
-        Auto_RTL,               // perform RTL within auto mode
-        Auto_Loiter,            // perform Loiter within auto mode
-        Auto_Guided,            // handover control to external navigation system from within auto mode
-        Auto_Stop,              // stop the vehicle as quickly as possible
-        Auto_NavScriptTime,     // accept targets from lua scripts while NAV_SCRIPT_TIME commands are executing
-        Auto_Circle,            // circle a given location
-=======
     enum SubMode: uint8_t {
         WP,                // drive to a given location
         HeadingAndSpeed,   // turn to a given heading
@@ -330,7 +313,6 @@ protected:
         Stop,              // stop the vehicle as quickly as possible
         NavScriptTime,     // accept targets from lua scripts while NAV_SCRIPT_TIME commands are executing
         Circle,            // circle a given location
->>>>>>> Copter-4.6.0
     } _submode;
 
 private:
@@ -433,18 +415,12 @@ public:
     // Does not allow copies
     CLASS_NO_COPY(ModeCircle);
 
-<<<<<<< HEAD
-    uint32_t mode_number() const override { return CIRCLE; }
-    const char *name4() const override { return "CIRC"; }
-
-=======
     Number mode_number() const override { return Number::CIRCLE; }
     const char *name4() const override { return "CIRC"; }
 
     // return the distance at which the vehicle is considered to be on track along the circle
     float get_reached_distance() const;
 
->>>>>>> Copter-4.6.0
     // initialise with specific center location, radius (in meters) and direction
     // replaces use of _enter when initialised from within Auto mode
     bool set_center(const Location& center_loc, float radius_m, bool dir_ccw);
@@ -484,15 +460,12 @@ protected:
     // initialise mode
     bool _enter() override;
 
-<<<<<<< HEAD
-=======
     // Update position controller targets driving to the circle edge
     void update_drive_to_radius();
 
     // Update position controller targets while circling
     void update_circling();
 
->>>>>>> Copter-4.6.0
     // initialise target_yaw_rad using the vehicle's position and yaw
     // if there is no current position estimate target_yaw_rad is set to vehicle yaw
     void init_target_yaw_rad();
@@ -529,10 +502,7 @@ protected:
     float angle_total_rad;  // total angle in radians that vehicle has circled
     bool reached_edge;      // true once vehicle has reached edge of circle
     float dist_to_edge_m;   // distance to edge of circle in meters (equivalent to crosstrack error)
-<<<<<<< HEAD
-=======
     bool tracking_back;     // true if the vehicle is trying to track back onto the circle
->>>>>>> Copter-4.6.0
 };
 
 class ModeGuided : public Mode

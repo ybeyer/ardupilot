@@ -234,9 +234,6 @@ AP_HW_YJUAV_A6                       1113
 AP_HW_YJUAV_A6Nano                   1114
 AP_HW_ACNS_CM4PILOT                  1115
 AP_HW_ACNS_F405AIO                   1116
-<<<<<<< HEAD
-AP_HW_BLITZF7                        1117
-=======
 AP_HW_BLITZF7AIO                     1117
 AP_HW_RADIX2HD                       1118
 AP_HW_HEEWING_F405                   1119
@@ -302,7 +299,6 @@ AP_HW_CBU_StampH743_LC               1182
 AP_HW_NarinH7                        1183
 
 AP_HW_JFB200                         1200
->>>>>>> Copter-4.6.0
 
 AP_HW_ESP32_PERIPH                   1205
 AP_HW_ESP32S3_PERIPH                 1206

@@ -80,25 +80,6 @@ void ModeTakeoff::update()
 
     const float alt = target_alt;
     const float dist = target_dist;
-<<<<<<< HEAD
-    if (!takeoff_started) {
-        const uint16_t altitude = plane.relative_ground_altitude(false,true);
-        const float direction = degrees(ahrs.yaw);
-        // see if we will skip takeoff as already flying
-        if (plane.is_flying() && (millis() - plane.started_flying_ms > 10000U) && ahrs.groundspeed() > 3) {
-            if (altitude >= alt) {
-                gcs().send_text(MAV_SEVERITY_INFO, "Above TKOFF alt - loitering");
-                plane.next_WP_loc = plane.current_loc;
-                takeoff_started = true;
-                plane.set_flight_stage(AP_FixedWing::FlightStage::NORMAL);
-            } else {
-                gcs().send_text(MAV_SEVERITY_INFO, "Climbing to TKOFF alt then loitering");
-                plane.next_WP_loc = plane.current_loc;
-                plane.next_WP_loc.alt += ((alt - altitude) *100);
-                plane.next_WP_loc.offset_bearing(direction, dist);
-                takeoff_started = true;
-                plane.set_flight_stage(AP_FixedWing::FlightStage::NORMAL);
-=======
     if (!takeoff_mode_setup) {
         plane.auto_state.takeoff_altitude_rel_cm = alt * 100;
         const uint16_t altitude = plane.relative_ground_altitude(false,true);
@@ -121,15 +102,10 @@ void ModeTakeoff::update()
                 plane.next_WP_loc.offset_bearing(direction, dist);
                 takeoff_mode_setup = true;
                 plane.set_flight_stage(AP_FixedWing::FlightStage::TAKEOFF);
->>>>>>> Copter-4.6.0
             }
             // not flying so do a full takeoff sequence
         } else {
             // setup target waypoint and alt for loiter at dist and alt from start
-<<<<<<< HEAD
-
-=======
->>>>>>> Copter-4.6.0
             start_loc = plane.current_loc;
             plane.prev_WP_loc = plane.current_loc;
             plane.next_WP_loc = plane.current_loc;
@@ -142,30 +118,6 @@ void ModeTakeoff::update()
 
             plane.set_flight_stage(AP_FixedWing::FlightStage::TAKEOFF);
 
-<<<<<<< HEAD
-            if (!plane.throttle_suppressed) {
-                gcs().send_text(MAV_SEVERITY_INFO, "Takeoff to %.0fm for %.1fm heading %.1f deg",
-                                alt, dist, direction);
-                takeoff_started = true;
-            }
-        }
-    }
-
-    // we finish the initial level takeoff if we climb past
-    // TKOFF_LVL_ALT or we pass the target location. The check for
-    // target location prevents us flying forever if we can't climb
-    // reset the loiter waypoint target to be correct bearing and dist
-    // from starting location in case original yaw used to set it was off due to EKF
-    // reset or compass interference from max throttle
-    if (plane.flight_stage == AP_FixedWing::FlightStage::TAKEOFF &&
-        (plane.current_loc.alt - start_loc.alt >= level_alt*100 ||
-         start_loc.get_distance(plane.current_loc) >= dist)) {
-        // reset the target loiter waypoint using current yaw which should be close to correct starting heading
-        const float direction = start_loc.get_bearing_to(plane.current_loc) * 0.01;
-        plane.next_WP_loc = start_loc;
-        plane.next_WP_loc.offset_bearing(direction, dist);
-        plane.next_WP_loc.alt += alt*100.0;
-=======
             /*
               don't lock in the takeoff loiter location until we reach
               a ground speed of AIRSPEED_MIN*0.3 to cope with aircraft
@@ -216,19 +168,11 @@ void ModeTakeoff::update()
         start_loc.get_distance(plane.current_loc) >= dist)) {
         plane.set_flight_stage(AP_FixedWing::FlightStage::NORMAL);
     }
->>>>>>> Copter-4.6.0
 
     // If we have timed-out on the attempt to close the final few meters
     // during pitch level-off, continue to NORMAL flight stage.
     if (plane.check_takeoff_timeout_level_off()) {
         plane.set_flight_stage(AP_FixedWing::FlightStage::NORMAL);
-<<<<<<< HEAD
-
-#if AP_FENCE_ENABLED
-        plane.fence.auto_enable_fence_after_takeoff();
-#endif
-=======
->>>>>>> Copter-4.6.0
     }
 
     if (plane.flight_stage == AP_FixedWing::FlightStage::TAKEOFF) {

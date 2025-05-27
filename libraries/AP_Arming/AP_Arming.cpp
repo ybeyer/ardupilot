@@ -1821,17 +1821,6 @@ bool AP_Arming::arm(AP_Arming::Method method, const bool do_arming_checks)
     if (armed) {
         auto *fence = AP::fence();
         if (fence != nullptr) {
-<<<<<<< HEAD
-            // If a fence is set to auto-enable, turn on the fence
-            if (fence->auto_enabled() == AC_Fence::AutoEnable::ONLY_WHEN_ARMED) {
-                fence->enable(true);
-                gcs().send_text(MAV_SEVERITY_INFO, "Fence: auto-enabled");
-            }
-        }
-    }
-#endif
-
-=======
             fence->auto_enable_fence_on_arming();
         }
     }
@@ -1839,7 +1828,6 @@ bool AP_Arming::arm(AP_Arming::Method method, const bool do_arming_checks)
 #if defined(HAL_ARM_GPIO_PIN)
     update_arm_gpio();
 #endif
->>>>>>> Copter-4.6.0
     return armed;
 }
 

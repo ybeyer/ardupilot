@@ -173,28 +173,11 @@ void NavEKF3_core::realignYawGPS(bool emergency_reset)
         if (badMagYaw) {
             // attempt to use EKF-GSF estimate if available as it is more robust to GPS glitches
             // by default fly forward vehicles use ground course for initial yaw unless the GSF is explicitly selected as the yaw source
-<<<<<<< HEAD
-            const bool useGSF = !assume_zero_sideslip() || (frontend->sources.getYawSource() == AP_NavEKF_Source::SourceYaw::GSF);
-=======
             const bool useGSF = !assume_zero_sideslip() || (yaw_source_last == AP_NavEKF_Source::SourceYaw::GSF);
->>>>>>> Copter-4.6.0
             if (useGSF && EKFGSF_resetMainFilterYaw(emergency_reset)) {
                 return;
             }
 
-<<<<<<< HEAD
-            // get yaw variance from GPS speed uncertainty
-            const ftype gpsVelAcc = fmaxF(gpsSpdAccuracy, ftype(frontend->_gpsHorizVelNoise));
-            const ftype gps_yaw_variance = sq(asinF(constrain_float(gpsVelAcc/gpsDataDelayed.vel.xy().length(), -1.0F, 1.0F)));
-
-            if (gps_yaw_variance < sq(radians(GPS_VEL_YAW_ALIGN_MAX_ANG_ERR))) {
-                yawAlignGpsValidCount++;
-            } else {
-                yawAlignGpsValidCount = 0;
-            }
-
-=======
->>>>>>> Copter-4.6.0
             if (yawAlignGpsValidCount >= GPS_VEL_YAW_ALIGN_COUNT_THRESHOLD) {
                 yawAlignGpsValidCount = 0;
                 // keep roll and pitch and reset yaw
@@ -264,15 +247,6 @@ void NavEKF3_core::SelectMagFusion()
 
     // Handle case where we are not using a yaw sensor of any type and attempt to reset the yaw in
     // flight using the output from the GSF yaw estimator or GPS ground course.
-<<<<<<< HEAD
-    if ((yaw_source == AP_NavEKF_Source::SourceYaw::GSF) ||
-        (!use_compass() &&
-         yaw_source != AP_NavEKF_Source::SourceYaw::GPS &&
-         yaw_source != AP_NavEKF_Source::SourceYaw::GPS_COMPASS_FALLBACK &&
-         yaw_source != AP_NavEKF_Source::SourceYaw::EXTNAV)) {
-
-        if ((!yawAlignComplete || yaw_source_reset) && ((yaw_source != AP_NavEKF_Source::SourceYaw::GSF) || (EKFGSF_yaw_valid_count >= GSF_YAW_VALID_HISTORY_THRESHOLD))) {
-=======
     if ((yaw_source_last == AP_NavEKF_Source::SourceYaw::GSF) ||
         (!use_compass() &&
          yaw_source_last != AP_NavEKF_Source::SourceYaw::GPS &&
@@ -280,7 +254,6 @@ void NavEKF3_core::SelectMagFusion()
          yaw_source_last != AP_NavEKF_Source::SourceYaw::EXTNAV)) {
 
         if ((!yawAlignComplete || yaw_source_reset) && ((yaw_source_last != AP_NavEKF_Source::SourceYaw::GSF) || (EKFGSF_yaw_valid_count >= GSF_YAW_VALID_HISTORY_THRESHOLD))) {
->>>>>>> Copter-4.6.0
             realignYawGPS(false);
             yaw_source_reset = false;
         } else {
@@ -291,11 +264,7 @@ void NavEKF3_core::SelectMagFusion()
             // use the EKF-GSF yaw estimator output as this is more robust than the EKF can achieve without a yaw measurement
             // for non fixed wing platform types
             ftype gsfYaw, gsfYawVariance;
-<<<<<<< HEAD
-            const bool didUseEKFGSF = yawAlignComplete && (yaw_source == AP_NavEKF_Source::SourceYaw::GSF) && EKFGSF_getYaw(gsfYaw, gsfYawVariance) && !assume_zero_sideslip() && fuseEulerYaw(yawFusionMethod::GSF);
-=======
             const bool didUseEKFGSF = yawAlignComplete && (yaw_source_last == AP_NavEKF_Source::SourceYaw::GSF) && EKFGSF_getYaw(gsfYaw, gsfYawVariance) && !assume_zero_sideslip() && fuseEulerYaw(yawFusionMethod::GSF);
->>>>>>> Copter-4.6.0
 
             // fallback methods
             if (!didUseEKFGSF) {

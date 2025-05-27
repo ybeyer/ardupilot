@@ -747,20 +747,6 @@ def build(bld):
     if bld.env.ENABLE_CRASHDUMP:
         bld.env.LINKFLAGS += ['-Wl,-whole-archive', 'modules/ChibiOS/libcc.a', '-Wl,-no-whole-archive']
     # list of functions that will be wrapped to move them out of libc into our
-<<<<<<< HEAD
-    # own code note that we also include functions that we deliberately don't
-    # implement anywhere (the FILE* functions). This allows us to get link
-    # errors if we accidentially try to use one of those functions either
-    # directly or via another libc call
-    wraplist = ['sscanf', 'fprintf', 'snprintf', 'vsnprintf','vasprintf','asprintf','vprintf','scanf',
-                'fiprintf','printf',
-                'fopen', 'fflush', 'fwrite', 'fread', 'fputs', 'fgets',
-                'clearerr', 'fseek', 'ferror', 'fclose', 'tmpfile', 'getc', 'ungetc', 'feof',
-                'ftell', 'freopen', 'remove', 'vfprintf', 'fscanf',
-                '_gettimeofday', '_times', '_times_r', '_gettimeofday_r', 'time', 'clock',
-                '_sbrk_r', '_malloc_r', '_calloc_r', '_free_r']
-    for w in wraplist:
-=======
     # own code
     wraplist = ['sscanf', 'fprintf', 'snprintf', 'vsnprintf', 'vasprintf', 'asprintf', 'vprintf', 'scanf', 'printf']
 
@@ -776,5 +762,4 @@ def build(bld):
     blacklist += ['gmtime']
 
     for w in wraplist + blacklist:
->>>>>>> Copter-4.6.0
         bld.env.LINKFLAGS += ['-Wl,--wrap,%s' % w]

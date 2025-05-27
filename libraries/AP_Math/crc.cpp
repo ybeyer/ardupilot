@@ -227,8 +227,6 @@ uint8_t crc8_sae(const uint8_t *data, uint16_t length)
     return	crc;
 }
 
-<<<<<<< HEAD
-=======
 // crc table for rangefinder rds02uf
 static const uint8_t crc8_table_rds02uf[256] = {
     0x93,0x98,0xE4,0x46,0xEB,0xBA,0x04,0x4C,
@@ -274,7 +272,6 @@ uint8_t crc8_rds02uf(const uint8_t *data, uint16_t length)
     return crc;
 }
 
->>>>>>> Copter-4.6.0
 /*
   xmodem CRC thanks to avr-liberty
   https://github.com/dreamiurg/avr-liberty

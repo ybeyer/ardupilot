@@ -41,11 +41,7 @@ function bind_add_param(name, idx, default_value)
 end
 
 -- setup quicktune specific parameters
-<<<<<<< HEAD
-assert(param:add_table(PARAM_TABLE_KEY, PARAM_TABLE_PREFIX, 13), 'could not add param table')
-=======
 assert(param:add_table(PARAM_TABLE_KEY, PARAM_TABLE_PREFIX, 15), 'could not add param table')
->>>>>>> Copter-4.6.0
 
 --[[
   // @Param: QUIK_ENABLE
@@ -166,8 +162,6 @@ local QUIK_RC_FUNC     = bind_add_param('RC_FUNC',       12, 300)
 --]]
 local QUIK_MAX_REDUCE  = bind_add_param('MAX_REDUCE',    13, 20)
 
-<<<<<<< HEAD
-=======
 --[[
   // @Param: QUIK_OPTIONS
   // @DisplayName: Quicktune options
@@ -188,7 +182,6 @@ local QUIK_ANGLE_MAX = bind_add_param('ANGLE_MAX', 15, 10)
 
 local OPTIONS_TWO_POSITION = (1<<0)
 
->>>>>>> Copter-4.6.0
 local INS_GYRO_FILTER  = bind_param("INS_GYRO_FILTER")
 
 local RCMAP_ROLL       = bind_param("RCMAP_ROLL")

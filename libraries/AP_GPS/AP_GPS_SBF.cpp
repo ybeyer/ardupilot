@@ -483,11 +483,6 @@ AP_GPS_SBF::process_message(void)
         if (temp.Latitude > -200000) {
             state.location.lat = (int32_t)(temp.Latitude * RAD_TO_DEG_DOUBLE * (double)1e7);
             state.location.lng = (int32_t)(temp.Longitude * RAD_TO_DEG_DOUBLE * (double)1e7);
-<<<<<<< HEAD
-            state.location.alt = (int32_t)(((float)temp.Height - temp.Undulation) * 1e2f);
-            state.have_undulation = true;
-            state.undulation = -temp.Undulation;
-=======
             state.have_undulation = !is_DNU(temp.Undulation);
             double height = temp.Height;  // in metres
             if (state.have_undulation) {
@@ -495,7 +490,6 @@ AP_GPS_SBF::process_message(void)
                 state.undulation = -temp.Undulation;
             }
             set_alt_amsl_cm(state, (float)height * 1e2f);  // m -> cm
->>>>>>> Copter-4.6.0
         }
 
         state.num_sats = temp.NrSV;

@@ -6,26 +6,15 @@
 
 #include "ap_version.h"
 
-<<<<<<< HEAD
-#define THISFIRMWARE "ArduRover V4.4.0-beta5"
-
-// the following line is parsed by the autotest scripts
-#define FIRMWARE_VERSION 4,4,0,FIRMWARE_VERSION_TYPE_BETA+5
-=======
 #define THISFIRMWARE "ArduRover V4.6.0"
 
 // the following line is parsed by the autotest scripts
 #define FIRMWARE_VERSION 4,6,0,FIRMWARE_VERSION_TYPE_OFFICIAL
->>>>>>> Copter-4.6.0
 
 #define FW_MAJOR 4
 #define FW_MINOR 6
 #define FW_PATCH 0
-<<<<<<< HEAD
-#define FW_TYPE FIRMWARE_VERSION_TYPE_BETA
-=======
 #define FW_TYPE FIRMWARE_VERSION_TYPE_OFFICIAL
->>>>>>> Copter-4.6.0
 
 #include <AP_Common/AP_FWVersionDefine.h>
 #include <AP_CheckFirmware/AP_CheckFirmwareDefine.h>

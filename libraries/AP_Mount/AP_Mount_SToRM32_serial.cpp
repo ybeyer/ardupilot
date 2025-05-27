@@ -4,23 +4,6 @@
 #include <AP_HAL/AP_HAL.h>
 #include <GCS_MAVLink/GCS_MAVLink.h>
 #include <GCS_MAVLink/include/mavlink/v2.0/checksum.h>
-<<<<<<< HEAD
-#include <AP_SerialManager/AP_SerialManager.h>
-
-// init - performs any required initialisation for this instance
-void AP_Mount_SToRM32_serial::init()
-{
-    const AP_SerialManager& serial_manager = AP::serialmanager();
-
-    _port = serial_manager.find_serial(AP_SerialManager::SerialProtocol_Gimbal, 0);
-    if (_port) {
-        _initialised = true;
-        set_mode((enum MAV_MOUNT_MODE)_params.default_mode.get());
-    }
-
-}
-=======
->>>>>>> Copter-4.6.0
 
 // update mount position - should be called periodically
 void AP_Mount_SToRM32_serial::update()

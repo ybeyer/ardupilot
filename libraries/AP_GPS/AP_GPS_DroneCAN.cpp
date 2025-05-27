@@ -826,12 +826,6 @@ void AP_GPS_DroneCAN::inject_data(const uint8_t *data, uint16_t len)
     // don't want to send duplicates
     const uint32_t now_ms = AP_HAL::millis();
     if (_detected_module == 0 ||
-<<<<<<< HEAD:libraries/AP_GPS/AP_GPS_UAVCAN.cpp
-        _detected_modules[_detected_module].ap_uavcan != _detected_modules[0].ap_uavcan ||
-        now_ms - _detected_modules[0].last_inject_ms > 2000) {
-        _detected_modules[_detected_module].ap_uavcan->send_RTCMStream(data, len);
-        _detected_modules[_detected_module].last_inject_ms = now_ms;
-=======
         _detected_modules[_detected_module].ap_dronecan != _detected_modules[0].ap_dronecan ||
         now_ms - _detected_modules[0].last_inject_ms > 2000) {
         if (_rtcm_stream.buf == nullptr) {
@@ -845,7 +839,6 @@ void AP_GPS_DroneCAN::inject_data(const uint8_t *data, uint16_t len)
         _detected_modules[_detected_module].last_inject_ms = now_ms;
         _rtcm_stream.buf->write(data, len);
         send_rtcm();
->>>>>>> Copter-4.6.0:libraries/AP_GPS/AP_GPS_DroneCAN.cpp
     }
 }
 

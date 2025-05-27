@@ -22,20 +22,6 @@ extern const AP_HAL::HAL& hal;
 #define AP_MOUNT_SIYI_DEBUG 0
 #define debug(fmt, args ...) do { if (AP_MOUNT_SIYI_DEBUG) { GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Siyi: " fmt, ## args); } } while (0)
 
-<<<<<<< HEAD
-// init - performs any required initialisation for this instance
-void AP_Mount_Siyi::init()
-{
-    const AP_SerialManager& serial_manager = AP::serialmanager();
-
-    _uart = serial_manager.find_serial(AP_SerialManager::SerialProtocol_Gimbal, 0);
-    if (_uart != nullptr) {
-        _initialised = true;
-        set_mode((enum MAV_MOUNT_MODE)_params.default_mode.get());
-    }
-
-}
-=======
 // hardware lookup table indexed by HardwareModel enum values
 const AP_Mount_Siyi::HWInfo AP_Mount_Siyi::hardware_lookup_table[] {
         {{'0','0'}, "Unknown"},
@@ -46,7 +32,6 @@ const AP_Mount_Siyi::HWInfo AP_Mount_Siyi::hardware_lookup_table[] {
         {{'8','3'}, "ZT6"},
         {{'7','A'}, "ZT30"},
 };
->>>>>>> Copter-4.6.0
 
 // update mount position - should be called periodically
 void AP_Mount_Siyi::update()

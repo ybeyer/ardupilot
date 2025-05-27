@@ -42,18 +42,10 @@ bool ModeLoiter::isHeadingLinedUp(const Location loiterCenterLoc, const Location
     // Return true if current heading is aligned to vector to targetLoc.
     // Tolerance is initially 10 degrees and grows at 10 degrees for each loiter circle completed.
 
-<<<<<<< HEAD
-    if (loiterCenterLoc.get_distance(targetLoc) < 1.05f * fabsf(plane.loiter.radius)) {
-        /* Whenever next waypoint is within the loiter radius plus 5%,
-           maintaining loiter would prevent us from ever pointing toward the next waypoint.
-           Hence break out of loiter immediately
-         */
-=======
     // Corrected radius for altitude
     const float loiter_radius = plane.nav_controller->loiter_radius(fabsf(plane.loiter.radius));
     if (!is_positive(loiter_radius)) {
         // Zero is invalid, protect against divide by zero for destination inside loiter radius case
->>>>>>> Copter-4.6.0
         return true;
     }
 

@@ -31,15 +31,10 @@ extern const AP_HAL::HAL& hal;
 #define REG_228_CURRENT       0x07
 #define REG_228_MANUFACT_ID   0x3e
 #define REG_228_DEVICE_ID     0x3f
-<<<<<<< HEAD
-
-// INA238 specific registers
-=======
 #define REG_228_DIETEMP       0x06
 #define INA_228_TEMP_C_LSB    7.8125e-3
 
 // INA237/INA238 specific registers
->>>>>>> Copter-4.6.0
 #define REG_238_CONFIG        0x00
 #define  REG_238_CONFIG_RESET   0x8000
 #define REG_238_ADC_CONFIG    0x01
@@ -48,12 +43,6 @@ extern const AP_HAL::HAL& hal;
 #define REG_238_CURRENT       0x07
 #define REG_238_MANUFACT_ID   0x3e
 #define REG_238_DEVICE_ID     0x3f
-<<<<<<< HEAD
-
-#ifndef DEFAULT_BATTMON_INA2XX_MAX_AMPS
-#define DEFAULT_BATTMON_INA2XX_MAX_AMPS 90.0
-#endif
-=======
 #define REG_238_DIETEMP       0x06
 #define INA_238_TEMP_C_LSB    7.8125e-3 // need to mask bottom 4 bits
 
@@ -75,7 +64,6 @@ extern const AP_HAL::HAL& hal;
 #ifndef DEFAULT_BATTMON_INA2XX_SHUNT
 #define DEFAULT_BATTMON_INA2XX_SHUNT 0.0005
 #endif
->>>>>>> Copter-4.6.0
 
 #ifndef HAL_BATTMON_INA2XX_BUS
 #define HAL_BATTMON_INA2XX_BUS 0
@@ -111,10 +99,6 @@ const AP_Param::GroupInfo AP_BattMonitor_INA2XX::var_info[] = {
     // @Range: 1 400
     // @Units: A
     // @User: Advanced
-<<<<<<< HEAD
-    // @RebootRequired: True
-    AP_GROUPINFO("MAX_AMPS", 27, AP_BattMonitor_INA2XX, max_amps, DEFAULT_BATTMON_INA2XX_MAX_AMPS),
-=======
     AP_GROUPINFO("MAX_AMPS", 27, AP_BattMonitor_INA2XX, max_amps, DEFAULT_BATTMON_INA2XX_MAX_AMPS),
 
     // @Param: SHUNT
@@ -124,7 +108,6 @@ const AP_Param::GroupInfo AP_BattMonitor_INA2XX::var_info[] = {
     // @Units: Ohm
     // @User: Advanced
     AP_GROUPINFO("SHUNT", 28, AP_BattMonitor_INA2XX, rShunt, DEFAULT_BATTMON_INA2XX_SHUNT),
->>>>>>> Copter-4.6.0
     
     AP_GROUPEND
 };
@@ -157,10 +140,6 @@ bool AP_BattMonitor_INA2XX::configure(DevType dtype)
     case DevType::INA226: {
         // configure for MAX_AMPS
         const uint16_t conf = (0x2<<9) | (0x5<<6) | (0x5<<3) | 0x7; // 2ms conv time, 16x sampling
-<<<<<<< HEAD
-        const float rShunt = 0.0005;
-=======
->>>>>>> Copter-4.6.0
         current_LSB = max_amps / 32768.0;
         voltage_LSB = 0.00125; // 1.25mV/bit
         const uint16_t cal = uint16_t(0.00512 / (current_LSB * rShunt));
@@ -176,12 +155,7 @@ bool AP_BattMonitor_INA2XX::configure(DevType dtype)
     case DevType::INA228: {
         // configure for MAX_AMPS
         voltage_LSB = 195.3125e-6; // 195.3125 uV/LSB
-<<<<<<< HEAD
-        const float rShunt = 0.0005;
-        current_LSB = max_amps / (1<<19);
-=======
         current_LSB = max_amps / (1U<<19);
->>>>>>> Copter-4.6.0
         const uint16_t shunt_cal = uint16_t(13107.2e6 * current_LSB * rShunt) & 0x7FFF;
         if (write_word(REG_228_CONFIG, REG_228_CONFIG_RESET) && // reset
             write_word(REG_228_CONFIG, 0) &&
@@ -195,12 +169,7 @@ bool AP_BattMonitor_INA2XX::configure(DevType dtype)
     case DevType::INA238: {
         // configure for MAX_AMPS
         voltage_LSB = 3.125e-3; // 3.125mV/LSB
-<<<<<<< HEAD
-        const float rShunt = 0.0005;
-        current_LSB = max_amps / (1<<15);
-=======
         current_LSB = max_amps / (1U<<15);
->>>>>>> Copter-4.6.0
         const uint16_t shunt_cal = uint16_t(819.2e6 * current_LSB * rShunt) & 0x7FFF;
         if (write_word(REG_238_CONFIG, REG_238_CONFIG_RESET) && // reset
             write_word(REG_238_CONFIG, 0) &&
@@ -210,8 +179,6 @@ bool AP_BattMonitor_INA2XX::configure(DevType dtype)
         }
         break;
     }
-<<<<<<< HEAD
-=======
 
     case DevType::INA231: {
         // no configuration needed
@@ -222,7 +189,6 @@ bool AP_BattMonitor_INA2XX::configure(DevType dtype)
             return true;
         }
     }
->>>>>>> Copter-4.6.0
         
     }
     return false;
@@ -321,18 +287,12 @@ bool AP_BattMonitor_INA2XX::detect_device(void)
 
     if (read_word16(REG_228_MANUFACT_ID, id) && id == 0x5449 &&
         read_word16(REG_228_DEVICE_ID, id) && (id&0xFFF0) == 0x2280) {
-<<<<<<< HEAD
-=======
         has_temp = true;
->>>>>>> Copter-4.6.0
         return configure(DevType::INA228);
     }
     if (read_word16(REG_238_MANUFACT_ID, id) && id == 0x5449 &&
         read_word16(REG_238_DEVICE_ID, id) && (id&0xFFF0) == 0x2380) {
-<<<<<<< HEAD
-=======
         has_temp = true;
->>>>>>> Copter-4.6.0
         return configure(DevType::INA238);
     }
     if (read_word16(REG_226_MANUFACT_ID, id) && id == 0x5449 &&
@@ -342,14 +302,11 @@ bool AP_BattMonitor_INA2XX::detect_device(void)
         id == REG_226_CONFIG_DEFAULT) {
         return configure(DevType::INA226);
     }
-<<<<<<< HEAD
-=======
     if (read_word16(REG_231_CONFIG, id) && id == 0x4127) {
         // no manufacturer ID for 231
         return configure(DevType::INA231);
     }
 
->>>>>>> Copter-4.6.0
     return false;
 }
 
@@ -386,15 +343,10 @@ void AP_BattMonitor_INA2XX::timer(void)
 
     case DevType::INA228: {
         int32_t bus_voltage24, current24;
-<<<<<<< HEAD
-        if (!read_word24(REG_228_VBUS, bus_voltage24) ||
-            !read_word24(REG_228_CURRENT, current24)) {
-=======
         int16_t temp16;
         if (!read_word24(REG_228_VBUS, bus_voltage24) ||
             !read_word24(REG_228_CURRENT, current24) ||
             !read_word16(REG_228_DIETEMP, temp16)) {
->>>>>>> Copter-4.6.0
             failed_reads++;
             if (failed_reads > 10) {
                 // device has disconnected, we need to reconfigure it
@@ -404,24 +356,15 @@ void AP_BattMonitor_INA2XX::timer(void)
         }
         voltage = (bus_voltage24>>4) * voltage_LSB;
         current = (current24>>4) * current_LSB;
-<<<<<<< HEAD
-=======
         temperature = temp16 * INA_228_TEMP_C_LSB;
->>>>>>> Copter-4.6.0
         break;
     }
 
     case DevType::INA238: {
-<<<<<<< HEAD
-        int16_t bus_voltage16, current16;
-        if (!read_word16(REG_238_VBUS, bus_voltage16) ||
-            !read_word16(REG_238_CURRENT, current16)) {
-=======
         int16_t bus_voltage16, current16, temp16;
         if (!read_word16(REG_238_VBUS, bus_voltage16) ||
             !read_word16(REG_238_CURRENT, current16) ||
             !read_word16(REG_238_DIETEMP, temp16)) {
->>>>>>> Copter-4.6.0
             failed_reads++;
             if (failed_reads > 10) {
                 // device has disconnected, we need to reconfigure it
@@ -431,11 +374,6 @@ void AP_BattMonitor_INA2XX::timer(void)
         }
         voltage = bus_voltage16 * voltage_LSB;
         current = current16 * current_LSB;
-<<<<<<< HEAD
-        break;
-    }
-    }
-=======
         temperature = (temp16&0xFFF0) * INA_238_TEMP_C_LSB;
         break;
     }
@@ -456,7 +394,6 @@ void AP_BattMonitor_INA2XX::timer(void)
         break;
     }
     }
->>>>>>> Copter-4.6.0
 
     failed_reads = 0;
 

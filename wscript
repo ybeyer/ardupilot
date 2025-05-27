@@ -151,11 +151,7 @@ def options(opt):
         default=False,
         help='Configure as debug variant.')
 
-<<<<<<< HEAD
-    g.add_option('-g',
-=======
     g.add_option('--debug-symbols', '-g',
->>>>>>> Copter-4.6.0
         action='store_true',
         default=False,
         help='Add debug symbolds to build.')
@@ -432,8 +428,6 @@ configuration in order to save typing.
                  type='int',
                  default=0,
                  help='zero time on boot in microseconds')
-<<<<<<< HEAD
-=======
 
     g.add_option('--enable-new-checking',
         action='store_true',
@@ -457,7 +451,6 @@ configuration in order to save typing.
                      default=False,
                      help=disable_description)
     
->>>>>>> Copter-4.6.0
     
 def _collect_autoconfig_files(cfg):
     for m in sys.modules.values():
@@ -539,13 +532,10 @@ def configure(cfg):
         # also in env for hrt.c
         cfg.env.AP_BOARD_START_TIME = cfg.options.board_start_time
 
-<<<<<<< HEAD
-=======
     # require python 3.8.x or later
     cfg.load('python')
     cfg.check_python_version(minver=(3,6,9))
 
->>>>>>> Copter-4.6.0
     cfg.load('ap_library')
 
     cfg.msg('Setting board to', cfg.options.board)

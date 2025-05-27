@@ -619,17 +619,10 @@ bool AP_ICEngine::engine_control(float start_control, float cold_start, float he
         return true;
     }
     if (state == ICE_RUNNING || state == ICE_START_DELAY || state == ICE_STARTING) {
-<<<<<<< HEAD
-        gcs().send_text(MAV_SEVERITY_INFO, "Engine: already running");
-        return false;
-    }
-    RC_Channel *c = rc().channel(start_chan-1);
-=======
         GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Engine: already running");
         return false;
     }
     RC_Channel *c = rc().find_channel_for_option(RC_Channel::AUX_FUNC::ICE_START_STOP);
->>>>>>> Copter-4.6.0
     if (c != nullptr && rc().has_valid_input()) {
         // get starter control channel
         uint16_t cvalue = c->get_radio_in();

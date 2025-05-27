@@ -590,11 +590,6 @@ int32_t AC_WPNav::get_wp_bearing_to_destination() const
 /// update_wpnav - run the wp controller - should be called at 100hz or higher
 bool AC_WPNav::update_wpnav()
 {
-<<<<<<< HEAD
-    bool ret = true;
-
-=======
->>>>>>> Copter-4.6.0
     // check for changes in speed parameter values
     if (_check_wp_speed_change) {
         if (!is_equal(_wp_speed_cms.get(), _last_wp_speed_cms)) {

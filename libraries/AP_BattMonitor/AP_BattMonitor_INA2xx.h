@@ -35,10 +35,7 @@ private:
         INA226,
         INA228,
         INA238,
-<<<<<<< HEAD
-=======
         INA231,
->>>>>>> Copter-4.6.0
     };
 
     static const uint8_t i2c_probe_addresses[];
@@ -57,11 +54,7 @@ private:
     AP_Int8 i2c_bus;
     AP_Int8 i2c_address;
     AP_Float max_amps;
-<<<<<<< HEAD
-    bool callback_registered;
-=======
     AP_Float rShunt;
->>>>>>> Copter-4.6.0
     uint32_t failed_reads;
 
     struct {

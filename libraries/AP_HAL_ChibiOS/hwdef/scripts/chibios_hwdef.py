@@ -129,62 +129,8 @@ class ChibiOSHWDef(object):
         # list of device patterns that can't be shared
         self.dma_noshare = []
 
-<<<<<<< HEAD
-def is_int(str):
-    '''check if a string is an integer'''
-    try:
-        int(str)
-    except Exception:
-        return False
-    return True
-
-
-def error(str):
-    '''show an error and exit'''
-    print("Error: " + str)
-    sys.exit(1)
-
-
-def get_mcu_lib(mcu):
-    '''get library file for the chosen MCU'''
-    import importlib
-    try:
-        return importlib.import_module(mcu)
-    except ImportError:
-        error("Unable to find module for MCU %s" % mcu)
-
-def setup_mcu_type_defaults():
-    '''setup defaults for given mcu type'''
-    global pincount, ports, portmap, vtypes, mcu_type, dma_exclude_pattern
-    lib = get_mcu_lib(mcu_type)
-    if hasattr(lib, 'pincount'):
-        pincount = lib.pincount
-    if mcu_series.startswith("STM32F1"):
-        vtypes = f1_vtypes
-    else:
-        vtypes = f4f7_vtypes
-    ports = pincount.keys()
-    # setup default as input pins
-    for port in ports:
-        portmap[port] = []
-        for pin in range(pincount[port]):
-            portmap[port].append(generic_pin(port, pin, None, default_gpio[0], default_gpio[1:]))
-
-    if mcu_series.startswith("STM32H7") or mcu_series.startswith("STM32F7"):
-        # default DMA off on I2C for H7, we're much better off reducing DMA sharing
-        dma_exclude_pattern = ['I2C*']
-
-def get_alt_function(mcu, pin, function):
-    '''return alternative function number for a pin'''
-    lib = get_mcu_lib(mcu)
-
-    if function.endswith('_TXINV') or function.endswith('_RXINV'):
-        # RXINV and TXINV are special labels for inversion pins, not alt-functions
-        return None
-=======
         # integer defines
         self.intdefines = {}
->>>>>>> Copter-4.6.0
 
         # list of shared up timers
         self.shared_up = []
@@ -1671,129 +1617,6 @@ INCLUDE common.ld
 #endif
 ''')
 
-<<<<<<< HEAD
-def parse_spi_device(dev):
-    '''parse a SPI:xxx device item'''
-    a = dev.split(':')
-    if len(a) != 2:
-        error("Bad SPI device: %s" % dev)
-    return 'hal.spi->get_device("%s")' % a[1]
-
-
-def parse_i2c_device(dev):
-    '''parse a I2C:xxx:xxx device item'''
-    a = dev.split(':')
-    if len(a) != 3:
-        error("Bad I2C device: %s" % dev)
-    busaddr = int(a[2], base=0)
-    if a[1] == 'ALL_EXTERNAL':
-        return ('FOREACH_I2C_EXTERNAL(b)', 'GET_I2C_DEVICE(b,0x%02x)' % (busaddr))
-    elif a[1] == 'ALL_INTERNAL':
-        return ('FOREACH_I2C_INTERNAL(b)', 'GET_I2C_DEVICE(b,0x%02x)' % (busaddr))
-    elif a[1] == 'ALL':
-        return ('FOREACH_I2C(b)', 'GET_I2C_DEVICE(b,0x%02x)' % (busaddr))
-    busnum = int(a[1])
-    return ('', 'GET_I2C_DEVICE(%u,0x%02x)' % (busnum, busaddr))
-
-
-def seen_str(dev):
-    '''return string representation of device for checking for duplicates'''
-    ret = dev[:2]
-    if dev[-1].startswith("BOARD_MATCH("):
-        ret.append(dev[-1])
-    return str(ret)
-
-def write_IMU_config(f):
-    '''write IMU config defines'''
-    global imu_list
-    devlist = []
-    wrapper = ''
-    seen = set()
-    for dev in imu_list:
-        if seen_str(dev) in seen:
-            error("Duplicate IMU: %s" % seen_str(dev))
-        seen.add(seen_str(dev))
-        driver = dev[0]
-        # get instance number if mentioned
-        instance = -1
-        aux_devid = -1
-        if dev[-1].startswith("INSTANCE:"):
-            instance = int(dev[-1][9:])
-            dev = dev[:-1]
-        if dev[-1].startswith("AUX:"):
-            aux_devid = int(dev[-1][4:])
-            dev = dev[:-1]
-        for i in range(1, len(dev)):
-            if dev[i].startswith("SPI:"):
-                dev[i] = parse_spi_device(dev[i])
-            elif dev[i].startswith("I2C:"):
-                (wrapper, dev[i]) = parse_i2c_device(dev[i])
-        n = len(devlist)+1
-        devlist.append('HAL_INS_PROBE%u' % n)
-        if aux_devid != -1:
-            f.write(
-            '#define HAL_INS_PROBE%u %s ADD_BACKEND_AUX(AP_InertialSensor_%s::probe(*this,%s),%d)\n'
-            % (n, wrapper, driver, ','.join(dev[1:]), aux_devid))
-        elif instance != -1:
-            f.write(
-            '#define HAL_INS_PROBE%u %s ADD_BACKEND_INSTANCE(AP_InertialSensor_%s::probe(*this,%s),%d)\n'
-            % (n, wrapper, driver, ','.join(dev[1:]), instance))
-        elif dev[-1].startswith("BOARD_MATCH("):
-            f.write(
-                '#define HAL_INS_PROBE%u %s ADD_BACKEND_BOARD_MATCH(%s, AP_InertialSensor_%s::probe(*this,%s))\n'
-                % (n, wrapper, dev[-1], driver, ','.join(dev[1:-1])))
-        else:
-            f.write(
-                '#define HAL_INS_PROBE%u %s ADD_BACKEND(AP_InertialSensor_%s::probe(*this,%s))\n'
-                % (n, wrapper, driver, ','.join(dev[1:])))
-    if len(devlist) > 0:
-        if len(devlist) < 3:
-            f.write('#define INS_MAX_INSTANCES %u\n' % len(devlist))
-        f.write('#define HAL_INS_PROBE_LIST %s\n\n' % ';'.join(devlist))
-
-
-def write_MAG_config(f):
-    '''write MAG config defines'''
-    global compass_list
-    devlist = []
-    seen = set()
-    for dev in compass_list:
-        if seen_str(dev) in seen:
-            error("Duplicate MAG: %s" % seen_str(dev))
-        seen.add(seen_str(dev))
-        driver = dev[0]
-        probe = 'probe'
-        wrapper = ''
-        a = driver.split(':')
-        driver = a[0]
-        if len(a) > 1 and a[1].startswith('probe'):
-            probe = a[1]
-        for i in range(1, len(dev)):
-            if dev[i].startswith("SPI:"):
-                dev[i] = parse_spi_device(dev[i])
-            elif dev[i].startswith("I2C:"):
-                (wrapper, dev[i]) = parse_i2c_device(dev[i])
-        n = len(devlist)+1
-        devlist.append('HAL_MAG_PROBE%u' % n)
-        f.write(
-            '#define HAL_MAG_PROBE%u %s ADD_BACKEND(DRIVER_%s, AP_Compass_%s::%s(%s))\n'
-            % (n, wrapper, driver, driver, probe, ','.join(dev[1:])))
-    if len(devlist) > 0:
-        f.write('#define HAL_MAG_PROBE_LIST %s\n\n' % ';'.join(devlist))
-
-
-def write_BARO_config(f):
-    '''write barometer config defines'''
-    global baro_list
-    devlist = []
-    seen = set()
-    for dev in baro_list:
-        if seen_str(dev) in seen:
-            error("Duplicate BARO: %s" % seen_str(dev))
-        seen.add(seen_str(dev))
-        driver = dev[0]
-        probe = 'probe'
-=======
     def parse_spi_device(self, dev):
         '''parse a SPI:xxx device item'''
         a = dev.split(':')
@@ -1826,7 +1649,6 @@ def write_BARO_config(f):
     def write_IMU_config(self, f):
         '''write IMU config defines'''
         devlist = []
->>>>>>> Copter-4.6.0
         wrapper = ''
         seen = set()
         for dev in self.imu_list:
@@ -1923,18 +1745,6 @@ def write_BARO_config(f):
             devlist.append('HAL_BARO_PROBE%u' % n)
             args = ['*this'] + dev[1:]
             f.write(
-<<<<<<< HEAD
-                '#define HAL_%s_CONFIG {(BaseSequentialStream*) &SDU2, 2, true, false, 0, 0, false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}\n'
-                % dev)
-            OTG2_index = uart_list.index(dev)
-            dual_USB_enabled = True
-        elif dev.startswith('OTG'):
-            f.write(
-                '#define HAL_%s_CONFIG {(BaseSequentialStream*) &SDU1, 1, true, false, 0, 0, false, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}\n'
-                % dev)
-        else:
-            need_uart_driver = True
-=======
                 '#define HAL_BARO_PROBE%u %s ADD_BACKEND(AP_Baro_%s::%s(%s))\n'
                 % (n, wrapper, driver, probe, ','.join(args)))
         if len(devlist) > 0:
@@ -2047,7 +1857,6 @@ def write_BARO_config(f):
 
             self.write_defaulting_define(f, 'HAL_WITH_IO_MCU', 1)
             f.write('#define HAL_UART_IOMCU_IDX %u\n' % len(serial_list))
->>>>>>> Copter-4.6.0
             f.write(
                 '#define HAL_UART_IO_DRIVER ChibiOS::UARTDriver uart_io(HAL_UART_IOMCU_IDX)\n'
             )

@@ -17,11 +17,7 @@ class LoggerMessageWriter_DFLogStart;
 class AP_Logger_RateLimiter
 {
 public:
-<<<<<<< HEAD
-    AP_Logger_RateLimiter(const AP_Logger &_front, const AP_Float &_limit_hz, const AP_Float &_disarm_limit_hz);
-=======
     AP_Logger_RateLimiter(const class AP_Logger &_front, const AP_Float &_limit_hz, const AP_Float &_disarm_limit_hz);
->>>>>>> Copter-4.6.0
 
     // return true if message passes the rate limit test
     bool should_log(uint8_t msgid, bool writev_streaming);

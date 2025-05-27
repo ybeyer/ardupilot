@@ -1093,41 +1093,25 @@ AP_GPS_UBLOX::_parse_gps(void)
             case CLASS_CFG:
                 switch(_buffer.nack.msgID) {
                 case MSG_CFG_VALGET:
-<<<<<<< HEAD
-=======
                     CFG_Debug("NACK VALGET 0x%x", (unsigned)_buffer.nack.msgID);
->>>>>>> Copter-4.6.0
                     if (active_config.list != nullptr) {
                         /*
                           likely this device does not support fetching multiple keys at once, go one at a time
                         */
                         if (active_config.fetch_index == -1) {
-<<<<<<< HEAD
-                            Debug("NACK starting %u", unsigned(active_config.count));
-                            active_config.fetch_index = 0;
-=======
                             CFG_Debug("NACK starting %u", unsigned(active_config.count));
                             active_config.fetch_index = 0;
                             use_single_valget = true;
->>>>>>> Copter-4.6.0
                         } else {
                             // the device does not support the config key we asked for,
                             // consider the bit as done
                             active_config.done_mask |= (1U<<active_config.fetch_index);
-<<<<<<< HEAD
-                            Debug("NACK %d 0x%x done=0x%x",
-                                     int(active_config.fetch_index),
-                                     unsigned(active_config.list[active_config.fetch_index].key),
-                                     unsigned(active_config.done_mask));
-                            if (active_config.done_mask == (1U<<active_config.count)-1) {
-=======
                             CFG_Debug("NACK %d 0x%x done=0x%x",
                                      int(active_config.fetch_index),
                                      unsigned(active_config.list[active_config.fetch_index].key),
                                      unsigned(active_config.done_mask));
                             if (active_config.done_mask == (1U<<active_config.count)-1 ||
                                 active_config.fetch_index >= active_config.count) {
->>>>>>> Copter-4.6.0
                                 // all done!
                                 _unconfigured_messages &= ~active_config.unconfig_bit;
                             }
@@ -1138,8 +1122,6 @@ AP_GPS_UBLOX::_parse_gps(void)
                         }
                     }
                     break;
-<<<<<<< HEAD
-=======
                 case MSG_CFG_VALSET:
                     if (active_config.list != nullptr) {
                         CFG_Debug("NACK VALSET 0x%x 0x%x", (unsigned)_buffer.nack.msgID,
@@ -1151,7 +1133,6 @@ AP_GPS_UBLOX::_parse_gps(void)
                         }
                     }
                     break;
->>>>>>> Copter-4.6.0
                 }
             }
         }
@@ -1398,19 +1379,12 @@ AP_GPS_UBLOX::_parse_gps(void)
                         active_config.fetch_index++;
                         if (active_config.fetch_index < active_config.count) {
                             _configure_valget(active_config.list[active_config.fetch_index].key);
-<<<<<<< HEAD
-                            Debug("valget %d 0x%x", int(active_config.fetch_index),
-                                  unsigned(active_config.list[active_config.fetch_index].key));
-                        }
-                    }
-=======
                             CFG_Debug("valget %d 0x%x", int(active_config.fetch_index),
                                   unsigned(active_config.list[active_config.fetch_index].key));
                         }
                     }
                 } else {
                     CFG_Debug("valget no active config for 0x%lx", (uint32_t)id);
->>>>>>> Copter-4.6.0
                 }
 
                 // step over the value
@@ -2035,11 +2009,7 @@ AP_GPS_UBLOX::_configure_config_set(const config_list *list, uint8_t count, uint
     // -1) then if we get a NACK for VALGET we switch to fetching one
     // value at a time. This copes with the M10S which can only fetch
     // one value at a time
-<<<<<<< HEAD
-    active_config.fetch_index = -1;
-=======
     active_config.fetch_index = use_single_valget? 0 :-1;
->>>>>>> Copter-4.6.0
 
     uint8_t buf[sizeof(ubx_cfg_valget)+count*sizeof(ConfigKey)];
     struct ubx_cfg_valget msg {};

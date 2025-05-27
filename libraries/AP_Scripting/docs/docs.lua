@@ -2102,8 +2102,6 @@ function MotorsMatrix:get_lost_motor() end
 -- desc return true if we are in thrust boost due to possible lost motor
 ---@return boolean
 function MotorsMatrix:get_thrust_boost() end
-<<<<<<< HEAD
-=======
 
 
 -- Sub singleton
@@ -2132,7 +2130,6 @@ function sub:get_rangefinder_target_cm() end
 ---@return boolean
 function sub:set_rangefinder_target_cm(new_target_cm) end
 
->>>>>>> Copter-4.6.0
 
 -- desc
 quadplane = {}
@@ -3804,27 +3801,6 @@ function precland:target_acquired() end
 function precland:healthy() end
 
 -- desc
-<<<<<<< HEAD
----@class AR_AttitudeControl
-AR_AttitudeControl = {}
-
--- return attitude controller slew rates for rovers
----@return number -- steering slew rate
----@return number -- spees slew rate
-function AR_AttitudeControl:get_srate() end
-
--- desc
----@class AR_PosControl
-AR_PosControl = {}
-
--- return position controller slew rates for rovers
----@return number -- velocity slew rate
-function AR_PosControl:get_srate() end
-
--- desc
----@class follow
-=======
->>>>>>> Copter-4.6.0
 follow = {}
 
 -- desc

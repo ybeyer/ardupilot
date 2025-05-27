@@ -350,10 +350,7 @@ public:
         AP_Float mav_ratemax;
         AP_Float blk_ratemax;
         AP_Float disarm_ratemax;
-<<<<<<< HEAD
-=======
         AP_Int16 max_log_files;
->>>>>>> Copter-4.6.0
     } _params;
 
     const struct LogStructure *structure(uint16_t num) const;

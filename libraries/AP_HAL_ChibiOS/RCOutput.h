@@ -112,16 +112,7 @@ public:
     /*
       timer push (for oneshot min rate)
      */
-<<<<<<< HEAD
-    void timer_tick(uint64_t last_run_us);
-
-    /*
-      LED push
-     */
-    void led_timer_tick(uint64_t last_run_us);
-=======
     void timer_tick(rcout_timer_t cycle_start_us, rcout_timer_t timeout_period_us);
->>>>>>> Copter-4.6.0
 
     /*
       LED push
@@ -372,15 +363,9 @@ private:
         uint32_t bit_width_mul;
         uint32_t rc_frequency;
         bool in_serial_dma;
-<<<<<<< HEAD
-        uint64_t last_dmar_send_us;
-        uint64_t dshot_pulse_time_us;
-        uint64_t dshot_pulse_send_time_us;
-=======
         rcout_timer_t last_dmar_send_us;
         rcout_timer_t dshot_pulse_time_us;
         rcout_timer_t dshot_pulse_send_time_us;
->>>>>>> Copter-4.6.0
         virtual_timer_t dma_timeout;
 #if HAL_SERIALLED_ENABLED
         // serial LED support
@@ -485,17 +470,6 @@ private:
 #endif
 
 #if HAL_SERIAL_ESC_COMM_ENABLED
-    /*
-      timer thread for use by led events
-     */
-    thread_t *led_thread_ctx;
-
-    /*
-      mutex to control LED thread creation
-     */
-    HAL_Semaphore led_thread_sem;
-    bool led_thread_created;
-
     /*
       structure for IRQ handler for soft-serial input
      */
@@ -724,23 +698,14 @@ private:
     static const eventmask_t EVT_PWM_SEND  = EVENT_MASK(11);
     static const eventmask_t EVT_PWM_SYNTHETIC_SEND  = EVENT_MASK(13);
 
-<<<<<<< HEAD
-    void dshot_send_groups(uint64_t time_out_us);
-    void dshot_send(pwm_group &group, uint64_t time_out_us);
-=======
     void dshot_send_groups(rcout_timer_t cycle_start_us, rcout_timer_t timeout_us);
     void dshot_send(pwm_group &group, rcout_timer_t cycle_start_us, rcout_timer_t timeout_us);
->>>>>>> Copter-4.6.0
     bool dshot_send_command(pwm_group &group, uint8_t command, uint8_t chan);
     static void dshot_update_tick(virtual_timer_t*, void* p);
     static void dshot_send_next_group(void* p);
     // release locks on the groups that are pending in reverse order
-<<<<<<< HEAD
-    void dshot_collect_dma_locks(uint64_t last_run_us, bool led_thread = false);
-=======
     sysinterval_t calc_ticks_remaining(pwm_group &group, rcout_timer_t cycle_start_us, rcout_timer_t timeout_period_us, rcout_timer_t output_period_us);
     void dshot_collect_dma_locks(rcout_timer_t cycle_start_us, rcout_timer_t timeout_period_us, bool led_thread = false);
->>>>>>> Copter-4.6.0
     static void dma_up_irq_callback(void *p, uint32_t flags);
     static void dma_unlock(virtual_timer_t*, void *p);
     void dma_cancel(pwm_group& group);

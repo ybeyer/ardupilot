@@ -1,12 +1,7 @@
 #include "Rover.h"
 
 #define AR_CIRCLE_ACCEL_DEFAULT         1.0 // default acceleration in m/s/s if not specified by user
-<<<<<<< HEAD
-#define AR_CIRCLE_RADIUS_MIN            0.5 // minimum radius in meters
-#define AR_CIRCLE_REACHED_EDGE_DIST     0.2 // vehicle has reached edge if within 0.2m
-=======
 #define AR_CIRCLE_RADIUS_MIN            0.1 // minimum radius in meters
->>>>>>> Copter-4.6.0
 
 const AP_Param::GroupInfo ModeCircle::var_info[] = {
 
@@ -43,8 +38,6 @@ ModeCircle::ModeCircle() : Mode()
     AP_Param::setup_object_defaults(this, var_info);
 }
 
-<<<<<<< HEAD
-=======
 // get the distance at which the vehicle is considered to be on track along the circle
 float ModeCircle::get_reached_distance() const
 {
@@ -54,7 +47,6 @@ float ModeCircle::get_reached_distance() const
     return 0.1;
 }
 
->>>>>>> Copter-4.6.0
 // initialise with specific center location, radius (in meters) and direction
 // replaces use of _enter when initialised from within Auto mode
 bool ModeCircle::set_center(const Location& center_loc, float radius_m, bool dir_ccw)
@@ -86,11 +78,7 @@ bool ModeCircle::set_center(const Location& center_loc, float radius_m, bool dir
     return true;
 }
 
-<<<<<<< HEAD
-// initialize dock mode
-=======
 // initialize circle mode from current position
->>>>>>> Copter-4.6.0
 bool ModeCircle::_enter()
 {
     // capture starting point and yaw
@@ -105,11 +93,6 @@ bool ModeCircle::_enter()
     target.yaw_rad = AP::ahrs().get_yaw();
     target.speed = 0;
 
-<<<<<<< HEAD
-    // check speed around circle does not lead to excessive lateral acceleration
-    check_config_speed();
-
-=======
     // record center as location (only used for reporting)
     config.center_loc = rover.current_loc;
 
@@ -119,7 +102,6 @@ bool ModeCircle::_enter()
     // reset tracking_back 
     tracking_back = false;
 
->>>>>>> Copter-4.6.0
     // calculate speed, accel and jerk limits
     // otherwise the vehicle uses wp_nav default speed limit
     float atc_accel_max = MIN(g2.attitude_control.get_accel_max(), g2.attitude_control.get_decel_max());
@@ -148,11 +130,7 @@ void ModeCircle::init_target_yaw_rad()
     // if no position estimate use vehicle yaw
     Vector2f curr_pos_NE;
     if (!AP::ahrs().get_relative_position_NE_origin(curr_pos_NE)) {
-<<<<<<< HEAD
-        target.yaw_rad = AP::ahrs().yaw;
-=======
         target.yaw_rad = AP::ahrs().get_yaw();
->>>>>>> Copter-4.6.0
         return;
     }
 
@@ -162,11 +140,7 @@ void ModeCircle::init_target_yaw_rad()
 
     // if current position is exactly at the center of the circle return vehicle yaw
     if (is_zero(dist_m)) {
-<<<<<<< HEAD
-        target.yaw_rad = AP::ahrs().yaw;
-=======
         target.yaw_rad = AP::ahrs().get_yaw();
->>>>>>> Copter-4.6.0
     } else {
         target.yaw_rad = center_to_veh.angle();
     }
@@ -184,29 +158,6 @@ void ModeCircle::update()
         return;
     }
 
-<<<<<<< HEAD
-    // check if vehicle has reached edge of circle
-    const Vector2f center_to_veh = curr_pos - config.center_pos;
-    _distance_to_destination = center_to_veh.length();
-    dist_to_edge_m = fabsf(_distance_to_destination - config.radius);
-    if (!reached_edge) {
-        const float dist_thresh_m = MAX(rover.g2.turn_radius, AR_CIRCLE_REACHED_EDGE_DIST);
-        reached_edge = dist_to_edge_m <= dist_thresh_m;
-    }
-
-    // accelerate speed up to desired speed
-    const float speed_max = reached_edge ? config.speed : 0.0;
-    const float speed_change_max = (g2.pos_control.get_accel_max() * 0.5 * rover.G_Dt);
-    const float accel_fb = constrain_float(speed_max - target.speed, -speed_change_max, speed_change_max);
-    target.speed += accel_fb;
-
-    // calculate angular rate and update target angle
-    const float circumference = 2.0 * M_PI * config.radius;
-    const float angular_rate_rad = (target.speed / circumference) * M_2PI * (config.dir == Direction::CW ? 1.0 : -1.0);
-    const float angle_dt = angular_rate_rad * rover.G_Dt;
-    target.yaw_rad = wrap_PI(target.yaw_rad + angle_dt);
-    angle_total_rad += angle_dt;
-=======
     // Update distance to destination and distance to edge
     const Vector2f center_to_veh = curr_pos - config.center_pos;
     _distance_to_destination = (target.pos.tofloat() - curr_pos).length();
@@ -270,7 +221,6 @@ void ModeCircle::update_circling()
     } else {
         init_target_yaw_rad();
     }
->>>>>>> Copter-4.6.0
 
     // calculate target point's position, velocity and acceleration
     target.pos = config.center_pos.topostype();
@@ -285,19 +235,7 @@ void ModeCircle::update_circling()
     target.accel.rotate(target.yaw_rad);
 
     g2.pos_control.set_pos_vel_accel_target(target.pos, target.vel, target.accel);
-<<<<<<< HEAD
-    g2.pos_control.update(rover.G_Dt);
 
-    // get desired speed and turn rate from pos_control
-    const float desired_speed = g2.pos_control.get_desired_speed();
-    const float desired_turn_rate = g2.pos_control.get_desired_turn_rate_rads();
-
-    // run steering and throttle controllers
-    calc_steering_from_turn_rate(desired_turn_rate);
-    calc_throttle(desired_speed, true);
-=======
-
->>>>>>> Copter-4.6.0
 }
 
 // return desired heading (in degrees) and cross track error (in meters) for reporting to ground station (NAV_CONTROLLER_OUTPUT message)
@@ -308,11 +246,7 @@ float ModeCircle::wp_bearing() const
         return 0;
     }
     // calc vector from circle center to vehicle
-<<<<<<< HEAD
-    Vector2f veh_to_center = (config.center_pos - curr_pos_NE);
-=======
     Vector2f veh_to_center = (target.pos.tofloat() - curr_pos_NE);
->>>>>>> Copter-4.6.0
     if (veh_to_center.is_zero()) {
         return 0;
     }
@@ -357,10 +291,7 @@ bool ModeCircle::set_desired_speed(float speed_ms)
 bool ModeCircle::get_desired_location(Location& destination) const
 {
     destination = config.center_loc;
-<<<<<<< HEAD
-=======
     destination.offset_bearing(degrees(target.yaw_rad), config.radius);
->>>>>>> Copter-4.6.0
     return true;
 }
 
@@ -384,14 +315,8 @@ void ModeCircle::check_config_speed()
 void ModeCircle::check_config_radius()
 {
     // ensure radius is at least as large as vehicle's turn radius
-<<<<<<< HEAD
-    if (config.radius < rover.g2.turn_radius) {
-        config.radius = rover.g2.turn_radius;
-        gcs().send_text(MAV_SEVERITY_WARNING, "Circle: radius increased to TURN_RADIUS (%4.1f)", (double)rover.g2.turn_radius);
-=======
     if (config.radius < g2.turn_radius) {
         config.radius = g2.turn_radius;
         gcs().send_text(MAV_SEVERITY_WARNING, "Circle: radius increased to TURN_RADIUS (%4.1f)", (double)g2.turn_radius);
->>>>>>> Copter-4.6.0
     }
 }

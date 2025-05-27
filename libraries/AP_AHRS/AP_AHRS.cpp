@@ -925,11 +925,7 @@ bool AP_AHRS::_should_use_airspeed_sensor(uint8_t airspeed_index) const
         // special case for when backend is rejecting airspeed data in
         // an armed fly_forward state and not dead reckoning. Then the
         // airspeed data is highly suspect and will be rejected. We
-<<<<<<< HEAD
-        // will use the synthentic airspeed instead
-=======
         // will use the synthetic airspeed instead
->>>>>>> Copter-4.6.0
         return false;
     }
     return true;

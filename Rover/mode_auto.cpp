@@ -140,13 +140,8 @@ void ModeAuto::update()
             rover.mode_guided.update();
             break;
 
-<<<<<<< HEAD
-        case Auto_Circle:
-            rover.g2.mode_circle.update();
-=======
         case SubMode::Circle:
             g2.mode_circle.update();
->>>>>>> Copter-4.6.0
             break;
     }
 }
@@ -165,22 +160,6 @@ void ModeAuto::calc_throttle(float target_speed, bool avoidance_enabled)
 float ModeAuto::wp_bearing() const
 {
     switch (_submode) {
-<<<<<<< HEAD
-    case Auto_WP:
-        return g2.wp_nav.wp_bearing_cd() * 0.01f;
-    case Auto_HeadingAndSpeed:
-    case Auto_Stop:
-        return 0.0f;
-    case Auto_RTL:
-        return rover.mode_rtl.wp_bearing();
-    case Auto_Loiter:
-        return rover.mode_loiter.wp_bearing();
-    case Auto_Guided:
-    case Auto_NavScriptTime:
-        return rover.mode_guided.wp_bearing();
-    case Auto_Circle:
-        return rover.g2.mode_circle.wp_bearing();
-=======
     case SubMode::WP:
         return g2.wp_nav.wp_bearing_cd() * 0.01f;
     case SubMode::HeadingAndSpeed:
@@ -195,7 +174,6 @@ float ModeAuto::wp_bearing() const
         return rover.mode_guided.wp_bearing();
     case SubMode::Circle:
         return g2.mode_circle.wp_bearing();
->>>>>>> Copter-4.6.0
     }
 
     // this line should never be reached
@@ -206,22 +184,6 @@ float ModeAuto::wp_bearing() const
 float ModeAuto::nav_bearing() const
 {
     switch (_submode) {
-<<<<<<< HEAD
-    case Auto_WP:
-        return g2.wp_nav.nav_bearing_cd() * 0.01f;
-    case Auto_HeadingAndSpeed:
-    case Auto_Stop:
-        return 0.0f;
-    case Auto_RTL:
-        return rover.mode_rtl.nav_bearing();
-    case Auto_Loiter:
-        return rover.mode_loiter.nav_bearing();
-    case Auto_Guided:
-    case Auto_NavScriptTime:
-        return rover.mode_guided.nav_bearing();
-    case Auto_Circle:
-        return rover.g2.mode_circle.nav_bearing();
-=======
     case SubMode::WP:
         return g2.wp_nav.nav_bearing_cd() * 0.01f;
     case SubMode::HeadingAndSpeed:
@@ -236,7 +198,6 @@ float ModeAuto::nav_bearing() const
         return rover.mode_guided.nav_bearing();
     case SubMode::Circle:
         return g2.mode_circle.nav_bearing();
->>>>>>> Copter-4.6.0
     }
 
     // this line should never be reached
@@ -247,22 +208,6 @@ float ModeAuto::nav_bearing() const
 float ModeAuto::crosstrack_error() const
 {
     switch (_submode) {
-<<<<<<< HEAD
-    case Auto_WP:
-        return g2.wp_nav.crosstrack_error();
-    case Auto_HeadingAndSpeed:
-    case Auto_Stop:
-        return 0.0f;
-    case Auto_RTL:
-        return rover.mode_rtl.crosstrack_error();
-    case Auto_Loiter:
-        return rover.mode_loiter.crosstrack_error();
-    case Auto_Guided:
-    case Auto_NavScriptTime:
-        return rover.mode_guided.crosstrack_error();
-    case Auto_Circle:
-        return rover.g2.mode_circle.crosstrack_error();
-=======
     case SubMode::WP:
         return g2.wp_nav.crosstrack_error();
     case SubMode::HeadingAndSpeed:
@@ -277,7 +222,6 @@ float ModeAuto::crosstrack_error() const
         return rover.mode_guided.crosstrack_error();
     case SubMode::Circle:
         return g2.mode_circle.crosstrack_error();
->>>>>>> Copter-4.6.0
     }
 
     // this line should never be reached
@@ -288,22 +232,6 @@ float ModeAuto::crosstrack_error() const
 float ModeAuto::get_desired_lat_accel() const
 {
     switch (_submode) {
-<<<<<<< HEAD
-    case Auto_WP:
-        return g2.wp_nav.get_lat_accel();
-    case Auto_HeadingAndSpeed:
-    case Auto_Stop:
-        return 0.0f;
-    case Auto_RTL:
-        return rover.mode_rtl.get_desired_lat_accel();
-    case Auto_Loiter:
-        return rover.mode_loiter.get_desired_lat_accel();
-    case Auto_Guided:
-    case Auto_NavScriptTime:
-        return rover.mode_guided.get_desired_lat_accel();
-    case Auto_Circle:
-        return rover.g2.mode_circle.get_desired_lat_accel();
-=======
     case SubMode::WP:
         return g2.wp_nav.get_lat_accel();
     case SubMode::HeadingAndSpeed:
@@ -318,7 +246,6 @@ float ModeAuto::get_desired_lat_accel() const
         return rover.mode_guided.get_desired_lat_accel();
     case SubMode::Circle:
         return g2.mode_circle.get_desired_lat_accel();
->>>>>>> Copter-4.6.0
     }
 
     // this line should never be reached
@@ -342,13 +269,8 @@ float ModeAuto::get_distance_to_destination() const
     case SubMode::Guided:
     case SubMode::NavScriptTime:
         return rover.mode_guided.get_distance_to_destination();
-<<<<<<< HEAD
-    case Auto_Circle:
-        return rover.g2.mode_circle.get_distance_to_destination();
-=======
     case SubMode::Circle:
         return g2.mode_circle.get_distance_to_destination();
->>>>>>> Copter-4.6.0
     }
 
     // this line should never be reached
@@ -373,19 +295,11 @@ bool ModeAuto::get_desired_location(Location& destination) const
         return rover.mode_rtl.get_desired_location(destination);
     case SubMode::Loiter:
         return rover.mode_loiter.get_desired_location(destination);
-<<<<<<< HEAD
-    case Auto_Guided:
-    case Auto_NavScriptTime:
-        return rover.mode_guided.get_desired_location(destination);
-    case Auto_Circle:
-        return rover.g2.mode_circle.get_desired_location(destination);
-=======
     case SubMode::Guided:
     case SubMode::NavScriptTime:
         return rover.mode_guided.get_desired_location(destination);
     case SubMode::Circle:
         return g2.mode_circle.get_desired_location(destination);
->>>>>>> Copter-4.6.0
     }
 
     // we should never reach here but just in case
@@ -426,13 +340,8 @@ bool ModeAuto::reached_destination() const
     case SubMode::Guided:
     case SubMode::NavScriptTime:
         return rover.mode_guided.reached_destination();
-<<<<<<< HEAD
-    case Auto_Circle:
-        return rover.g2.mode_circle.reached_destination();
-=======
     case SubMode::Circle:
         return g2.mode_circle.reached_destination();
->>>>>>> Copter-4.6.0
     }
 
     // we should never reach here but just in case, return true to allow missions to continue
@@ -456,13 +365,8 @@ bool ModeAuto::set_desired_speed(float speed)
     case SubMode::Guided:
     case SubMode::NavScriptTime:
         return rover.mode_guided.set_desired_speed(speed);
-<<<<<<< HEAD
-    case Auto_Circle:
-        return rover.g2.mode_circle.set_desired_speed(speed);
-=======
     case SubMode::Circle:
         return g2.mode_circle.set_desired_speed(speed);
->>>>>>> Copter-4.6.0
     }
     return false;
 }
@@ -1028,11 +932,7 @@ bool ModeAuto::do_circle(const AP_Mission::Mission_Command& cmd)
 
     // initialise circle mode
     if (g2.mode_circle.set_center(circle_center, circle_radius_m, cmd.content.location.loiter_ccw)) {
-<<<<<<< HEAD
-        _submode = Auto_Circle;
-=======
         _submode = SubMode::Circle;
->>>>>>> Copter-4.6.0
         return true;
     }
     return false;
@@ -1040,14 +940,9 @@ bool ModeAuto::do_circle(const AP_Mission::Mission_Command& cmd)
 
 bool ModeAuto::verify_circle(const AP_Mission::Mission_Command& cmd)
 {
-<<<<<<< HEAD
-    // check if we have completed circling
-    return ((g2.mode_circle.get_angle_total_rad() / M_2PI) >= LOWBYTE(cmd.p1));
-=======
     const float turns = cmd.get_loiter_turns();
     // check if we have completed circling
     return ((g2.mode_circle.get_angle_total_rad() / M_2PI) >= turns);
->>>>>>> Copter-4.6.0
 }
 
 /********************************************************************************/

@@ -360,15 +360,6 @@ void AC_AutoTune_Multi::load_test_gains()
         attitude_control->get_rate_pitch_pid().set_slew_limit(0.0);
         attitude_control->get_angle_pitch_p().set_kP(tune_pitch_sp);
         break;
-<<<<<<< HEAD
-    case YAW:
-    case YAW_D:
-        attitude_control->get_rate_yaw_pid().kP(tune_yaw_rp);
-        attitude_control->get_rate_yaw_pid().kI(tune_yaw_rp*0.01f);
-        attitude_control->get_rate_yaw_pid().ff(0.0f);
-        if (axis == YAW_D) {
-            attitude_control->get_rate_yaw_pid().kD(tune_yaw_rd);
-=======
     case AxisType::YAW:
     case AxisType::YAW_D:
         attitude_control->get_rate_yaw_pid().set_kP(tune_yaw_rp);
@@ -377,7 +368,6 @@ void AC_AutoTune_Multi::load_test_gains()
         attitude_control->get_rate_yaw_pid().set_kDff(0.0);
         if (axis == AxisType::YAW_D) {
             attitude_control->get_rate_yaw_pid().set_kD(tune_yaw_rd);
->>>>>>> Copter-4.6.0
         } else {
             attitude_control->get_rate_yaw_pid().set_kD(0.0);
             attitude_control->get_rate_yaw_pid().set_filt_E_hz(tune_yaw_rLPF);
@@ -1204,16 +1194,6 @@ void AC_AutoTune_Multi::twitch_test_init()
         target_angle = constrain_float(ToDeg(attitude_control->max_angle_step_bf_pitch()) * 100.0, target_angle_min_rp_cd(), target_angle_max_rp_cd());
         rotation_rate_filt.set_cutoff_frequency(attitude_control->get_rate_pitch_pid().filt_D_hz() * 2.0);
         break;
-<<<<<<< HEAD
-    }
-    case YAW:
-    case YAW_D: {
-        target_max_rate = MAX(AUTOTUNE_TARGET_MIN_RATE_YAW_CDS, step_scaler*AUTOTUNE_TARGET_RATE_YAW_CDS);
-        target_rate = constrain_float(ToDeg(attitude_control->max_rate_step_bf_yaw()*0.75f)*100.0f, AUTOTUNE_TARGET_MIN_RATE_YAW_CDS, target_max_rate);
-        target_angle = constrain_float(ToDeg(attitude_control->max_angle_step_bf_yaw()*0.75f)*100.0f, AUTOTUNE_TARGET_MIN_ANGLE_YAW_CD, AUTOTUNE_TARGET_ANGLE_YAW_CD);
-        if (axis == YAW_D) {
-            rotation_rate_filt.set_cutoff_frequency(attitude_control->get_rate_yaw_pid().filt_D_hz()*2.0f);
-=======
 
     case AxisType::YAW:
     case AxisType::YAW_D:
@@ -1223,7 +1203,6 @@ void AC_AutoTune_Multi::twitch_test_init()
         target_angle = constrain_float(ToDeg(attitude_control->max_angle_step_bf_yaw() * 0.75) * 100.0, target_angle_min_y_cd(), target_angle_max_y_cd());
         if (axis == AxisType::YAW_D) {
             rotation_rate_filt.set_cutoff_frequency(attitude_control->get_rate_yaw_pid().filt_D_hz() * 2.0);
->>>>>>> Copter-4.6.0
         } else {
             rotation_rate_filt.set_cutoff_frequency(AUTOTUNE_Y_FILT_FREQ);
         }

@@ -219,8 +219,6 @@ void Plane::update_speed_height(void)
         should_run_tecs = false;
     }
 #endif
-<<<<<<< HEAD
-=======
 
     if (auto_state.idle_mode) {
         should_run_tecs = false;
@@ -232,7 +230,6 @@ void Plane::update_speed_height(void)
     }
 #endif
 
->>>>>>> Copter-4.6.0
     if (should_run_tecs) {
 	    // Call TECS 50Hz update. Note that we call this regardless of
 	    // throttle suppressed, as this needs to be running for
@@ -631,8 +628,6 @@ void Plane::update_alt()
         should_run_tecs = false;
     }
 #endif
-<<<<<<< HEAD
-=======
 
     if (auto_state.idle_mode) {
         should_run_tecs = false;
@@ -643,7 +638,6 @@ void Plane::update_alt()
         should_run_tecs = false;
     }
 #endif
->>>>>>> Copter-4.6.0
     
     if (should_run_tecs && !throttle_suppressed) {
 

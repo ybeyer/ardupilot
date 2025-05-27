@@ -21,10 +21,7 @@
 #include <AP_Logger/AP_Logger.h>
 #include <GCS_MAVLink/GCS.h>
 #include <AC_Avoidance/AC_Avoid.h>
-<<<<<<< HEAD
-=======
 #include <AC_AttitudeControl/AC_PosControl.h>
->>>>>>> Copter-4.6.0
 
 #define AR_POSCON_TIMEOUT_MS            100     // timeout after 0.1 sec
 #define AR_POSCON_POS_P                 0.2f    // default position P gain
@@ -167,14 +164,6 @@ void AR_PosControl::update(float dt)
         _vel_target.y = vel_3d_cms.y * 0.01;
     }
 #endif  // AP_AVOIDANCE_ENABLED
-
-    // calculate limit vector based on steering limits
-    Vector2f steering_limit_vec;
-    if (_atc.steering_limit_left()) {
-        steering_limit_vec = AP::ahrs().body_to_earth2D(Vector2f{0, _reversed ? 1.0f : -1.0f});
-    } else if (_atc.steering_limit_right()) {
-        steering_limit_vec = AP::ahrs().body_to_earth2D(Vector2f{0, _reversed ? -1.0f : 1.0f});
-    }
 
     // calculate limit vector based on steering limits
     Vector2f steering_limit_vec;
@@ -377,10 +366,7 @@ void AR_PosControl::get_srate(float &velocity_srate)
     velocity_srate = _pid_vel.get_pid_info_x().slew_rate;
 }
 
-<<<<<<< HEAD
-=======
 #if HAL_LOGGING_ENABLED
->>>>>>> Copter-4.6.0
 // write PSC logs
 void AR_PosControl::write_log()
 {

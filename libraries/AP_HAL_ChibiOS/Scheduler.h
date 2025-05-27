@@ -26,10 +26,6 @@
 #define APM_MAIN_PRIORITY       180
 #define APM_TIMER_PRIORITY      181
 #define APM_RCOUT_PRIORITY      181
-<<<<<<< HEAD
-#define APM_RCIN_PRIORITY       177
-=======
->>>>>>> Copter-4.6.0
 #define APM_LED_PRIORITY         60
 #define APM_UART_PRIORITY        60
 #define APM_NET_PRIORITY         60
@@ -207,10 +203,7 @@ private:
     void ext_watchdog_pat(uint32_t now_ms);
     uint32_t last_ext_watchdog_ms;
 #endif
-<<<<<<< HEAD
-=======
 
     static void try_force_mutex(void);
->>>>>>> Copter-4.6.0
 };
 #endif

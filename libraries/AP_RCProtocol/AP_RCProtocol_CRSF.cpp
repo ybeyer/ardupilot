@@ -204,11 +204,7 @@ const char* AP_RCProtocol_CRSF::get_protocol_string(ProtocolType protocol) const
 // return the link rate as defined by the LinkStatistics
 uint16_t AP_RCProtocol_CRSF::get_link_rate(ProtocolType protocol) const {
     if (protocol == ProtocolType::PROTOCOL_ELRS) {
-<<<<<<< HEAD
-        return RF_MODE_RATES[_link_status.rf_mode + RFMode::ELRS_RF_MODE_4HZ];
-=======
         return RF_MODE_RATES[_link_status.rf_mode + RFMode::CRSF_RF_MAX_MODES];
->>>>>>> Copter-4.6.0
     } else if (protocol == ProtocolType::PROTOCOL_TRACER) {
         return 250;
     } else {
@@ -662,19 +658,6 @@ void AP_RCProtocol_CRSF::process_link_stats_tx_frame(const void* data)
     }
 }
 
-<<<<<<< HEAD
-// process a byte provided by a uart
-void AP_RCProtocol_CRSF::process_byte(uint8_t byte, uint32_t baudrate)
-{
-    // reject RC data if we have been configured for standalone mode
-    if ((baudrate != CRSF_BAUDRATE && baudrate != CRSF_BAUDRATE_1MBIT && baudrate != CRSF_BAUDRATE_2MBIT) || _uart) {
-        return;
-    }
-    _process_byte(AP_HAL::micros(), byte);
-}
-
-=======
->>>>>>> Copter-4.6.0
 // start the uart if we have one
 void AP_RCProtocol_CRSF::start_uart()
 {

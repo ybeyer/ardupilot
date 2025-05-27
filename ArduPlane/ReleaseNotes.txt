@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 ArduPilot Plane Release Notes:
 ------------------------------------------------------------------
 Release 4.6.0 21-May-2025
@@ -1394,7 +1392,6 @@ Changes from 4.4.1
 
 Happy flying!
 
->>>>>>> Copter-4.6.0
 Release 4.4.0 18th August 2023
 ------------------------------
 
@@ -1502,8 +1499,6 @@ The full list of changes is:
  - don't reject airspeed using EKF innovation if dead-reckoning
  - fixed USB pass-thru on 2nd USB endpoint
 
-<<<<<<< HEAD
-=======
 Release 4.3.7 31st May 2023
 ---------------------------
 
@@ -1549,7 +1544,6 @@ The full list of changes is:
 
 
 Please test and report any issues!
->>>>>>> Copter-4.6.0
 
 Release 4.4.0 beta1
 -------------------
@@ -1643,11 +1637,7 @@ of changes. Many thanks to all the people who have contributed!
     - Gimbal/Mount2 can be moved to retracted or neutral position
     - Gremsy ZIO support
     - IMAGE_START_CAPTURE, SET_CAMERA_ZOOM/FOCUS, VIDEO_START/STOP_CAPTURE command support
-<<<<<<< HEAD
-    - Paramters renamed and rescaled
-=======
     - Parameters renamed and rescaled
->>>>>>> Copter-4.6.0
         i) CAM_TRIGG_TYPE renamed to CAM1_TYPE and options have changed
         ii) CAM_DURATION renamed to CAM1_DURATION and scaled in seconds
         iii) CAM_FEEDBACK_PIN/POL renamed to CAM1_FEEBAK_PIN/POL

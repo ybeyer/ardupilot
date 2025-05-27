@@ -304,14 +304,6 @@ void NavEKF3_core::readMagData()
     } else if (wasLearningCompass_ms != 0 && imuSampleTime_ms - wasLearningCompass_ms > 1000) {
         // allow time for old data to clear the buffer before signalling other code that compass data can be used
         wasLearningCompass_ms = 0;
-<<<<<<< HEAD
-        // force a new yaw alignment 1s after learning completes. The
-        // delay is to ensure any buffered mag samples are discarded
-        yawAlignComplete = false;
-        yawAlignGpsValidCount = 0;
-        InitialiseVariablesMag();
-=======
->>>>>>> Copter-4.6.0
     }
 
     // If the magnetometer has timed out (been rejected for too long), we find another magnetometer to use if available

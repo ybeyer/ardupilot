@@ -584,8 +584,6 @@ void __wrap__free_r(void *rptr, void *ptr)
     (void)rptr;
     return free(ptr);
 }
-<<<<<<< HEAD
-=======
 
 #ifdef USE_POSIX
 /*
@@ -663,4 +661,3 @@ bool mem_is_dma_safe(const void *addr, uint32_t size, bool filesystem_op)
     return false;
 #endif // STM32F1
 }
->>>>>>> Copter-4.6.0

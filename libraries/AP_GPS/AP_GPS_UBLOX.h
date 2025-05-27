@@ -885,10 +885,7 @@ private:
         uint32_t unconfig_bit;
         uint8_t layers;
         int8_t fetch_index;
-<<<<<<< HEAD
-=======
         int8_t set_index;
->>>>>>> Copter-4.6.0
     } active_config;
     bool use_single_valget;
 
