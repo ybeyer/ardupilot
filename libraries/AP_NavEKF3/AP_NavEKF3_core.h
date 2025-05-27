@@ -124,15 +124,6 @@
 // maximum GPs ground course uncertainty allowed for yaw alignment (deg)
 #define GPS_VEL_YAW_ALIGN_MAX_ANG_ERR 15.0F
 
-// number of continuous valid GPS velocity samples required to reset yaw
-#define GPS_VEL_YAW_ALIGN_COUNT_THRESHOLD 5
-
-// minimum GPS horizontal speed required to use GPS ground course for yaw alignment (m/s)
-#define GPS_VEL_YAW_ALIGN_MIN_SPD 5.0F
-
-// maximum GPs ground course uncertainty allowed for yaw alignment (deg)
-#define GPS_VEL_YAW_ALIGN_MAX_ANG_ERR 15.0F
-
 class NavEKF3_core : public NavEKF_core_common
 {
 public:

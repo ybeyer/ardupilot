@@ -146,9 +146,6 @@ int luaD_rawrunprotected (lua_State *L, Pfunc f, void *ud) {
     __asm__("vpush {s16-s31}");
 #endif
   LUAI_TRY(L, &lj,
-#ifdef ARM_MATH_CM7
-    __asm__("vpush {s16-s31}");
-#endif
     (*f)(L, ud);
   );
 #ifdef ARM_MATH_CM7
