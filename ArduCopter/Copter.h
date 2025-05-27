@@ -1020,14 +1020,10 @@ private:
 #if MODE_DRIFT_ENABLED
     ModeDrift mode_drift;
 #endif
-<<<<<<< HEAD
-#if MODE_CUSTOM_ENABLED == ENABLED
+#if MODE_CUSTOM_ENABLED
     ModeCustom mode_custom;
 #endif
-#if MODE_FLIP_ENABLED == ENABLED
-=======
 #if MODE_FLIP_ENABLED
->>>>>>> Copter-4.6.0
     ModeFlip mode_flip;
 #endif
 #if MODE_FOLLOW_ENABLED

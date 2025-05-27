@@ -60,12 +60,9 @@ MAV_MISSION_RESULT MissionItemProtocol_Waypoints::complete(const GCS_MAVLINK &_l
     _link.send_text(MAV_SEVERITY_INFO, "Flight plan received");
 #if HAL_LOGGING_ENABLED
     AP::logger().Write_EntireMission();
-<<<<<<< HEAD
-    mission.mission_complete(); //sending the mission complete message to mode_custom
-=======
 #endif
->>>>>>> Copter-4.6.0
     return MAV_MISSION_ACCEPTED;
+    mission.mission_complete(); //sending the mission complete message to mode_custom
 }
 
 MAV_MISSION_RESULT MissionItemProtocol_Waypoints::get_item(const GCS_MAVLINK &_link,

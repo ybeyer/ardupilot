@@ -308,11 +308,7 @@ class Board:
             env.DEFINES.update(
                 HAL_DEBUG_BUILD = 1,
             )
-<<<<<<< HEAD
-        elif cfg.options.g:
-=======
         elif cfg.options.debug_symbols:
->>>>>>> Copter-4.6.0
             env.CFLAGS += [
                 '-g',
             ]
@@ -719,12 +715,8 @@ class sitl(Board):
                 cfg.define('HAL_CAN_WITH_SOCKETCAN', 0)
 
         env.CXXFLAGS += [
-<<<<<<< HEAD
             #'-Werror=float-equal'
-=======
-            '-Werror=float-equal',
             '-Werror=missing-declarations',
->>>>>>> Copter-4.6.0
         ]
 
         if not cfg.options.disable_networking and not 'clang' in cfg.env.COMPILER_CC:
@@ -1115,12 +1107,7 @@ class chibios(Board):
         env.HAL_MAX_STACK_FRAME_SIZE = 'HAL_MAX_STACK_FRAME_SIZE=%d' % 1300 # set per Wframe-larger-than, ensure its same
         env.CFLAGS += cfg.env.CPU_FLAGS + [
             '-Wlogical-op',
-<<<<<<< HEAD
             '-Wframe-larger-than=5000',
-            '-fsingle-precision-constant',
-=======
-            '-Wframe-larger-than=1300',
->>>>>>> Copter-4.6.0
             '-Wno-attributes',
             '-fno-exceptions',
             '-Wall',

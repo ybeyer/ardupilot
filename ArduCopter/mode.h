@@ -5,18 +5,16 @@
 
 #include "Copter.h"
 #include <AP_Math/chirp.h>
-<<<<<<< HEAD
+#include <AP_ExternalControl/AP_ExternalControl_config.h> // TODO why is this needed if Copter.h includes this
+
+#if AP_COPTER_ADVANCED_FAILSAFE_ENABLED
+#include "afs_copter.h"
+#endif
 
 #include <AC_AttitudeControl/MatlabController.h>    // new
 
 #ifdef CUSTOM_MATLAB_OUTPUT
     #include <AP_HAL/utility/Socket.h>
-=======
-#include <AP_ExternalControl/AP_ExternalControl_config.h> // TODO why is this needed if Copter.h includes this
-
-#if AP_COPTER_ADVANCED_FAILSAFE_ENABLED
-#include "afs_copter.h"
->>>>>>> Copter-4.6.0
 #endif
 
 class Parameters;

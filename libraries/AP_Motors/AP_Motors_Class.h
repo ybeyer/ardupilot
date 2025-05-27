@@ -282,12 +282,6 @@ public:
 #if HAL_LOGGING_ENABLED
     // write log, to be called at 10hz
     virtual void Log_Write() {};
-<<<<<<< HEAD
-    
-    // set a new custom motor input to the desired index of the array for custom controllers
-    void                set_custom_input(int index, float input);
-    
-=======
 #endif
 
     enum MotorOptions : uint8_t {
@@ -295,7 +289,9 @@ public:
     };
     bool has_option(MotorOptions option) { return _options.get() & uint8_t(option); }
 
->>>>>>> Copter-4.6.0
+    // set a new custom motor input to the desired index of the array for custom controllers
+    void                set_custom_input(int index, float input);
+    
 protected:
     // output functions that should be overloaded by child classes
     virtual void        output_armed_stabilizing() = 0;

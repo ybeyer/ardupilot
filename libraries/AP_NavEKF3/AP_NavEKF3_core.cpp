@@ -1103,12 +1103,6 @@ void NavEKF3_core::CovariancePrediction(Vector3F *rotVarVecPtr)
 
     if (!inhibitWindStates) {
         const bool isDragFusionDeadReckoning = filterStatus.flags.dead_reckoning && !dragTimeout;
-<<<<<<< HEAD
-        if (isDragFusionDeadReckoning) {
-            // when dead reckoning using drag fusion stop learning wind states to provide a more stable velocity estimate
-            P[23][23] = P[22][22] = 0.0f;
-        } else {
-=======
         const bool newTreatWindStatesAsTruth = isDragFusionDeadReckoning || !windStateIsObservable;
         if (newTreatWindStatesAsTruth) {
             treatWindStatesAsTruth = true;
@@ -1121,7 +1115,6 @@ void NavEKF3_core::CovariancePrediction(Vector3F *rotVarVecPtr)
                     P[23][23] = P[22][22] = sq(WIND_VEL_VARIANCE_MAX);
                 }
             }
->>>>>>> Copter-4.6.0
 	        ftype windVelVar  = sq(dt * constrain_ftype(frontend->_windVelProcessNoise, 0.0f, 1.0f) * (1.0f + constrain_ftype(frontend->_wndVarHgtRateScale, 0.0f, 1.0f) * fabsF(hgtRate)));
 	        if (!tasDataDelayed.allowFusion) {
 	            // Allow wind states to recover faster when using sideslip fusion with a failed airspeed sesnor

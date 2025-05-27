@@ -778,15 +778,13 @@ public:
     }
 #endif
 
-<<<<<<< HEAD
-    //setting the mission updated bool in mode_custom
-    void mission_complete();
-=======
 #if HAL_LOGGING_ENABLED
     void set_log_start_mission_item_bit(uint32_t bit) { log_start_mission_item_bit = bit; }
 #endif
 
->>>>>>> Copter-4.6.0
+    //setting the mission updated bool in mode_custom
+    void mission_complete();
+
 private:
     static AP_Mission *_singleton;
 
