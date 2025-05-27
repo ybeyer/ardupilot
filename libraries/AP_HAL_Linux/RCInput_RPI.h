@@ -20,6 +20,8 @@
 #include <assert.h>
 #include <queue>
 
+#include "Util_RPI.h"
+
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BH
 #define RCIN_RPI_CHN_NUM 8
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_OBAL_V1
@@ -61,7 +63,7 @@ private:
 
 public:
     Memory_table();
-    Memory_table(uint32_t, int);
+    Memory_table(const uint32_t, const LINUX_BOARD_TYPE);
     ~Memory_table();
 
     //Get virtual address from the corresponding physical address from memory_table.
@@ -114,7 +116,8 @@ private:
             prev_tick(0), delta_time(0),
             width_s0(0), width_s1(0),
             curr_signal(0), last_signal(0),
-            enable_pin(0), state(RCIN_RPI_INITIAL_STATE)
+            state(RCIN_RPI_INITIAL_STATE),
+            enable_pin(0)
         {}
 
         uint64_t prev_tick;
@@ -132,7 +135,7 @@ private:
     } rc_channels[RCIN_RPI_CHN_NUM];
 
     bool _initialized = false;
-    int _version =0;
+    LINUX_BOARD_TYPE _version = LINUX_BOARD_TYPE::UNKNOWN_BOARD;
     
     void init_dma_cb(dma_cb_t** cbp, uint32_t mode, uint32_t source, uint32_t dest, uint32_t length, uint32_t stride, uint32_t next_cb);
     void* map_peripheral(uint32_t base, uint32_t len);

@@ -28,8 +28,12 @@ extern const AP_HAL::HAL &hal;
 
 void AP_Periph_FW::rcout_init()
 {
+#if AP_PERIPH_SAFETY_SWITCH_ENABLED
     // start up with safety enabled. This disables the pwm output until we receive an packet from the rempte system
     hal.rcout->force_safety_on();
+#else
+    hal.rcout->force_safety_off();
+#endif
 
 #if HAL_WITH_ESC_TELEM && !HAL_GCS_ENABLED
     if (g.esc_telem_port >= 0) {
@@ -59,8 +63,15 @@ void AP_Periph_FW::rcout_init()
     // run this once and at 1Hz to configure aux and esc ranges
     rcout_init_1Hz();
 
+#if HAL_DSHOT_ENABLED
+    hal.rcout->set_dshot_esc_type(SRV_Channels::get_dshot_esc_type());
+#endif
+
+    // run PWM ESCs at configured rate
+    hal.rcout->set_freq(esc_mask, g.esc_rate.get());
+
     // setup ESCs with the desired PWM type, allowing for DShot
-    SRV_Channels::init(esc_mask, (AP_HAL::RCOutput::output_mode)g.esc_pwm_type.get());
+    AP::srv().init(esc_mask, (AP_HAL::RCOutput::output_mode)g.esc_pwm_type.get());
 
     // run DShot at 1kHz
     hal.rcout->set_dshot_rate(SRV_Channels::get_dshot_rate(), 400);
@@ -72,7 +83,7 @@ void AP_Periph_FW::rcout_init()
 void AP_Periph_FW::rcout_init_1Hz()
 {
     // this runs at 1Hz to allow for run-time param changes
-    SRV_Channels::enable_aux_servos();
+    AP::srv().enable_aux_servos();
 
     for (uint8_t i=0; i<SERVO_OUT_MOTOR_MAX; i++) {
         servo_channels.set_esc_scaling_for(SRV_Channels::get_motor_function(i));
@@ -132,7 +143,8 @@ void AP_Periph_FW::rcout_update()
     const bool has_esc_rawcommand_timed_out = esc_timeout_ms != 0 && ((now_ms - last_esc_raw_command_ms) >= esc_timeout_ms);
     if (last_esc_num_channels > 0 && has_esc_rawcommand_timed_out) {
         // If we've seen ESCs previously, and a timeout has occurred, then zero the outputs
-        int16_t esc_output[last_esc_num_channels] {};
+        int16_t esc_output[last_esc_num_channels];
+        memset(esc_output, 0, sizeof(esc_output));
         rcout_esc(esc_output, last_esc_num_channels);
 
         // register that the output has been changed
@@ -144,15 +156,19 @@ void AP_Periph_FW::rcout_update()
     }
     rcout_has_new_data_to_update = false;
 
+    auto &srv = AP::srv();
     SRV_Channels::calc_pwm();
-    SRV_Channels::cork();
+    srv.cork();
     SRV_Channels::output_ch_all();
-    SRV_Channels::push();
+    srv.push();
 #if HAL_WITH_ESC_TELEM
     if (now_ms - last_esc_telem_update_ms >= esc_telem_update_period_ms) {
         last_esc_telem_update_ms = now_ms;
         esc_telem_update();
     }
+#if AP_EXTENDED_ESC_TELEM_ENABLED
+    esc_telem_extended_update(now_ms);
+#endif
 #endif
 }
 

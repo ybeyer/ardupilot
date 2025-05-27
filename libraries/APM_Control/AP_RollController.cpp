@@ -114,6 +114,31 @@ const AP_Param::GroupInfo AP_RollController::var_info[] = {
     // @Increment: 0.5
     // @User: Advanced
 
+    // @Param: _RATE_PDMX
+    // @DisplayName: Roll axis rate controller PD sum maximum
+    // @Description: Roll axis rate controller PD sum maximum.  The maximum/minimum value that the sum of the P and D term can output
+    // @Range: 0 1
+    // @Increment: 0.01
+
+    // @Param: _RATE_D_FF
+    // @DisplayName: Roll Derivative FeedForward Gain
+    // @Description: FF D Gain which produces an output that is proportional to the rate of change of the target
+    // @Range: 0 0.03
+    // @Increment: 0.001
+    // @User: Advanced
+
+    // @Param: _RATE_NTF
+    // @DisplayName: Roll Target notch filter index
+    // @Description: Roll Target notch filter index
+    // @Range: 1 8
+    // @User: Advanced
+
+    // @Param: _RATE_NEF
+    // @DisplayName: Roll Error notch filter index
+    // @Description: Roll Error notch filter index
+    // @Range: 1 8
+    // @User: Advanced
+
     AP_SUBGROUPINFO(rate_pid, "_RATE_", 9, AP_RollController, AC_PID),
 
     AP_GROUPEND
@@ -165,7 +190,8 @@ float AP_RollController::_get_rate_out(float desired_rate, float scaler, bool di
     // FF should be scaled by scaler/eas2tas, but since we have scaled
     // the AC_PID target above by scaler*scaler we need to instead
     // divide by scaler*eas2tas to get the right scaling
-    const float ff = degrees(rate_pid.get_ff() / (scaler * eas2tas));
+    const float ff = degrees(ff_scale * rate_pid.get_ff() / (scaler * eas2tas));
+    ff_scale = 1.0;
 
     if (disable_integrator) {
         rate_pid.reset_I();
@@ -180,13 +206,14 @@ float AP_RollController::_get_rate_out(float desired_rate, float scaler, bool di
     pinfo.P *= deg_scale;
     pinfo.I *= deg_scale;
     pinfo.D *= deg_scale;
+    pinfo.DFF *= deg_scale;
 
     // fix the logged target and actual values to not have the scalers applied
     pinfo.target = desired_rate;
     pinfo.actual = degrees(rate_x);
 
     // sum components
-    float out = pinfo.FF + pinfo.P + pinfo.I + pinfo.D;
+    float out = pinfo.FF + pinfo.P + pinfo.I + pinfo.D + pinfo.DFF;
     if (ground_mode) {
         // when on ground suppress D term to prevent oscillations
         out -= pinfo.D + 0.5*pinfo.P;
@@ -234,6 +261,24 @@ float AP_RollController::get_servo_out(int32_t angle_err, float scaler, bool dis
     // Calculate the desired roll rate (deg/sec) from the angle error
     angle_err_deg = angle_err * 0.01;
     float desired_rate = angle_err_deg/ gains.tau;
+
+    /*
+      prevent indecision in the roll controller when target roll is
+      close to 180 degrees from the current roll
+     */
+    const float indecision_threshold_deg = 160;
+    const float last_desired_rate = _pid_info.target;
+    const float abs_angle_err_deg = fabsf(angle_err_deg);
+    if (abs_angle_err_deg > indecision_threshold_deg &&
+        angle_err_deg <= 180) {
+        if (desired_rate * last_desired_rate < 0) {
+            desired_rate = -desired_rate;
+            // increase the desired rate in proportion to the extra
+            // angle we are requesting
+            const float new_angle_err_deg = abs_angle_err_deg + (180 - abs_angle_err_deg)*2;
+            desired_rate *= new_angle_err_deg / abs_angle_err_deg;
+        }
+    }
 
     // Limit the demanded roll rate
     if (gains.rmax_pos && desired_rate < -gains.rmax_pos) {
@@ -286,7 +331,7 @@ void AP_RollController::convert_pid()
 void AP_RollController::autotune_start(void)
 {
     if (autotune == nullptr) {
-        autotune = new AP_AutoTune(gains, AP_AutoTune::AUTOTUNE_ROLL, aparm, rate_pid);
+        autotune = NEW_NOTHROW AP_AutoTune(gains, AP_AutoTune::AUTOTUNE_ROLL, aparm, rate_pid);
         if (autotune == nullptr) {
             if (!failed_autotune_alloc) {
                 GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "AutoTune: failed roll allocation");

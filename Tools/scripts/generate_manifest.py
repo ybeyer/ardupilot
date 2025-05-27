@@ -24,7 +24,7 @@ else:
     running_python310 = True
 
 FIRMWARE_TYPES = ["AntennaTracker", "Copter", "Plane", "Rover", "Sub", "AP_Periph", "Blimp"]
-RELEASE_TYPES = ["beta", "latest", "stable", "stable-*", "dirty"]
+RELEASE_TYPES = ["beta", "beta-4.3", "latest", "stable", "stable-*", "dirty"]
 
 # mapping for board names to brand name and manufacturer
 brand_map = {
@@ -104,6 +104,12 @@ brand_map = {
     "SPRacingH7" : ("Seriously Pro Racing", "H7 Extreme"),
     "SkystarsH7HD" : ("Skystars", "H743 HD"),
     "SkystarsH7HD-bdshot" : ("Skystars", "H743 HD"),
+    "MicoAir405v2" : ("MicoAir F405 v2.1", "MicoAir"),
+    "MicoAir405Mini" : ("MicoAir F405 Mini", "MicoAir"),
+    "MicoAir743" : ("MicoAir H743 v1.3", "MicoAir"),
+    "MicoAir743-AIO" : ("MicoAir H743 AIO", "MicoAir"),
+    "MicoAir743v2" : ("MicoAir H743 v2.0", "MicoAir"),
+    "GEPRCF745BTHD": ("TAKER F745 BT","GEPRC"),
 }
 
 class Firmware():

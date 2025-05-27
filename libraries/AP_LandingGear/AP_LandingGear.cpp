@@ -2,7 +2,6 @@
 
 #if AP_LANDINGGEAR_ENABLED
 
-#include <AP_Relay/AP_Relay.h>
 #include <AP_Math/AP_Math.h>
 #include <SRV_Channel/SRV_Channel.h>
 #include <AP_HAL/AP_HAL.h>
@@ -87,7 +86,8 @@ const AP_Param::GroupInfo AP_LandingGear::var_info[] = {
 
     // @Param: OPTIONS
     // @DisplayName: Landing gear auto retract/deploy options
-    // @Description: Options to retract or deploy landing gear in Auto or Guided mode
+    // @Description{Copter}: Options to retract or deploy landing gear in Auto or Guided mode
+    // @Description{Plane}: Options to retract or deploy landing gear in Auto, Takeoff and Autoland modes
     // @Bitmask: 0:Retract after Takeoff,1:Deploy during Land
     // @User: Standard
     AP_GROUPINFO("OPTIONS", 9, AP_LandingGear, _options, 3),
@@ -169,13 +169,13 @@ void AP_LandingGear::deploy()
     // send message only if output has been configured
     if (!_deployed &&
         SRV_Channels::function_assigned(SRV_Channel::k_landing_gear_control)) {
-        gcs().send_text(MAV_SEVERITY_INFO, "LandingGear: DEPLOY");
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "LandingGear: DEPLOY");
     }
 
     // set deployed flag
     _deployed = true;
     _have_changed = true;
-    AP::logger().Write_Event(LogEvent::LANDING_GEAR_DEPLOYED);
+    LOGGER_WRITE_EVENT(LogEvent::LANDING_GEAR_DEPLOYED);
 }
 
 /// retract - retract landing gear
@@ -191,11 +191,11 @@ void AP_LandingGear::retract()
     // reset deployed flag
     _deployed = false;
     _have_changed = true;
-    AP::logger().Write_Event(LogEvent::LANDING_GEAR_RETRACTED);
+    LOGGER_WRITE_EVENT(LogEvent::LANDING_GEAR_RETRACTED);
 
     // send message only if output has been configured
     if (SRV_Channels::function_assigned(SRV_Channel::k_landing_gear_control)) {
-        gcs().send_text(MAV_SEVERITY_INFO, "LandingGear: RETRACT");
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "LandingGear: RETRACT");
     }
 }
 
@@ -304,6 +304,7 @@ void AP_LandingGear::update(float height_above_ground_m)
     _last_height_above_ground = alt_m;
 }
 
+#if HAL_LOGGING_ENABLED
 // log weight on wheels state
 void AP_LandingGear::log_wow_state(LG_WOW_State state)
 {
@@ -311,6 +312,7 @@ void AP_LandingGear::log_wow_state(LG_WOW_State state)
                                            AP_HAL::micros64(),
                                            (int8_t)gear_state_current, (int8_t)state);
 }
+#endif
 
 bool AP_LandingGear::check_before_land(void)
 {

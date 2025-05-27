@@ -32,6 +32,31 @@ bool NavEKF3_core::healthy(void) const
     return true;
 }
 
+/*
+  per-core pre-arm checks. returns false if we fail arming checks, in
+  which case the buffer will be populated with a failure message
+  requires_position should be true if horizontal position configuration should be checked
+*/
+bool NavEKF3_core::pre_arm_check(bool requires_position, char *failure_msg, uint8_t failure_msg_len) const
+{
+    if (requires_position) {
+        // additional checks when position is required, used by pre-arm checks
+        const float max_vel_innovation = 2.0;
+        const float hvel_innovation = sqrtf(sq(innovVelPos[0])+sq(innovVelPos[1]));
+        if (onGround && PV_AidingMode == AID_ABSOLUTE &&
+            frontend->sources.useVelXYSource(AP_NavEKF_Source::SourceXY::GPS) &&
+            hvel_innovation > max_vel_innovation) {
+            // more than 2 m/s horizontal velocity innovation on the ground
+            dal.snprintf(failure_msg, failure_msg_len,
+                         "EKF3[%u] vel error %.1f", unsigned(core_index)+1, hvel_innovation);
+            return false;
+        }
+    }
+
+    // all OK
+    return true;
+}
+
 // Return a consolidated error score where higher numbers represent larger errors
 // Intended to be used by the front-end to determine which is the primary EKF
 float NavEKF3_core::errorScore() const
@@ -68,12 +93,16 @@ bool NavEKF3_core::getHeightControlLimit(float &height) const
     // only ask for limiting if we are doing optical flow navigation
     if (frontend->sources.useVelXYSource(AP_NavEKF_Source::SourceXY::OPTFLOW) && (PV_AidingMode == AID_RELATIVE) && flowDataValid) {
         // If are doing optical flow nav, ensure the height above ground is within range finder limits after accounting for vehicle tilt and control errors
+#if AP_RANGEFINDER_ENABLED
         const auto *_rng = dal.rangefinder();
         if (_rng == nullptr) {
             // we really, really shouldn't be here.
             return false;
         }
         height = MAX(float(_rng->max_distance_cm_orient(ROTATION_PITCH_270)) * 0.007f - 1.0f, 1.0f);
+#else
+        return false;
+#endif
         // If we are are not using the range finder as the height reference, then compensate for the difference between terrain and EKF origin
         if (frontend->sources.getPosZSource() != AP_NavEKF_Source::SourceZ::RANGEFINDER) {
             height -= terrainState;
@@ -88,7 +117,7 @@ bool NavEKF3_core::getHeightControlLimit(float &height) const
 // return the Euler roll, pitch and yaw angle in radians
 void NavEKF3_core::getEulerAngles(Vector3f &euler) const
 {
-    outputDataNew.quat.to_euler(euler.x, euler.y, euler.z);
+    outputDataNew.quat.to_euler(euler);
     euler = euler - dal.get_trim();
 }
 
@@ -236,10 +265,10 @@ bool NavEKF3_core::getPosNE(Vector2f &posNE) const
                 posNE = public_origin.get_distance_NE_ftype(gpsloc).tofloat();
                 return false;
 #if EK3_FEATURE_BEACON_FUSION
-            } else if (rngBcnAlignmentStarted) {
+            } else if (rngBcn.alignmentStarted) {
                 // If we are attempting alignment using range beacon data, then report the position
-                posNE.x = receiverPos.x;
-                posNE.y = receiverPos.y;
+                posNE.x = rngBcn.receiverPos.x;
+                posNE.y = rngBcn.receiverPos.y;
                 return false;
 #endif
             } else {
@@ -260,17 +289,7 @@ bool NavEKF3_core::getPosNE(Vector2f &posNE) const
 // Return true if the estimate is valid
 bool NavEKF3_core::getPosD_local(float &posD) const
 {
-    // The EKF always has a height estimate regardless of mode of operation
-    // Correct for the IMU offset (EKF calculations are at the IMU)
-    // Also correct for changes to the origin height
-    if ((frontend->_originHgtMode & (1<<2)) == 0) {
-        // Any sensor height drift corrections relative to the WGS-84 reference are applied to the origin.
-        posD = outputDataNew.position.z + posOffsetNED.z;
-    } else {
-        // The origin height is static and corrections are applied to the local vertical position
-        // so that height returned by getLLH() = height returned by getOriginLLH - posD
-        posD = outputDataNew.position.z + posOffsetNED.z + 0.01f * (float)EKF_origin.alt - (float)ekfGpsRefHgt;
-    }
+    posD = outputDataNew.position.z + posOffsetNED.z;
 
     // Return the current height solution status
     return filterStatus.flags.vert_pos;
@@ -493,7 +512,7 @@ bool NavEKF3_core::getVelInnovationsAndVariancesForSource(AP_NavEKF_Source::Sour
     switch (source) {
     case AP_NavEKF_Source::SourceXY::GPS:
         // check for timeouts
-        if (dal.millis() - gpsVelInnovTime_ms > 500) {
+        if (dal.millis() - gpsRetrieveTime_ms > 500) {
             return false;
         }
         innovations = gpsVelInnov.tofloat();
@@ -621,7 +640,7 @@ void NavEKF3_core::send_status_report(GCS_MAVLINK &link) const
         velVar,
         posVar,
         hgtVar,
-        fmaxF(fmaxF(magVar.x,magVar.y),magVar.z),
+        fmaxf(fmaxf(magVar.x,magVar.y),magVar.z),
         temp,
         flags,
         tasVar

@@ -1,9 +1,16 @@
 # WS2812 LED
 NTF_LED_LEN,4
+<<<<<<< HEAD
 NTF_LED_TYPES 257
+=======
+>>>>>>> Copter-4.6.0
 SERVO12_FUNCTION,120
 
 #Serial Port defaults
 SERIAL1_PROTOCOL 23
 SERIAL4_PROTOCOL -1
 SERIAL6_PROTOCOL 2
+<<<<<<< HEAD
+=======
+
+>>>>>>> Copter-4.6.0

@@ -188,6 +188,7 @@ public:
         k_rcin14_mapped         = 153,
         k_rcin15_mapped         = 154,
         k_rcin16_mapped         = 155,
+        k_lift_release          = 156,
         k_nr_aux_servo_functions         ///< This must be the last enum value (only add new values _before_ this one)
     } Aux_servo_function_t;
 
@@ -280,6 +281,9 @@ public:
         return function.configured();
     }
 
+    // convert a scaled value (either range or angle depending on setup) to a pwm
+    uint16_t pwm_from_scaled_value(float scaled_value) const;
+
     // specify that small rc input changes should be ignored during passthrough
     // used by DO_SET_SERVO commands
     void ignore_small_rcin_changes() { ign_small_rcin_changes = true; }
@@ -369,11 +373,14 @@ public:
     // set output value for a specific function channel as a pwm value
     static void set_output_pwm_chan(uint8_t chan, uint16_t value);
 
+    // get output value for a specific channel as a pwm value
+    static bool get_output_pwm_chan(uint8_t chan, uint16_t &value);
+    
     // set output value for a specific function channel as a pwm value for specified override time in ms
     static void set_output_pwm_chan_timeout(uint8_t chan, uint16_t value, uint16_t timeout_ms);
 
     // set output value for a function channel as a scaled value. This
-    // calls calc_pwm() to also set the pwm value
+    // this should be followed by a call to calc_pwm() to output the pwm values
     static void set_output_scaled(SRV_Channel::Aux_servo_function_t function, float value);
 
     // get scaled output for the given function type.
@@ -412,7 +419,13 @@ public:
 
     // set MIN/MAX parameters for a function
     static void set_output_min_max(SRV_Channel::Aux_servo_function_t function, uint16_t min_pwm, uint16_t max_pwm);
-    
+
+    // set MIN/MAX parameter defaults for a function
+    static void set_output_min_max_defaults(SRV_Channel::Aux_servo_function_t function, uint16_t min_pwm, uint16_t max_pwm);
+
+    // Save MIN/MAX/REVERSED parameters for a function
+    static void save_output_min_max(SRV_Channel::Aux_servo_function_t function, uint16_t min_pwm, uint16_t max_pwm);
+
     // save trims
     void save_trim(void);
 
@@ -463,7 +476,7 @@ public:
                            int16_t value, int16_t angle_min, int16_t angle_max);
 
     // assign and enable auxiliary channels
-    static void enable_aux_servos(void);
+    void enable_aux_servos(void);
 
     // enable channels by mask
     static void enable_by_mask(uint32_t mask);
@@ -481,7 +494,7 @@ public:
     static bool find_channel(SRV_Channel::Aux_servo_function_t function, uint8_t &chan);
 
     // find first channel that a function is assigned to, returning SRV_Channel object
-    static SRV_Channel *get_channel_for(SRV_Channel::Aux_servo_function_t function, int8_t default_chan=-1);
+    static SRV_Channel *get_channel_for(SRV_Channel::Aux_servo_function_t function);
 
     // call set_angle() on matching channels
     static void set_angle(SRV_Channel::Aux_servo_function_t function, uint16_t angle);
@@ -508,6 +521,8 @@ public:
 
     static uint8_t get_dshot_rate() { return _singleton->dshot_rate.get(); }
 
+    static uint32_t get_rc_fs_mask() { return _singleton->rc_fs_mask.get(); }
+
     static SRV_Channel *srv_channel(uint8_t i) {
 #if NUM_SERVO_CHANNELS > 0
         return i<NUM_SERVO_CHANNELS?&channels[i]:nullptr;
@@ -526,10 +541,9 @@ public:
         }
         return SRV_Channel::Aux_servo_function_t((SRV_Channel::k_motor9+(channel-8)));
     }
-    
-    static void cork();
 
-    static void push();
+    void cork();
+    void push();
 
     // disable PWM output to a set of channels given by a mask. This is used by the AP_BLHeli code
     static void set_disabled_channel_mask(uint32_t mask) { disabled_mask = mask; }
@@ -558,7 +572,7 @@ public:
     static void zero_rc_outputs();
 
     // initialize before any call to push
-    static void init(uint32_t motor_mask = 0, AP_HAL::RCOutput::output_mode mode = AP_HAL::RCOutput::MODE_PWM_NONE);
+    void init(uint32_t motor_mask = 0, AP_HAL::RCOutput::output_mode mode = AP_HAL::RCOutput::MODE_PWM_NONE);
 
     // return true if a channel is set to type GPIO
     static bool is_GPIO(uint8_t channel);
@@ -571,6 +585,15 @@ public:
     // return true if a channel is set to type alarm inverted
     static bool is_alarm_inverted(uint8_t channel) {
         return channel_function(channel) == SRV_Channel::k_alarm_inverted;
+    }
+
+    // return true if 32 channels are enabled
+    static bool have_32_channels() {
+#if NUM_SERVO_CHANNELS >= 17
+        return _singleton->enable_32_channels.get() > 0;
+#else
+        return false;
+#endif
     }
 
 private:
@@ -589,30 +612,25 @@ private:
 #if AP_VOLZ_ENABLED
     // support for Volz protocol
     AP_Volz_Protocol volz;
-    static AP_Volz_Protocol *volz_ptr;
 #endif
 
-#ifndef HAL_BUILD_AP_PERIPH
+#if AP_SBUSOUTPUT_ENABLED
     // support for SBUS protocol
     AP_SBusOut sbus;
-    static AP_SBusOut *sbus_ptr;
-#endif // HAL_BUILD_AP_PERIPH
+#endif
 
 #if AP_ROBOTISSERVO_ENABLED
     // support for Robotis servo protocol
     AP_RobotisServo robotis;
-    static AP_RobotisServo *robotis_ptr;
 #endif
 
 #if HAL_SUPPORT_RCOUT_SERIAL
     // support for BLHeli protocol
     AP_BLHeli blheli;
-    static AP_BLHeli *blheli_ptr;
 #endif
 
 #if AP_FETTEC_ONEWIRE_ENABLED
     AP_FETtecOneWire fetteconwire;
-    static AP_FETtecOneWire *fetteconwire_ptr;
 #endif  // AP_FETTEC_ONEWIRE_ENABLED
 
     // mask of disabled channels
@@ -646,6 +664,7 @@ private:
     AP_Int8 dshot_rate;
     AP_Int8 dshot_esc_type;
     AP_Int32 gpio_mask;
+    AP_Int32 rc_fs_mask;
 #if NUM_SERVO_CHANNELS >= 17
     AP_Int8 enable_32_channels;
 #endif
@@ -669,4 +688,8 @@ private:
 
     // semaphore for multi-thread use of override_counter array
     HAL_Semaphore override_counter_sem;
+};
+
+namespace AP {
+    SRV_Channels &srv();
 };

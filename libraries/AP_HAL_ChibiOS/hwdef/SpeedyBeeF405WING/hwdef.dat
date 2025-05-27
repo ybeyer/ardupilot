@@ -28,6 +28,10 @@ I2C_ORDER I2C1
 SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
 
 # LEDs
+<<<<<<< HEAD
+=======
+define AP_NOTIFY_GPIO_LED_2_ENABLED 1
+>>>>>>> Copter-4.6.0
 PA13 LED_GREEN OUTPUT LOW GPIO(0)
 PA14 LED_BLUE OUTPUT LOW GPIO(1)
 
@@ -37,8 +41,13 @@ define HAL_GPIO_B_LED_PIN 1
 # buzzer
 PC15 BUZZER OUTPUT GPIO(80) LOW
 define HAL_BUZZER_PIN 80
+<<<<<<< HEAD
 define HAL_BUZZER_ON 1
 define HAL_BUZZER_OFF 0
+=======
+
+
+>>>>>>> Copter-4.6.0
 
 # spi1 bus for IMU
 PA5 SPI1_SCK SPI1
@@ -108,7 +117,11 @@ PD2  UART5_RX UART5 NODMA
 # UART6 (onboard Telemetry)
 PC6 USART6_TX USART6
 PC7 USART6_RX USART6
+<<<<<<< HEAD
 define HAL_SERIAL6_BAUD 115
+=======
+define DEFAULT_SERIAL6_BAUD 115
+>>>>>>> Copter-4.6.0
 
 # USB
 PA11 OTG_FS_DM OTG1
@@ -116,10 +129,17 @@ PA12 OTG_FS_DP OTG1
 
 # PWM out pins. Note that channel order follows the ArduPilot motor
 # order conventions
+<<<<<<< HEAD
 PB7  TIM4_CH2  TIM4 PWM(1) GPIO(50)
 PB6  TIM4_CH1  TIM4 PWM(2) GPIO(51)
 PB0  TIM3_CH3  TIM3 PWM(3) GPIO(52)
 PB1  TIM3_CH4  TIM3 PWM(4) GPIO(53)
+=======
+PB7  TIM4_CH2  TIM4 PWM(1) GPIO(50) BIDIR
+PB6  TIM4_CH1  TIM4 PWM(2) GPIO(51)
+PB0  TIM3_CH3  TIM3 PWM(3) GPIO(52)
+PB1  TIM3_CH4  TIM3 PWM(4) GPIO(53) BIDIR
+>>>>>>> Copter-4.6.0
 PC8  TIM8_CH3  TIM8 PWM(5) GPIO(54)
 PC9  TIM8_CH4  TIM8 PWM(6) GPIO(55)
 PB14 TIM8_CH2N TIM8 PWM(7) GPIO(56)
@@ -158,14 +178,18 @@ SPIDEV sdcard SPI3 DEVID3 SDCARD_CS MODE0 400*KHZ 25*MHZ
 
 # filesystem setup on sdcard
 define HAL_OS_FATFS_IO 1
+<<<<<<< HEAD
 define HAL_BOARD_LOG_DIRECTORY "/APM/LOGS"
 define HAL_BOARD_TERRAIN_DIRECTORY "/APM/TERRAIN"
+=======
+>>>>>>> Copter-4.6.0
 
 # setup for OSD
 define OSD_ENABLED 1
 define HAL_OSD_TYPE_DEFAULT 1
 ROMFS_WILDCARD libraries/AP_OSD/fonts/font0.bin
 
+<<<<<<< HEAD
 define STM32_PWM_USE_ADVANCED TRUE
 
 # reduce max size of embedded params for apj_tool.py
@@ -222,3 +246,21 @@ define AP_GPS_UBLOX_ENABLED 1
 define AP_GPS_NMEA_ENABLED 1
 
 define AP_TRAMP_ENABLED 1
+=======
+#VTX power control
+PC13 PINIO1 OUTPUT GPIO(81) LOW
+
+# minimal drivers to reduce flash usage
+include ../include/minimize_fpv_osd.inc
+
+undef AP_CAMERA_MOUNT_ENABLED
+undef HAL_MOUNT_ENABLED
+undef HAL_MOUNT_SERVO_ENABLED
+
+define AP_CAMERA_MOUNT_ENABLED 1
+define HAL_MOUNT_ENABLED 1
+define AP_MOUNT_BACKEND_DEFAULT_ENABLED 0
+define HAL_MOUNT_SERVO_ENABLED 1
+
+define DEFAULT_NTF_LED_TYPES 257
+>>>>>>> Copter-4.6.0

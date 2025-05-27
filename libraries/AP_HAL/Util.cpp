@@ -9,6 +9,8 @@
 #else
 #include <time.h>
 #endif
+#include <AP_InternalError/AP_InternalError.h>
+#include <AP_Math/AP_Math.h>
 
 /* Helper class implements AP_HAL::Print so we can use utility/vprintf */
 class BufferPrinter : public AP_HAL::BetterStream {
@@ -36,7 +38,7 @@ public:
     const size_t _size;
 
     uint32_t available() override { return 0; }
-    int16_t read() override { return -1; }
+    bool read(uint8_t &b) override { return false; }
     uint32_t txspace() override { return 0; }
     bool discard_input() override { return false; }
 };

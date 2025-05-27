@@ -17,10 +17,10 @@ public:
                           AP_BattMonitor_Params &params);
 
     bool has_cell_voltages() const override { return false; }
-    bool has_temperature() const override { return false; }
+    bool has_temperature() const override { return has_temp; }
     bool has_current() const override { return true; }
-    bool reset_remaining(float percentage) override { return false; }
     bool get_cycle_count(uint16_t &cycles) const override { return false; }
+    bool get_temperature(float &temperature) const override;
 
     void init(void) override;
     void read() override;
@@ -35,6 +35,10 @@ private:
         INA226,
         INA228,
         INA238,
+<<<<<<< HEAD
+=======
+        INA231,
+>>>>>>> Copter-4.6.0
     };
 
     static const uint8_t i2c_probe_addresses[];
@@ -53,7 +57,11 @@ private:
     AP_Int8 i2c_bus;
     AP_Int8 i2c_address;
     AP_Float max_amps;
+<<<<<<< HEAD
     bool callback_registered;
+=======
+    AP_Float rShunt;
+>>>>>>> Copter-4.6.0
     uint32_t failed_reads;
 
     struct {
@@ -64,6 +72,10 @@ private:
     } accumulate;
     float current_LSB;
     float voltage_LSB;
+
+    float temperature;
+
+    bool has_temp;
 };
 
 #endif // AP_BATTERY_INA2XX_ENABLED
