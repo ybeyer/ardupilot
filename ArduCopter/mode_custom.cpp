@@ -87,7 +87,7 @@ void ModeCustom::run()
     // accel_ef_blended is acceleration at IMU position
     // https://ardupilot.org/copter/docs/common-sensor-offset-compensation.html
     Vector3f accel_ef_at_imu = ahrs_.get_accel_ef();
-    Vector3f imu_pos_offset = AP::ins().get_imu_pos_offset(AP::ins().get_primary_accel());
+    Vector3f imu_pos_offset = AP::ins().get_imu_pos_offset(AP::ins().get_first_usable_accel());
     Vector3f accel_ef_at_cog = imu_accel_to_cog_accel(  accel_ef_at_imu, imu_pos_offset, Omega_Kb_raw,
                                                         ahrs_.get_rotation_body_to_ned() );
     float roll_angle = attitude_vehicle_quat.get_euler_roll();

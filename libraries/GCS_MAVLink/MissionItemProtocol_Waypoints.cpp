@@ -61,8 +61,8 @@ MAV_MISSION_RESULT MissionItemProtocol_Waypoints::complete(const GCS_MAVLINK &_l
 #if HAL_LOGGING_ENABLED
     AP::logger().Write_EntireMission();
 #endif
-    return MAV_MISSION_ACCEPTED;
     mission.mission_complete(); //sending the mission complete message to mode_custom
+    return MAV_MISSION_ACCEPTED;
 }
 
 MAV_MISSION_RESULT MissionItemProtocol_Waypoints::get_item(const GCS_MAVLINK &_link,

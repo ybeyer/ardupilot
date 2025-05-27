@@ -715,7 +715,7 @@ class sitl(Board):
                 cfg.define('HAL_CAN_WITH_SOCKETCAN', 0)
 
         env.CXXFLAGS += [
-            #'-Werror=float-equal'
+            #'-Werror=float-equal',
             '-Werror=missing-declarations',
         ]
 
