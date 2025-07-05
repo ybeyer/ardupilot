@@ -25,7 +25,7 @@ bool ModeCustom::init(bool ignore_checks)
     const AP_AHRS_View &ahrs_ = attitude_control->get_ahrs();
     Quaternion attitude_vehicle_quat;
     ahrs_.get_quat_body_to_ned(attitude_vehicle_quat);
-    yawInit = attitude_vehicle_quat.get_euler_yaw();
+    yawInit = atan2f(copter.simple_sin_yaw,copter.simple_cos_yaw);
     updated_waypoints = true;
     // initialize position to measured value
     Vector3f position_NED;
