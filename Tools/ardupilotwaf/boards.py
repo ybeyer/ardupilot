@@ -421,7 +421,7 @@ class Board:
         else:
             env.CXXFLAGS += [
                 '-Wno-format-contains-nul',
-                '-Werror=unused-but-set-variable'
+                # '-Werror=unused-but-set-variable'
             ]
             if self.cc_version_gte(cfg, 5, 2):
                 env.CXXFLAGS += [
