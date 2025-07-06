@@ -5,14 +5,14 @@
 //
 // File: MatlabController_data.cpp
 //
-// Code generated for Simulink model 'ArduCopter_TemplateController'.
+// Code generated for Simulink model 'ArduCopter_Fast_Descent'.
 //
-// Model version                  : 1.390
+// Model version                  : 1.476
 // Simulink Coder version         : 9.0 (R2018b) 24-May-2018
-// C/C++ source code generated on : Tue Oct 18 18:48:13 2022
+// C/C++ source code generated on : Sun Jul  6 13:12:46 2025
 //
 // Target selection: ert.tlc
-// Embedded hardware selection: Intel->x86-64 (Linux 64)
+// Embedded hardware selection: ARM Compatible->ARM 7
 // Code generation objectives:
 //    1. Execution efficiency
 //    2. RAM efficiency
@@ -22,10 +22,20 @@
 
 // Constant parameters (default storage)
 const ConstP rtConstP = {
-  // Computed Parameter: Constant_Value
-  //  Referenced by: '<S2>/Constant'
+  // Expression: G10
+  //  Referenced by: '<S75>/MATLAB Function'
 
-  { 0.11F, 0.12F, 0.13F, 0.14F, 0.15F, 0.16F, 0.17F, 0.18F }
+  { 0.000231342128F, 0.000238571563F, -1.64946705E-5F, -1.51305894E-5F,
+    -0.000231342128F, 0.000238571563F, 1.64946705E-5F, -1.51305894E-5F,
+    -0.000231342128F, -0.000238571563F, -1.64946705E-5F, -1.51305894E-5F,
+    0.000231342128F, -0.000238571563F, 1.64946705E-5F, -1.51305894E-5F },
+
+  // Expression: G20
+  //  Referenced by: '<S75>/MATLAB Function'
+
+  { -6.76235966E-17F, -0.0F, -0.657841921F, 0.0F, 6.76235966E-17F, 0.0F,
+    0.657841921F, 0.0F, -6.76235966E-17F, -0.0F, -0.657841921F, 0.0F,
+    6.76235966E-17F, 0.0F, 0.657841921F, 0.0F }
 };
 
 //
