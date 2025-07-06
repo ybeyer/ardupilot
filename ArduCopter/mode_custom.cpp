@@ -2,6 +2,18 @@
 #include <AP_Motors/AP_MotorsMatrix.h>
 #include <GCS_MAVLink/GCS.h>
 
+// Check if MatlabControllerClass contains parameters
+//  - if MatlabControllerClass was postprocessed for tunable parameters:
+//      - 'MatlabController.h' defines MODE_CUSTOM_VAR_INFO
+//      - 'ModeCustomParams.cpp' defines 'const AP_Param::GroupInfo ModeCustom::var_info'
+#ifndef MODE_CUSTOM_VAR_INFO
+#define MODE_CUSTOM_VAR_INFO
+const AP_Param::GroupInfo ModeCustom::var_info[] = {
+	AP_GROUPEND
+};
+#endif
+
+
 #ifdef CUSTOM_MATLAB_OUTPUT
 // constructor
 ModeCustom::ModeCustom(void) : Mode(), socket_debug(true)

@@ -378,6 +378,9 @@ public:
 
         // 254,255: reserved
 
+        // MatlabControllerClass
+        k_param_mode_custom = 256,
+
         k_param_vehicle = 257, // vehicle common block of parameters
         k_param_throw_altitude_min,
         k_param_throw_altitude_max,

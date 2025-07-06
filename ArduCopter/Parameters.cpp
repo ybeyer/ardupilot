@@ -727,6 +727,12 @@ const AP_Param::Info Copter::var_info[] = {
     // @Path: ../libraries/AP_Vehicle/AP_Vehicle.cpp
     PARAM_VEHICLE_INFO,
 
+    // ModeCustom and MatlabControllerClass
+    // @Group: ML
+    // @Path: ../ArduCopter/ModeCustom.cpp
+    // @Path: ../libraries/AC_AttitudeControl/MatlabController.cpp
+    GOBJECT(mode_custom, "ML_", ModeCustom),
+
     AP_VAREND
 };
 
