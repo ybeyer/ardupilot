@@ -3,12 +3,15 @@
 #include <GCS_MAVLink/GCS.h>
 
 // Check if MatlabControllerClass contains parameters
-//  - if MatlabControllerClass was postprocessed for tunable parameters:
-//      - 'MatlabController.h' defines MODE_CUSTOM_VAR_INFO
-//      - 'ModeCustomParams.cpp' defines 'const AP_Param::GroupInfo ModeCustom::var_info'
+// If MatlabControllerClass was postprocessed for tunable parameters, use AP_SUBGROUPINFO
 #ifndef MODE_CUSTOM_VAR_INFO
 #define MODE_CUSTOM_VAR_INFO
 const AP_Param::GroupInfo ModeCustom::var_info[] = {
+	AP_GROUPEND
+};
+#else
+const AP_Param::GroupInfo ModeCustom::var_info[] = {
+  AP_SUBGROUPINFO(custom_controller, "", 0, ModeCustom, MatlabControllerClass),
 	AP_GROUPEND
 };
 #endif
