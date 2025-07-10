@@ -11,7 +11,7 @@
 #include "afs_copter.h"
 #endif
 
-#include <AC_AttitudeControl/MatlabController.h>    // new
+#include <AC_MatlabController/MatlabController.h>
 
 #ifdef CUSTOM_MATLAB_OUTPUT
     #include <AP_HAL/utility/Socket.h>
