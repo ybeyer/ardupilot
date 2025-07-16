@@ -82,9 +82,9 @@ void ModeCustom::update()
     It seems that there is no non-filtered scaled angular velocity available as member variable.
     That is why the scaling is applied here.) */
     Vector3f Omega_Kb_raw = AP::ins().get_raw_gyro() / (INT16_MAX/radians(2000));
-    Vector3f Omega_Kb_f = AP::ins().get_gyro();                 // filtered gyro (Static Notches -> Dynamic Notches -> Lowpass (INS_GYRO_FILTER)), Kb
-    Vector3f OmegaML_Kb_f = AP::ins().get_ml_gyro();            // filtered gyro (ML-Lowpass (INS_ML_GYRO_FILTER)), Kb
-    Vector3f OmegaML_Kb_f_dt = AP::ins().get_ml_gyro_dt();      // derivative (two-point backward finite difference) of filtered gyro, Kb
+    // Vector3f Omega_Kb_f = AP::ins().get_gyro();                 // filtered gyro (Static Notches -> Dynamic Notches -> Lowpass (INS_GYRO_FILTER)), Kb
+    Vector3f Omega_Kb = AP::ins().get_ml_gyro();            // filtered gyro (ML-Lowpass (INS_ML_GYRO_FILTER)), Kb
+    // Vector3f OmegaML_Kb_f_dt = AP::ins().get_ml_gyro_dt();      // derivative (two-point backward finite difference) of filtered gyro, Kb
 
     Quaternion attitude_vehicle_quat;
     if(!plane.ahrs.get_quaternion(attitude_vehicle_quat))
@@ -94,8 +94,6 @@ void ModeCustom::update()
         attitude_vehicle_quat[2] = 0;
         attitude_vehicle_quat[3] = 0;
     }
-
-    Vector3f acc_NED = plane.ahrs.get_accel_ef_blended();
 
     Vector3f velocity_NED;
     if(!plane.ahrs.get_velocity_NED(velocity_NED))
@@ -112,7 +110,10 @@ void ModeCustom::update()
     }    
 
     // get acceleration in body-fixed-frame
-    Vector3f acc_FRD = AP::ins().get_raw_accel() - AP::ins().get_accel_offsets();
+    Vector3f acc_FRD_raw = AP::ins().get_raw_accel() - AP::ins().get_accel_offsets();
+    Vector3f acc_FRD = AP::ins().get_ml_accel();            // filtered accel (ML-Lowpass (INS_ML_ACC_FLTER)), Kb
+    Vector3f acc_NED = acc_FRD;
+    attitude_vehicle_quat.rotate(acc_NED);
 
     Vector3f position_NED;
     //if(!plane.ahrs.get_relative_position_NED_home(position_NED))
@@ -136,18 +137,9 @@ void ModeCustom::update()
         rtU_->cmd.RC_pwm[i] = plane.g2.rc_channels.channel(i)->get_radio_in();
     }
 
-    rtU_->measure.omega_Kb[0] = OmegaML_Kb_f_dt[0];
-    rtU_->measure.omega_Kb[1] = OmegaML_Kb_f_dt[1];
-    rtU_->measure.omega_Kb[2] = OmegaML_Kb_f_dt[2];
-    rtU_->measure.omega_Kb[0] = Omega_Kb_raw[0];
-    rtU_->measure.omega_Kb[1] = Omega_Kb_raw[1];
-    rtU_->measure.omega_Kb[2] = Omega_Kb_raw[2];
-    rtU_->measure.omega_Kb[0] = Omega_Kb_f[0];
-    rtU_->measure.omega_Kb[1] = Omega_Kb_f[1];
-    rtU_->measure.omega_Kb[2] = Omega_Kb_f[2];
-    rtU_->measure.omega_Kb[0] = OmegaML_Kb_f[0];
-    rtU_->measure.omega_Kb[1] = OmegaML_Kb_f[1];
-    rtU_->measure.omega_Kb[2] = OmegaML_Kb_f[2];
+    rtU_->measure.omega_Kb[0] = Omega_Kb[0];
+    rtU_->measure.omega_Kb[1] = Omega_Kb[1];
+    rtU_->measure.omega_Kb[2] = Omega_Kb[2];
     rtU_->measure.q_bg[0] = attitude_vehicle_quat[0];
     rtU_->measure.q_bg[1] = attitude_vehicle_quat[1];
     rtU_->measure.q_bg[2] = attitude_vehicle_quat[2];
@@ -283,20 +275,6 @@ void ModeCustom::update()
         }
     }
     
-    
-    // plot rangefinder distance in cm for debugging
-
-    static uint16_t counter;
-    static uint32_t last_t, last_print;
-    uint32_t now = AP_HAL::micros();
-
-    if (last_t == 0) {
-        last_t = now;
-        return;
-    }
-    last_t = now;
-
-    counter++;
 
     time_total = AP_HAL::micros() - time_total;
     static uint32_t modecustom_max_us = 0;
@@ -308,24 +286,12 @@ void ModeCustom::update()
         "Qffff",
         AP_HAL::micros64(),
         (double)time_total, (double)time_step, (double)time_log, (double)modecustom_max_us );
-    
-    #ifdef Custom_Debug
-        if ((now - last_print >= 5e6) || (rtU_->cmd.mission_change == 1)  /* 5e6 us -> 5.0 hz */ ) {
-            
-            #ifdef Mode_Custom_Use_External_Controller
-                GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Bytes avail: %d, Bytes read: %d, Missed Frames: %d \n", bytes_avail, bytes_read, missed_frames);
-                missed_frames = 0;
 
-                GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Time in us: %d, max: %d Logs: %f %f %f %f %f %f %f %f %f  \n", (int)time_total, (int)modecustom_max_us,
-                rtY_->logs[0], rtY_->logs[1], rtY_->logs[2], rtY_->logs[3], rtY_->logs[4], rtY_->logs[5], rtY_->logs[6], rtY_->logs[7], rtY_->logs[8]);
-            #else
-                GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "Time in us: %d, max: %d  \n", (int)time_total, (int)modecustom_max_us);
-            #endif
-
-            last_print = now;
-            counter = 0;
-        }
-    #endif
+    AP::logger().Write(
+        "MLFILT", "TimeUS,GyrY,AccZ,GyrYraw,AccZraw",
+        "Qffff",
+        AP_HAL::micros64(),
+        (double)Omega_Kb[1], (double)acc_FRD[2], (double)Omega_Kb_raw[1], (double)acc_FRD_raw[2] );
 
 }
 

@@ -467,12 +467,13 @@ void AP_InertialSensor_Backend::log_gyro_raw(uint8_t instance, const uint64_t sa
 /*
   rotate accel vector, scale and add the accel offset
  */
-void AP_InertialSensor_Backend::_publish_accel(uint8_t instance, const Vector3f &accel) /* front end */
+void AP_InertialSensor_Backend::_publish_accel(uint8_t instance, const Vector3f &accel, const Vector3f &ml_accel) /* front end */
 {
     if ((1U<<instance) & _imu.imu_kill_mask) {
         return;
     }
     _imu._accel[instance] = accel;
+    _imu._ml_accel[instance] = ml_accel;
     _imu._accel_healthy[instance] = true;
 
     // publish delta velocity
@@ -557,6 +558,10 @@ void AP_InertialSensor_Backend::_notify_new_accel_raw_sample(uint8_t instance,
         _imu._accel_filtered[instance] = _imu._accel_filter[instance].apply(accel);
         if (_imu._accel_filtered[instance].is_nan() || _imu._accel_filtered[instance].is_inf()) {
             _imu._accel_filter[instance].reset();
+        }
+        _imu._ml_accel_filtered[instance] = _imu._ml_accel_filter[instance].apply(accel);
+        if (_imu._ml_accel_filtered[instance].is_nan() || _imu._ml_accel_filtered[instance].is_inf()) {
+            _imu._ml_accel_filter[instance].reset();
         }
 
         _imu.set_accel_peak_hold(instance, _imu._accel_filtered[instance]);
@@ -774,7 +779,7 @@ void AP_InertialSensor_Backend::update_accel(uint8_t instance) /* front end */
         return;
     }
     if (_imu._new_accel_data[instance]) {
-        _publish_accel(instance, _imu._accel_filtered[instance]);
+        _publish_accel(instance, _imu._accel_filtered[instance], _imu._ml_accel_filtered[instance]);
         _imu._new_accel_data[instance] = false;
     }
     
@@ -782,6 +787,10 @@ void AP_InertialSensor_Backend::update_accel(uint8_t instance) /* front end */
     if (_last_accel_filter_hz != _accel_filter_cutoff()) {
         _imu._accel_filter[instance].set_cutoff_frequency(_accel_raw_sample_rate(instance), _accel_filter_cutoff());
         _last_accel_filter_hz = _accel_filter_cutoff();
+    }
+    if (_ml_last_accel_filter_hz != _ml_accel_filter_cutoff()) {
+        _imu._ml_accel_filter[instance].set_cutoff_frequency(_accel_raw_sample_rate(instance), _ml_accel_filter_cutoff());
+        _ml_last_accel_filter_hz = _ml_accel_filter_cutoff();
     }
 }
 

@@ -167,6 +167,9 @@ public:
     const Vector3f     &get_accel(void) const { return get_accel(_primary_accel); }
     const Vector3f     &get_raw_accel(void) const { return _last_raw_accel[_primary_accel]; }
 
+    const Vector3f     &get_ml_accel(uint8_t i) const { return _ml_accel[i]; }
+    const Vector3f     &get_ml_accel(void) const { return get_ml_accel(_primary_accel); }
+
     // multi-device interface
     bool get_gyro_health(uint8_t instance) const { return (instance<_gyro_count) ? _gyro_healthy[instance] : false; }
     bool get_gyro_health(void) const { return get_gyro_health(_primary_gyro); }
@@ -516,6 +519,7 @@ private:
     // Most recent accelerometer reading
     Vector3f _last_raw_accel[INS_MAX_INSTANCES];
     Vector3f _accel[INS_MAX_INSTANCES];
+    Vector3f _ml_accel[INS_MAX_INSTANCES];
     Vector3f _delta_velocity[INS_MAX_INSTANCES];
     float _delta_velocity_dt[INS_MAX_INSTANCES];
     bool _delta_velocity_valid[INS_MAX_INSTANCES];
@@ -526,9 +530,11 @@ private:
 
     // Low Pass filters for gyro and accel
     LowPassFilter2pVector3f _accel_filter[INS_MAX_INSTANCES];
+    LowPassFilterMpVector3f _ml_accel_filter[INS_MAX_INSTANCES];
     LowPassFilter2pVector3f _gyro_filter[INS_MAX_INSTANCES];
     LowPassFilterMpVector3f _ml_gyro_filter[INS_MAX_INSTANCES];
     Vector3f _accel_filtered[INS_MAX_INSTANCES];
+    Vector3f _ml_accel_filtered[INS_MAX_INSTANCES];
     Vector3f _gyro_filtered[INS_MAX_INSTANCES];
     Vector3f _ml_gyro_filtered[INS_MAX_INSTANCES];
 #if HAL_WITH_DSP
@@ -601,10 +607,14 @@ private:
 
     // filtering frequency (0 means default)
     AP_Int16    _accel_filter_cutoff;
+    AP_Int16    _ml_accel_filter_cutoff;
     AP_Int16    _gyro_filter_cutoff;
     AP_Int16    _ml_gyro_filter_cutoff;
     AP_Int8     _gyro_cal_timing;
 
+    AP_Int8     _ml_accel_filter_order;
+    AP_Int8     _ml_accel_filter_type;
+    
     AP_Int8     _ml_gyro_filter_order;
     AP_Int8     _ml_gyro_filter_type;
 

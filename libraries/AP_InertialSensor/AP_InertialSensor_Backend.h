@@ -155,7 +155,7 @@ protected:
     void _notify_new_delta_angle(uint8_t instance, const Vector3f &dangle);
     
     // rotate accel vector, scale, offset and publish
-    void _publish_accel(uint8_t instance, const Vector3f &accel) __RAMFUNC__; /* front end */
+    void _publish_accel(uint8_t instance, const Vector3f &accel, const Vector3f &ml_accel) __RAMFUNC__; /* front end */
 
     // this should be called every time a new accel raw sample is available -
     // be it published or not
@@ -245,6 +245,7 @@ protected:
 
     // return the default filter frequency in Hz for the sample rate
     uint16_t _accel_filter_cutoff(void) const { return _imu._accel_filter_cutoff; }
+    uint16_t _ml_accel_filter_cutoff(void) const { return _imu._ml_accel_filter_cutoff; }
 
     // return the default filter frequency in Hz for the sample rate
     uint16_t _gyro_filter_cutoff(void) const { return _imu._gyro_filter_cutoff; }
@@ -264,6 +265,7 @@ protected:
 
     // support for updating filter at runtime
     uint16_t _last_accel_filter_hz;
+    uint16_t _ml_last_accel_filter_hz;
     uint16_t _last_gyro_filter_hz;
     uint16_t _ml_last_gyro_filter_hz;
     bool _last_ml_gyro_notch_filter_enabled;

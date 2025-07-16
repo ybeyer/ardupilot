@@ -380,6 +380,30 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("ACCEL_FILTER", 19, AP_InertialSensor, _accel_filter_cutoff,  DEFAULT_ACCEL_FILTER),
 
+    // @Param: ML_ACC_FLTER
+    // @DisplayName: Accel filter cutoff frequency for the MATLAB mode
+    // @Description: Filter cutoff frequency for accelerometers. This can be set to a lower value to try to cope with very high vibration levels in aircraft. A value of zero means no filtering (not recommended!)
+    // @Units: Hz
+    // @Range: 0 256
+    // @User: Advanced
+    AP_GROUPINFO("ML_ACC_FLTER", 59, AP_InertialSensor, _ml_accel_filter_cutoff,  DEFAULT_ACCEL_FILTER),
+
+    // @Param: ML_ACC_ORDER
+    // @DisplayName: Order of the accel filter for the MATLAB mode
+    // @Description: A higher filter order increases the attenuation slope behind the cutoff frequency. This can be usefull to better remove vibrations slightly above the cutoff frequency without reducing the cutoff frequency itself. A higher filter order increases the computational load
+    // @Values: 1:1st order,2:2nd order (default),3:3rd order,4:4th order,5:5th order,6:6th order
+    // @User: Advanced
+    // @RebootRequired: True
+    AP_GROUPINFO("ML_ACC_ORDER", 60, AP_InertialSensor, _ml_accel_filter_order, 2),
+
+    // @Param: ML_ACC_FTYPE
+    // @DisplayName: Accel low-pass filter type for the MATLAB mode
+    // @Description: 
+    // @Values: 1:Butterworth (default),2:PTn,3:Bessel
+    // @User: Advanced
+    // @RebootRequired: True
+    AP_GROUPINFO("ML_ACC_FTYPE", 61, AP_InertialSensor, _ml_accel_filter_type, 1),
+
     // @Param: USE
     // @DisplayName: Use first IMU for attitude, velocity and position estimates
     // @Description: Use first IMU for attitude, velocity and position estimates
