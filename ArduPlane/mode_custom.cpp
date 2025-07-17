@@ -136,18 +136,18 @@ void ModeCustom::update()
         rtU_->cmd.RC_pwm[i] = plane.g2.rc_channels.channel(i)->get_radio_in();
     }
 
-    rtU_->measure.omega_Kb_raw[0] = Omega_Kb_raw[0];
-    rtU_->measure.omega_Kb_raw[1] = Omega_Kb_raw[1];
-    rtU_->measure.omega_Kb_raw[2] = Omega_Kb_raw[2];
-    rtU_->measure.omega_Kb_f[0] = Omega_Kb_f[0];
-    rtU_->measure.omega_Kb_f[1] = Omega_Kb_f[1];
-    rtU_->measure.omega_Kb_f[2] = Omega_Kb_f[2];
-    rtU_->measure.omega_ml_Kb_f[0] = OmegaML_Kb_f[0];
-    rtU_->measure.omega_ml_Kb_f[1] = OmegaML_Kb_f[1];
-    rtU_->measure.omega_ml_Kb_f[2] = OmegaML_Kb_f[2];
-    rtU_->measure.omega_ml_Kb_f_dt[0] = OmegaML_Kb_f_dt[0];
-    rtU_->measure.omega_ml_Kb_f_dt[1] = OmegaML_Kb_f_dt[1];
-    rtU_->measure.omega_ml_Kb_f_dt[2] = OmegaML_Kb_f_dt[2];
+    rtU_->measure.omega_Kb[0] = OmegaML_Kb_f_dt[0];
+    rtU_->measure.omega_Kb[1] = OmegaML_Kb_f_dt[1];
+    rtU_->measure.omega_Kb[2] = OmegaML_Kb_f_dt[2];
+    rtU_->measure.omega_Kb[0] = Omega_Kb_raw[0];
+    rtU_->measure.omega_Kb[1] = Omega_Kb_raw[1];
+    rtU_->measure.omega_Kb[2] = Omega_Kb_raw[2];
+    rtU_->measure.omega_Kb[0] = Omega_Kb_f[0];
+    rtU_->measure.omega_Kb[1] = Omega_Kb_f[1];
+    rtU_->measure.omega_Kb[2] = Omega_Kb_f[2];
+    rtU_->measure.omega_Kb[0] = OmegaML_Kb_f[0];
+    rtU_->measure.omega_Kb[1] = OmegaML_Kb_f[1];
+    rtU_->measure.omega_Kb[2] = OmegaML_Kb_f[2];
     rtU_->measure.q_bg[0] = attitude_vehicle_quat[0];
     rtU_->measure.q_bg[1] = attitude_vehicle_quat[1];
     rtU_->measure.q_bg[2] = attitude_vehicle_quat[2];
