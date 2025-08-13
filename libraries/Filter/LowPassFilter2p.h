@@ -108,7 +108,7 @@ typedef LowPassFilter2p<Vector3f> LowPassFilter2pVector3f;
 // - Make sure, that filters are applied in order that minimates the clipping risk (filters with gain > 1 last)
 // - One could precalculate analog prototype poles in the init function
 
-#include <complex>
+#include "complexf.h"
 //#include <AP_Math/AP_Math.h> -> for M_PI (already included)
 //#include <cmath> -> for trigonometric functions (already included)
 
@@ -169,9 +169,9 @@ private:
     void compute_params(void);
 
     // functions for analog filter prototypes
-    void compute_butterworth_analog(std::complex<float> (&poles)[LPF_MP_MAX_FILTERS]);
-    void compute_ptn_analog(std::complex<float> (&poles)[LPF_MP_MAX_FILTERS]);
-    void compute_bessel_analog(std::complex<float> (&poles)[LPF_MP_MAX_FILTERS]);
+    void compute_butterworth_analog(ComplexF (&poles)[LPF_MP_MAX_FILTERS]);
+    void compute_ptn_analog(ComplexF (&poles)[LPF_MP_MAX_FILTERS]);
+    void compute_bessel_analog(ComplexF (&poles)[LPF_MP_MAX_FILTERS]);
 };
 
 typedef LowPassFilterMp<float>    LowPassFilterMpFloat;

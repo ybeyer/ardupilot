@@ -259,7 +259,7 @@ void LowPassFilter2p<T>::reset(const T &value) {
 template <class T>
 void LowPassFilterMp<T>::compute_params(void) {
     
-    std::complex<float> poles[LPF_MP_MAX_FILTERS] {};
+    ComplexF poles[LPF_MP_MAX_FILTERS] {};
     
     // ToDo: Calculation of analog prototype could be done in the init function if filter type is a reboot parameter! -> Reduce computational load
     switch (_filter_type) {
@@ -295,7 +295,7 @@ void LowPassFilterMp<T>::compute_params(void) {
         float a1, a2, k;
 
         a1 = -2.0F*poles[idx].real();
-        a2 = std::pow(poles[idx].real(), 2) + std::pow(poles[idx].imag(), 2);
+        a2 = poles[idx].real() * poles[idx].real() + poles[idx].imag() * poles[idx].imag();
 
         k = (1.0F + a1 + a2) / 4.0F;
 
@@ -329,29 +329,29 @@ void LowPassFilterMp<T>::compute_params(void) {
 
 
 template <class T>
-void LowPassFilterMp<T>::compute_butterworth_analog(std::complex<float> (&poles)[LPF_MP_MAX_FILTERS]) {
+void LowPassFilterMp<T>::compute_butterworth_analog(ComplexF (&poles)[LPF_MP_MAX_FILTERS]) {
     
     // Calculate the reduced poles set of the analog filter prototype with cutoff at 1 rad/s
     for (uint8_t k = 0; k < _num_filters; ++k) {
         float theta = static_cast<float>(2 * k + 1) * M_PI / (2 * _filter_order);
         float real = -std::sin(theta);
         float imag =  std::cos(theta);
-        poles[k] = std::complex<float>(real, imag);
+        poles[k] = ComplexF(real, imag);
     }
 }
 
 
 template <class T>
-void LowPassFilterMp<T>::compute_ptn_analog(std::complex<float> (&poles)[LPF_MP_MAX_FILTERS]) {
+void LowPassFilterMp<T>::compute_ptn_analog(ComplexF (&poles)[LPF_MP_MAX_FILTERS]) {
 
     // Calculate the reduced poles set of the analog filter prototype with cutoff at 1 rad/s
 
     // calculate the time constant
     static constexpr float gain = 1.0/std::sqrt(2);          // -3.01 dB
     float gain_per_pt1 = std::pow(gain, 1.0F/_filter_order); // gain per PT1 stage (gain must be splitted between _filter_order stages)
-    float time_constant = std::sqrt(1.0F/std::pow(gain_per_pt1, 2) - 1.0F);
+    float time_constant = std::sqrt(1.0F/(gain_per_pt1*gain_per_pt1) - 1.0F);
 
-    auto pole = std::complex<float>(-1.0F/time_constant, 0.0F);
+    auto pole = ComplexF(-1.0F/time_constant, 0.0F);
 
     for (uint8_t idx = 0; idx < _num_filters; ++idx) {
         poles[idx] = pole;
@@ -360,7 +360,7 @@ void LowPassFilterMp<T>::compute_ptn_analog(std::complex<float> (&poles)[LPF_MP_
 
 
 template <class T>
-void LowPassFilterMp<T>::compute_bessel_analog(std::complex<float> (&poles)[LPF_MP_MAX_FILTERS]) {
+void LowPassFilterMp<T>::compute_bessel_analog(ComplexF (&poles)[LPF_MP_MAX_FILTERS]) {
 
     // Calculate the reduced poles set of the analog filter prototype with cutoff at 1 rad/s
 
@@ -368,28 +368,28 @@ void LowPassFilterMp<T>::compute_bessel_analog(std::complex<float> (&poles)[LPF_
     //  Calculate with MATLAB or Python, or use precalculated values, e.g. http://www.crbond.com/papers/bsf2.pdf
     switch (_filter_order) {
         case 1:
-            poles[0] = std::complex<float>(-1.0F, 0.0F);
+            poles[0] = ComplexF(-1.0F, 0.0F);
             break;
         case 2:
-            poles[0] = std::complex<float>(-1.1016013306F, 0.6360098248F);
+            poles[0] = ComplexF(-1.1016013306F, 0.6360098248F);
             break;
         case 3:
-            poles[0] = std::complex<float>(-1.0474091610F, 0.9992644363F);
-            poles[1] = std::complex<float>(-1.3226757999F, 0.0F);
+            poles[0] = ComplexF(-1.0474091610F, 0.9992644363F);
+            poles[1] = ComplexF(-1.3226757999F, 0.0F);
             break;
         case 4:
-            poles[0] = std::complex<float>(-0.9952087644F, 1.2571057395F);
-            poles[1] = std::complex<float>(-1.3700678306F, 0.4102497175F);
+            poles[0] = ComplexF(-0.9952087644F, 1.2571057395F);
+            poles[1] = ComplexF(-1.3700678306F, 0.4102497175F);
             break;
         case 5:
-            poles[0] = std::complex<float>(-0.9576765486F, 1.4711243207);
-            poles[1] = std::complex<float>(-1.3808773259F, 0.7179095876F);
-            poles[2] = std::complex<float>(-1.5023162714F, 0.0F);
+            poles[0] = ComplexF(-0.9576765486F, 1.4711243207);
+            poles[1] = ComplexF(-1.3808773259F, 0.7179095876F);
+            poles[2] = ComplexF(-1.5023162714F, 0.0F);
             break;
         case 6:
-            poles[0] = std::complex<float>(-0.9306565229F, 1.6618632689F);
-            poles[1] = std::complex<float>(-1.3818580976F, 0.9714718907F);
-            poles[2] = std::complex<float>(-1.5714904036F, 0.3208963742F);
+            poles[0] = ComplexF(-0.9306565229F, 1.6618632689F);
+            poles[1] = ComplexF(-1.3818580976F, 0.9714718907F);
+            poles[2] = ComplexF(-1.5714904036F, 0.3208963742F);
             break;
     }
 
