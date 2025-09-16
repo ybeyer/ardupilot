@@ -530,9 +530,9 @@ private:
 
     // Low Pass filters for gyro and accel
     LowPassFilter2pVector3f _accel_filter[INS_MAX_INSTANCES];
-    LowPassFilterMpVector3f _ml_accel_filter[INS_MAX_INSTANCES];
+    LowPassFilter2pVector3f _ml_accel_filter[INS_MAX_INSTANCES];
     LowPassFilter2pVector3f _gyro_filter[INS_MAX_INSTANCES];
-    LowPassFilterMpVector3f _ml_gyro_filter[INS_MAX_INSTANCES];
+    LowPassFilter2pVector3f _ml_gyro_filter[INS_MAX_INSTANCES];
     Vector3f _accel_filtered[INS_MAX_INSTANCES];
     Vector3f _ml_accel_filtered[INS_MAX_INSTANCES];
     Vector3f _gyro_filtered[INS_MAX_INSTANCES];
@@ -612,14 +612,10 @@ private:
     AP_Int16    _ml_gyro_filter_cutoff;
     AP_Int8     _gyro_cal_timing;
 
-    AP_Int8     _ml_accel_filter_order;
-    AP_Int8     _ml_accel_filter_type;
-    
-    AP_Int8     _ml_gyro_filter_order;
-    AP_Int8     _ml_gyro_filter_type;
-
     AP_Int8     _ml_gyro_notch_filter_conf;
     bool        _ml_gyro_notch_filter_enabled;
+    AP_Int8     _ml_accel_notch_filter_conf;
+    bool        _ml_accel_notch_filter_enabled;
 
     // use for attitude, velocity, position estimates
     AP_Int8     _use[INS_MAX_INSTANCES];
