@@ -209,9 +209,11 @@ void AP_InertialSensor_Backend::apply_gyro_filters(const uint8_t instance, const
 
     // apply the low pass filter last to attentuate any notch induced noise
     if (_imu._ml_gyro_notch_filter_enabled) {
+        _imu._gyro_ntch[instance] = gyro_filtered;
         ml_gyro_filtered = _imu._ml_gyro_filter[instance].apply(gyro_filtered);
     }
     else {
+        _imu._gyro_ntch[instance] = ml_gyro_filtered;
         ml_gyro_filtered = _imu._ml_gyro_filter[instance].apply(ml_gyro_filtered);
     }
     gyro_filtered = _imu._gyro_filter[instance].apply(gyro_filtered);

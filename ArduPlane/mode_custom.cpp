@@ -82,6 +82,7 @@ void ModeCustom::update()
     It seems that there is no non-filtered scaled angular velocity available as member variable.
     That is why the scaling is applied here.) */
     Vector3f Omega_Kb_raw = AP::ins().get_raw_gyro() / (INT16_MAX/radians(2000));
+    Vector3f Omega_Kb_ntch = AP::ins().get_gyro_ntch();     // gyro filtered by notch filter (only if ML_GYR_HNTCH is 1)
     // Vector3f Omega_Kb_f = AP::ins().get_gyro();                 // filtered gyro (Static Notches -> Dynamic Notches -> Lowpass (INS_GYRO_FILTER)), Kb
     Vector3f Omega_Kb = AP::ins().get_ml_gyro();            // filtered gyro (ML-Lowpass (INS_ML_GYRO_FILTER)), Kb
     // Vector3f OmegaML_Kb_f_dt = AP::ins().get_ml_gyro_dt();      // derivative (two-point backward finite difference) of filtered gyro, Kb
@@ -288,11 +289,10 @@ void ModeCustom::update()
         (double)time_total, (double)time_step, (double)time_log, (double)modecustom_max_us );
 
     AP::logger().Write(
-        "MLFILT", "TimeUS,GyrY,AccZ,GyrYraw,AccZraw",
-        "Qffff",
+        "MLFI", "TimeUS,GyrY,AccZ,GyrYntch,GyrYraw,AccZraw",
+        "Qfffff",
         AP_HAL::micros64(),
-        (double)Omega_Kb[1], (double)acc_FRD[2], (double)Omega_Kb_raw[1], (double)acc_FRD_raw[2] );
-
+        (double)Omega_Kb[1], (double)acc_FRD[2], (double)Omega_Kb_ntch[1], (double)Omega_Kb_raw[1], (double)acc_FRD_raw[2] );
 }
 
 

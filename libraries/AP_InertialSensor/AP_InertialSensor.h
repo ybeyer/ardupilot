@@ -140,6 +140,9 @@ public:
     const Vector3f     &get_ml_gyro(uint8_t i) const { return _ml_gyro[i]; }
     const Vector3f     &get_ml_gyro(void) const { return get_ml_gyro(_primary_gyro); }
 
+    const Vector3f     &get_gyro_ntch(uint8_t i) const { return _gyro_ntch[i]; }
+    const Vector3f     &get_gyro_ntch(void) const { return get_gyro_ntch(_primary_gyro); }
+
     const Vector3f     &get_ml_gyro_dt(uint8_t i) const { return _ml_gyro_dt[i]; }
     const Vector3f     &get_ml_gyro_dt(void) const { return get_ml_gyro_dt(_primary_gyro); }
 
@@ -536,6 +539,7 @@ private:
     Vector3f _accel_filtered[INS_MAX_INSTANCES];
     Vector3f _ml_accel_filtered[INS_MAX_INSTANCES];
     Vector3f _gyro_filtered[INS_MAX_INSTANCES];
+    Vector3f _gyro_ntch[INS_MAX_INSTANCES];
     Vector3f _ml_gyro_filtered[INS_MAX_INSTANCES];
 #if HAL_WITH_DSP
     // Thread-safe public version of _last_raw_gyro
