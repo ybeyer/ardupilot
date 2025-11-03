@@ -114,7 +114,7 @@ void ModeCustom::update()
     Vector3f acc_FRD_raw = AP::ins().get_raw_accel() - AP::ins().get_accel_offsets();
     Vector3f acc_FRD = AP::ins().get_ml_accel();            // filtered accel (ML-Lowpass (INS_ML_ACC_FLTER)), Kb
     Vector3f acc_NED = acc_FRD;
-    attitude_vehicle_quat.rotate(acc_NED);
+    plane.ahrs.body_to_earth(acc_NED);
 
     Vector3f position_NED;
     //if(!plane.ahrs.get_relative_position_NED_home(position_NED))
