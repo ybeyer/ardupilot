@@ -162,7 +162,7 @@ void ModeCustom::run()
     rtU_.cmd.roll = roll_out;
     rtU_.cmd.pitch = pitch_out;
     rtU_.cmd.yaw = yaw_out;
-    rtU_.cmd.thr = -throttle_control;
+    rtU_.cmd.thr = throttle_control;
     rtU_.cmd.s_Kg_init[0] = sInit[0];
     rtU_.cmd.s_Kg_init[1] = sInit[1];
     rtU_.cmd.s_Kg_init[2] = sInit[2];
