@@ -289,10 +289,16 @@ void ModeCustom::update()
         (double)time_total, (double)time_step, (double)time_log, (double)modecustom_max_us );
 
     AP::logger().Write(
-        "MLFI", "TimeUS,GyrY,AccZ,GyrYntch,GyrYraw,AccZraw",
-        "Qfffff",
+        "MLFI", "TimeUS,pr,pn,pf,qr,qn,qf,rr,rn,rf,axr,axf,ayr,ayf,azr,azf",
+        "Qfffffffffffffff",
         AP_HAL::micros64(),
-        (double)Omega_Kb[1], (double)acc_FRD[2], (double)Omega_Kb_ntch[1], (double)Omega_Kb_raw[1], (double)acc_FRD_raw[2] );
+        (double)Omega_Kb_raw[0], (double)Omega_Kb_ntch[0], (double)Omega_Kb[0],
+        (double)Omega_Kb_raw[1], (double)Omega_Kb_ntch[1], (double)Omega_Kb[1],
+        (double)Omega_Kb_raw[2], (double)Omega_Kb_ntch[2], (double)Omega_Kb[2],
+        (double)acc_FRD_raw[0], (double)acc_FRD[0],
+        (double)acc_FRD_raw[1], (double)acc_FRD[1],
+        (double)acc_FRD_raw[2], (double)acc_FRD[2]
+        );
 }
 
 
