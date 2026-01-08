@@ -85,6 +85,10 @@ void ModeCustom::update()
     It seems that there is no non-filtered scaled angular velocity available as member variable.
     That is why the scaling is applied here.) */
     Vector3f Omega_Kb_raw = AP::ins().get_raw_gyro() / (INT16_MAX/radians(2000));
+    Vector3f Omega_Kb_ntch = AP::ins().get_gyro_ntch();     // gyro filtered by notch filter (only if ML_GYR_HNTCH is 1)
+    // Vector3f Omega_Kb_f = AP::ins().get_gyro();                 // filtered gyro (Static Notches -> Dynamic Notches -> Lowpass (INS_GYRO_FILTER)), Kb
+    Vector3f Omega_Kb = AP::ins().get_ml_gyro();            // filtered gyro (ML-Lowpass (INS_ML_GYRO_FILTER)), Kb
+    // Vector3f OmegaML_Kb_f_dt = AP::ins().get_ml_gyro_dt();      // derivative (two-point backward finite difference) of filtered gyro, Kb
 
     Quaternion attitude_vehicle_quat;
     if(!plane.ahrs.get_quaternion(attitude_vehicle_quat))
@@ -94,8 +98,6 @@ void ModeCustom::update()
         attitude_vehicle_quat[2] = 0;
         attitude_vehicle_quat[3] = 0;
     }
-
-    Vector3f acc_NED = plane.ahrs.get_accel_ef_blended();
 
     Vector3f velocity_NED;
     if(!plane.ahrs.get_velocity_NED(velocity_NED))
@@ -112,7 +114,10 @@ void ModeCustom::update()
     }    
 
     // get acceleration in body-fixed-frame
-    Vector3f acc_FRD = AP::ins().get_raw_accel() - AP::ins().get_accel_offsets();
+    Vector3f acc_FRD_raw = AP::ins().get_raw_accel() - AP::ins().get_accel_offsets();
+    Vector3f acc_FRD = AP::ins().get_ml_accel();            // filtered accel (ML-Lowpass (INS_ML_ACC_FLTER)), Kb
+    Vector3f acc_NED = acc_FRD;
+    plane.ahrs.body_to_earth(acc_NED);
 
     Vector3f position_NED;
     //if(!plane.ahrs.get_relative_position_NED_home(position_NED))
@@ -136,9 +141,9 @@ void ModeCustom::update()
         rtU_->cmd.RC_pwm[i] = plane.g2.rc_channels.channel(i)->get_radio_in();
     }
 
-    rtU_->measure.omega_Kb[0] = Omega_Kb_raw[0];
-    rtU_->measure.omega_Kb[1] = Omega_Kb_raw[1];
-    rtU_->measure.omega_Kb[2] = Omega_Kb_raw[2];
+    rtU_->measure.omega_Kb[0] = Omega_Kb[0];
+    rtU_->measure.omega_Kb[1] = Omega_Kb[1];
+    rtU_->measure.omega_Kb[2] = Omega_Kb[2];
     rtU_->measure.q_bg[0] = attitude_vehicle_quat[0];
     rtU_->measure.q_bg[1] = attitude_vehicle_quat[1];
     rtU_->measure.q_bg[2] = attitude_vehicle_quat[2];
@@ -286,6 +291,17 @@ void ModeCustom::update()
         AP_HAL::micros64(),
         (double)time_total, (double)time_step, (double)time_log, (double)modecustom_max_us );
 
+    AP::logger().Write(
+        "MLFI", "TimeUS,pr,pn,pf,qr,qn,qf,rr,rn,rf,axr,axf,ayr,ayf,azr,azf",
+        "Qfffffffffffffff",
+        AP_HAL::micros64(),
+        (double)Omega_Kb_raw[0], (double)Omega_Kb_ntch[0], (double)Omega_Kb[0],
+        (double)Omega_Kb_raw[1], (double)Omega_Kb_ntch[1], (double)Omega_Kb[1],
+        (double)Omega_Kb_raw[2], (double)Omega_Kb_ntch[2], (double)Omega_Kb[2],
+        (double)acc_FRD_raw[0], (double)acc_FRD[0],
+        (double)acc_FRD_raw[1], (double)acc_FRD[1],
+        (double)acc_FRD_raw[2], (double)acc_FRD[2]
+        );
 }
 
 

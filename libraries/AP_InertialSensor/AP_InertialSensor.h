@@ -137,6 +137,15 @@ public:
     const Vector3f     &get_gyro(uint8_t i) const { return _gyro[i]; }
     const Vector3f     &get_gyro(void) const { return get_gyro(_primary_gyro); }
 
+    const Vector3f     &get_ml_gyro(uint8_t i) const { return _ml_gyro[i]; }
+    const Vector3f     &get_ml_gyro(void) const { return get_ml_gyro(_primary_gyro); }
+
+    const Vector3f     &get_gyro_ntch(uint8_t i) const { return _gyro_ntch[i]; }
+    const Vector3f     &get_gyro_ntch(void) const { return get_gyro_ntch(_primary_gyro); }
+
+    const Vector3f     &get_ml_gyro_dt(uint8_t i) const { return _ml_gyro_dt[i]; }
+    const Vector3f     &get_ml_gyro_dt(void) const { return get_ml_gyro_dt(_primary_gyro); }
+
     // set gyro offsets in radians/sec
     const Vector3f &get_gyro_offsets(uint8_t i) const { return _gyro_offset[i]; }
     const Vector3f &get_gyro_offsets(void) const { return get_gyro_offsets(_primary_gyro); }
@@ -160,6 +169,9 @@ public:
     const Vector3f     &get_accel(uint8_t i) const { return _accel[i]; }
     const Vector3f     &get_accel(void) const { return get_accel(_primary_accel); }
     const Vector3f     &get_raw_accel(void) const { return _last_raw_accel[_primary_accel]; }
+
+    const Vector3f     &get_ml_accel(uint8_t i) const { return _ml_accel[i]; }
+    const Vector3f     &get_ml_accel(void) const { return get_ml_accel(_primary_accel); }
 
     // multi-device interface
     bool get_gyro_health(uint8_t instance) const { return (instance<_gyro_count) ? _gyro_healthy[instance] : false; }
@@ -247,6 +259,7 @@ public:
 
     // get the gyro filter rate in Hz
     uint16_t get_gyro_filter_hz(void) const { return _gyro_filter_cutoff; }
+    // ToDo: ML GYRO FILTER -> Duplicate not needed here, this function only gets called in AutoTune
 
     // get the accel filter rate in Hz
     uint16_t get_accel_filter_hz(void) const { return _accel_filter_cutoff; }
@@ -509,6 +522,7 @@ private:
     // Most recent accelerometer reading
     Vector3f _last_raw_accel[INS_MAX_INSTANCES];
     Vector3f _accel[INS_MAX_INSTANCES];
+    Vector3f _ml_accel[INS_MAX_INSTANCES];
     Vector3f _delta_velocity[INS_MAX_INSTANCES];
     float _delta_velocity_dt[INS_MAX_INSTANCES];
     bool _delta_velocity_valid[INS_MAX_INSTANCES];
@@ -519,9 +533,14 @@ private:
 
     // Low Pass filters for gyro and accel
     LowPassFilter2pVector3f _accel_filter[INS_MAX_INSTANCES];
+    LowPassFilter2pVector3f _ml_accel_filter[INS_MAX_INSTANCES];
     LowPassFilter2pVector3f _gyro_filter[INS_MAX_INSTANCES];
+    LowPassFilter2pVector3f _ml_gyro_filter[INS_MAX_INSTANCES];
     Vector3f _accel_filtered[INS_MAX_INSTANCES];
+    Vector3f _ml_accel_filtered[INS_MAX_INSTANCES];
     Vector3f _gyro_filtered[INS_MAX_INSTANCES];
+    Vector3f _gyro_ntch[INS_MAX_INSTANCES];
+    Vector3f _ml_gyro_filtered[INS_MAX_INSTANCES];
 #if HAL_WITH_DSP
     // Thread-safe public version of _last_raw_gyro
     Vector3f _gyro_raw[INS_MAX_INSTANCES];
@@ -533,6 +552,8 @@ private:
 
     // Most recent gyro reading
     Vector3f _gyro[INS_MAX_INSTANCES];
+    Vector3f _ml_gyro[INS_MAX_INSTANCES];
+    Vector3f _ml_gyro_dt[INS_MAX_INSTANCES];
     Vector3f _delta_angle[INS_MAX_INSTANCES];
     float _delta_angle_dt[INS_MAX_INSTANCES];
     bool _delta_angle_valid[INS_MAX_INSTANCES];
@@ -590,8 +611,15 @@ private:
 
     // filtering frequency (0 means default)
     AP_Int16    _accel_filter_cutoff;
+    AP_Int16    _ml_accel_filter_cutoff;
     AP_Int16    _gyro_filter_cutoff;
+    AP_Int16    _ml_gyro_filter_cutoff;
     AP_Int8     _gyro_cal_timing;
+
+    AP_Int8     _ml_gyro_notch_filter_conf;
+    bool        _ml_gyro_notch_filter_enabled;
+    AP_Int8     _ml_accel_notch_filter_conf;
+    bool        _ml_accel_notch_filter_enabled;
 
     // use for attitude, velocity, position estimates
     AP_Int8     _use[INS_MAX_INSTANCES];
