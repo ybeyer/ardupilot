@@ -1673,9 +1673,6 @@ public:
     bool allows_arming(AP_Arming::Method method) const override { return true; };
     bool is_autopilot() const override { return false; }
     void output_to_motors() override { motors->output_custom(); }
-    void add_waypoint(uint16_T index, Vector3f location);
-    void add_speed(uint16_T index, float V_k);
-    void mission_updated(){updated_waypoints = true;};
 
     MatlabControllerClass custom_controller;
 
@@ -1696,16 +1693,6 @@ private:
     const char *_debug_address = "127.0.0.1";
     int _debug_port = 9004;
 #endif
-
-    static const int max_num_of_matlab_waypoints = 6;
-    // Ardupilot contains ghost waypoints
-    // (home position and velocity of previous waypoint),
-    // this is the max size
-    static const int max_num_of_ardupilot_waypoints = 2*max_num_of_matlab_waypoints+1;
-    int numberOfNavCommands = 0;
-    float waypoints[max_num_of_ardupilot_waypoints][4];
-    // will be set true in case of mission update through function mission_updated
-    bool updated_waypoints = false;
 
     // custom logging
     static const int num_log_batches = sizeof(log_config)/sizeof(log_config[0]);

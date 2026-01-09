@@ -24,6 +24,11 @@ ModeCustom::ModeCustom(void) : Mode(), socket_debug(true)
 }
 #endif
 
+// Init Matlab controller inputs and outputs
+ExtU rtU_;
+//memset(&rtU_, 0, sizeof(rtU_));
+ExtY rtY_;
+
 // Function for hardcoding changes to MATLABs cntrl struct.
 // Values can be accessed in the same fashion as in MATLAB, e.g.:
 //     cntrl.sample_time = 42;
@@ -41,7 +46,10 @@ bool ModeCustom::init(bool ignore_checks)
     Quaternion attitude_vehicle_quat;
     ahrs_.get_quat_body_to_ned(attitude_vehicle_quat);
     yawInit = atan2f(copter.simple_sin_yaw,copter.simple_cos_yaw);
-    updated_waypoints = true;
+    AP_Mission *mission = AP::mission();
+    mission->updated_waypoints = true;
+    // fill waypoints array with zeros
+    memset(rtU_.cmd.waypoints, 0, sizeof(rtU_.cmd.waypoints));
     // initialize position to measured value
     Vector3f position_NED;
     if (!ahrs_.get_relative_position_NED_home(position_NED)){
@@ -155,10 +163,6 @@ void ModeCustom::run()
     }
 
     // assign commanded controller inputs to cmd struct
-    ExtU rtU_;
-    memset(&rtU_, 0, sizeof(rtU_));
-    ExtY rtY_;
-
     rtU_.cmd.roll = roll_out;
     rtU_.cmd.pitch = pitch_out;
     rtU_.cmd.yaw = yaw_out;
@@ -172,31 +176,20 @@ void ModeCustom::run()
     }
 
     // assign or update waypoints
-    // overwrite all custom controller waypoints with 5m above home position
-    for (int k=0;k<max_num_of_matlab_waypoints;k++){
-        rtU_.cmd.waypoints[4*k]   = 0.0f;
-        rtU_.cmd.waypoints[4*k+1] = 0.0f;
-        rtU_.cmd.waypoints[4*k+2] = -5.0f;
-        rtU_.cmd.waypoints[4*k+3] = 0.0f;
-    }
-    int wp_count=0;
-    // start with index j=1 because 1st Ardupilot waypoint is always home position
-    for (int j=1;j<max_num_of_ardupilot_waypoints;j++){
-        // assign only waypoints that are no "ghost waypoints", see declaration of waypoints
-        if (abs(waypoints[j][0]) + abs(waypoints[j][1]) + abs(waypoints[j][2]) >= 0.01f){
-            rtU_.cmd.waypoints[4*wp_count]   = waypoints[j][0]*0.01f; // convert cm to m
-            rtU_.cmd.waypoints[4*wp_count+1] = waypoints[j][1]*0.01f; // convert cm to m
-            rtU_.cmd.waypoints[4*wp_count+2] = waypoints[j][2]*0.01f; // convert cm to m
-            rtU_.cmd.waypoints[4*wp_count+3] = waypoints[j][3]; // target velocity in m/s
-            wp_count++;
-        }
-        if (wp_count>=max_num_of_matlab_waypoints){
-            break;
+    AP_Mission *mission = AP::mission();
+    if (mission->updated_waypoints){
+        // start with index j=1 because 1st Ardupilot waypoint is always home position
+        for (int j=0;j<mission->num_wp;j++){
+            // assign only waypoints that are no "ghost waypoints", see declaration of waypoints
+            rtU_.cmd.waypoints[4*j]   = mission->waypoints[j][0]*0.01f; // convert cm to m
+            rtU_.cmd.waypoints[4*j+1] = mission->waypoints[j][1]*0.01f; // convert cm to m
+            rtU_.cmd.waypoints[4*j+2] = mission->waypoints[j][2]*0.01f; // convert cm to m
+            rtU_.cmd.waypoints[4*j+3] = mission->waypoints[j][3]; // target velocity in m/s
         }
     }
-    rtU_.cmd.num_waypoints = wp_count;
-    rtU_.cmd.mission_change = updated_waypoints;
-    updated_waypoints = false;
+    rtU_.cmd.num_waypoints = mission->num_wp;
+    rtU_.cmd.mission_change = mission->updated_waypoints;
+    mission->updated_waypoints = false;
 
 
     // assign measured controller inputs to measure struct
@@ -276,22 +269,6 @@ void ModeCustom::run()
         "QQQQ",
         AP_HAL::micros64(), time_total, time_step, time_log );    
 
-}
-
-void ModeCustom::add_waypoint(uint16_T index,Vector3f location){
-        waypoints[index][0] = location.x;
-        waypoints[index][1] = location.y;
-        waypoints[index][2] = -location.z;
-        waypoints[index][3] = 0.0f;
-}
-
-void ModeCustom::add_speed(uint16_T index, float V_k){
-    if(abs(waypoints[index-1][0] + waypoints[index-1][1] + waypoints[index-1][2]) >= 0.1f){
-        waypoints[index][0] = 0.0f;
-        waypoints[index][1] = 0.0f;
-        waypoints[index][2] = 0.0f;
-        waypoints[index-1][3] = V_k;
-    }
 }
 
 void ModeCustom::log_setup(const logConfigBus log_config_in[]) {
