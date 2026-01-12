@@ -5,7 +5,6 @@
 #include <AP_Terrain/AP_Terrain.h>
 #include <GCS_MAVLink/GCS.h>
 #include <AP_AHRS/AP_AHRS.h>
-#include <../ArduPlane/Plane.h>
 
 const AP_Param::GroupInfo AP_Mission::var_info[] = {
 
@@ -51,6 +50,15 @@ HAL_Semaphore AP_Mission::_rsem;
 /// init - initialises this library including checks the version in eeprom matches this library
 void AP_Mission::init()
 {
+    // overwrite all custom controller waypoints with 500cm above home position
+    // for (int j=1;j<mission->max_num_of_ardupilot_waypoints;j++){
+    for (int k=0;k<max_num_of_matlab_waypoints;k++){
+        waypoints[k][0] = 0.0f;
+        waypoints[k][1] = 0.0f;
+        waypoints[k][2] = -500.0f;
+        waypoints[k][3] = 0.0f;
+    }
+
     // check_eeprom_version - checks version of missions stored in eeprom matches this library
     // command list will be cleared if they do not match
     check_eeprom_version();
@@ -779,6 +787,31 @@ bool AP_Mission::stored_in_location(uint16_t id)
     }
 }
 
+void AP_Mission::add_waypoint(uint16_t index,Vector3f location){
+    if (index>0 && index %2 == 1)
+    {
+        uint16_t i = (index-1) / 2;
+        if (i<max_num_of_matlab_waypoints)
+        {
+            num_wp = i+1;
+            waypoints[i][0] = location.x;
+            waypoints[i][1] = location.y;
+            waypoints[i][2] = -location.z;
+        }
+    }
+}
+
+void AP_Mission::add_speed(uint16_t index, float V_k){
+    if(index %2 == 0)
+    {
+        uint16_t i = (index-2) / 2;
+        if (i<max_num_of_matlab_waypoints)
+        {
+            waypoints[i][3] = V_k;
+        }
+    }
+}
+
 /// write_cmd_to_storage - write a command to storage
 ///     index is used to calculate the storage location
 ///     true is returned if successful
@@ -810,17 +843,16 @@ bool AP_Mission::write_cmd_to_storage(uint16_t index, const Mission_Command& cmd
         memcpy(packed.bytes, &cmd.content, 12);
     }
 
-    //writing the waypoints to the custom flight mode
     if (cmd.id == MAV_CMD_NAV_WAYPOINT)
     {
         Vector3f waypoint_pos_neu;
         if(cmd.content.location.get_vector_from_origin_NEU(waypoint_pos_neu)){
-            plane.mode_custom.add_waypoint(index,waypoint_pos_neu);
+            add_waypoint(index,waypoint_pos_neu);
         }
     }
     if (cmd.id == MAV_CMD_DO_CHANGE_SPEED)
     {
-        plane.mode_custom.add_speed(index,cmd.content.speed.target_ms);
+        add_speed(index,cmd.content.speed.target_ms);
 
     }
 
@@ -849,9 +881,8 @@ bool AP_Mission::write_cmd_to_storage(uint16_t index, const Mission_Command& cmd
 
 //triggering the waypoint update in mode custom
 void AP_Mission::mission_complete(){
-    plane.mode_custom.mission_updated();
+    mission_updated();
 }
-
 
 
 /// write_home_to_storage - writes the special purpose cmd 0 (home) to storage

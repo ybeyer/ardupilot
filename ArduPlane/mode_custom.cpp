@@ -25,6 +25,9 @@ const AP_Param::GroupInfo ModeCustom::var_info[] = {
     uint16_t missed_frames = 0;
 #endif
 
+// Init Matlab controller inputs and outputs
+ExtU *rtU_;
+ExtY *rtY_;
 
 #ifdef CUSTOM_MATLAB_OUTPUT
 // constructor
@@ -42,6 +45,12 @@ bool ModeCustom::_enter()
 
     custom_controller.initialize(); 
     updated_waypoints = true;
+
+    AP_Mission *mission = AP::mission();
+    mission->updated_waypoints = true;
+    // fill waypoints array with zeros
+    rtU_ = &(custom_controller.rtU);
+    memset(rtU_, 0, sizeof(ExtU));
 
     // init custom logging
     log_setup(log_config);
@@ -130,9 +139,7 @@ void ModeCustom::update()
 
 
     // assign commanded and measured values to controller inputs struct
-    ExtU *rtU_ = &(custom_controller.rtU);
-    memset(rtU_, 0, sizeof(ExtU));
-
+    rtU_ = &(custom_controller.rtU);
     rtU_->cmd.roll  = roll_out;
     rtU_->cmd.pitch = pitch_out;
     rtU_->cmd.yaw   = yaw_out;
@@ -175,32 +182,20 @@ void ModeCustom::update()
     rtU_->measure.rangefinder[5] = rangefinder_dist[5];
 
     // assign or update waypoints
-    // overwrite all custom controller waypoints with 5m above home position
-    for (int k=0;k<max_num_of_matlab_waypoints;k++){
-        rtU_->cmd.waypoints[4*k]   = 0.0f;
-        rtU_->cmd.waypoints[4*k+1] = 0.0f;
-        rtU_->cmd.waypoints[4*k+2] = -5.0f;
-        rtU_->cmd.waypoints[4*k+3] = 0.0f;
-    }
-    int wp_count=0;
-    // start with index j=1 because 1st Ardupilot waypoint is always home position
-    for (uint16_t j = 1;(j<max_num_of_ardupilot_waypoints)&&(j<=numberOfNavCommands);j++){
-        // assign only waypoints that are no "ghost waypoints", see declaration of waypoints
-        if (abs(waypoints[j][0]) + abs(waypoints[j][1]) + abs(waypoints[j][2]) >= 0.01f){
-            rtU_->cmd.waypoints[4*wp_count]   = waypoints[j][0]*0.01f; // convert cm to m
-            rtU_->cmd.waypoints[4*wp_count+1] = waypoints[j][1]*0.01f; // convert cm to m
-            rtU_->cmd.waypoints[4*wp_count+2] = waypoints[j][2]*0.01f; // convert cm to m
-            rtU_->cmd.waypoints[4*wp_count+3] = waypoints[j][3]; // target velocity in m/s
-            wp_count++;
-        }
-        if (wp_count>=max_num_of_matlab_waypoints){
-            // if the maximum number of waypoints that can be send to the matlab controler is reached break
-            break;
+    AP_Mission *mission = AP::mission();
+    if (mission->updated_waypoints){
+        // start with index j=1 because 1st Ardupilot waypoint is always home position
+        for (int j=0;j<mission->num_wp;j++){
+            // assign only waypoints that are no "ghost waypoints", see declaration of waypoints
+            rtU_->cmd.waypoints[4*j]   = mission->waypoints[j][0]*0.01f; // convert cm to m
+            rtU_->cmd.waypoints[4*j+1] = mission->waypoints[j][1]*0.01f; // convert cm to m
+            rtU_->cmd.waypoints[4*j+2] = mission->waypoints[j][2]*0.01f; // convert cm to m
+            rtU_->cmd.waypoints[4*j+3] = mission->waypoints[j][3]; // target velocity in m/s
         }
     }
-    rtU_->cmd.num_waypoints = wp_count;  //setting the actual number of valid waypoints
-    rtU_->cmd.mission_change = updated_waypoints; // setting the waypoints updated flag
-    updated_waypoints = false;
+    rtU_->cmd.num_waypoints = mission->num_wp;
+    rtU_->cmd.mission_change = mission->updated_waypoints;
+    mission->updated_waypoints = false;
 
     // get controller outputs struct
     uint32_t time_step = AP_HAL::micros();
@@ -210,7 +205,7 @@ void ModeCustom::update()
         custom_controller.step(); //run a step in controller.
     #endif
     time_step = AP_HAL::micros() - time_step;
-    ExtY *rtY_ = &(custom_controller.rtY);
+    rtY_ = &(custom_controller.rtY);
 
     // DEBUGGING:
     // Send all inputs of custom controller to Simulink (uncomment line 3 in mode.h)
