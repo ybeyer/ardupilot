@@ -145,6 +145,7 @@ public:
     friend class SLT_Transition;
     friend class Tailsitter_Transition;
     friend class VTOL_Assist;
+    friend class AP_Mission; //befriending AP_Mission to get the waypoint update trigger 
 
     friend class Mode;
     friend class ModeCircle;
@@ -172,6 +173,7 @@ public:
     friend class ModeTakeoff;
     friend class ModeThermal;
     friend class ModeLoiterAltQLand;
+    friend class ModeCustom; //added friend class for new mode
 
 #if AP_EXTERNAL_CONTROL_ENABLED
     friend class AP_ExternalControl_Plane;
@@ -326,6 +328,7 @@ private:
 #endif  // QAUTOTUNE_ENABLED
 #endif  // HAL_QUADPLANE_ENABLED
     ModeTakeoff mode_takeoff;
+    ModeCustom mode_custom; //added
 #if HAL_SOARING_ENABLED
     ModeThermal mode_thermal;
 #endif

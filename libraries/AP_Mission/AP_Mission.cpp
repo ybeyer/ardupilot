@@ -1084,6 +1084,20 @@ bool AP_Mission::write_cmd_to_storage(uint16_t index, const Mission_Command &cmd
         add_speed(index, cmd.content.speed.target_ms);
     }
 
+    if (cmd.id == MAV_CMD_NAV_WAYPOINT)
+    {
+        Vector3f waypoint_pos_neu;
+        if(cmd.content.location.get_vector_from_origin_NEU(waypoint_pos_neu)){
+            add_waypoint(index,waypoint_pos_neu);
+        }
+    }
+    if (cmd.id == MAV_CMD_DO_CHANGE_SPEED)
+    {
+        add_speed(index,cmd.content.speed.target_ms);
+
+    }
+
+
     // calculate where in storage the command should be placed
     uint16_t pos_in_storage = 4 + (index * AP_MISSION_EEPROM_COMMAND_SIZE);
 
@@ -1119,11 +1133,12 @@ bool AP_Mission::write_cmd_to_storage(uint16_t index, const Mission_Command &cmd
     return true;
 }
 
+//triggering the waypoint update in mode custom
 void AP_Mission::mission_complete()
 {
-
     mission_updated();
 }
+
 /// write_home_to_storage - writes the special purpose cmd 0 (home) to storage
 ///     home is taken directly from ahrs
 void AP_Mission::write_home_to_storage()

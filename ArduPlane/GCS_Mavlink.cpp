@@ -32,6 +32,7 @@ MAV_MODE GCS_MAVLINK_Plane::base_mode() const
     case Mode::Number::ACRO:
 #if HAL_QUADPLANE_ENABLED
     case Mode::Number::QACRO:
+    case Mode::Number::CUSTOM: //added here because the manual input-flag is enabled.
         _base_mode = MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
         break;
 #endif

@@ -1012,7 +1012,7 @@ class ChibiOSHWDef(object):
         if self.get_config('PROCESS_STACK', required=False):
             self.env_vars['PROCESS_STACK'] = self.get_config('PROCESS_STACK')
         else:
-            self.env_vars['PROCESS_STACK'] = "0x1C00"
+            self.env_vars['PROCESS_STACK'] = "0x7000"
 
         f.write('#define HAL_PROCESS_STACK_SIZE %s\n' % self.env_vars['PROCESS_STACK'])
         # MAIN_STACK is location of initial stack on startup and is also the stack

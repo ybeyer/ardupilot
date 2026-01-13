@@ -1,5 +1,8 @@
 #pragma once
 
+// #define CUSTOM_MATLAB_OUTPUT //define for the custom simulink output
+// #define Mode_Custom_Use_External_Controller
+
 #include <AP_Param/AP_Param.h>
 #include <AP_Common/Location.h>
 #include <stdint.h>
@@ -16,6 +19,10 @@
 #endif
 
 #include <AP_Quicktune/AP_Quicktune.h>
+#include <AP_MatlabController/MatlabController.h>
+#ifdef CUSTOM_MATLAB_OUTPUT
+    #include <AP_HAL/utility/Socket.h>
+#endif
 
 class AC_PosControl;
 class AC_AttitudeControl_Multi;
@@ -61,6 +68,7 @@ public:
 #if HAL_QUADPLANE_ENABLED
         LOITER_ALT_QLAND = 25,
 #endif
+        CUSTOM        = 26, //add mode 
     };
 
     // Constructor
@@ -439,6 +447,68 @@ public:
 
 };
 
+class ModeCustom : public Mode //added
+{
+public:
+
+    #ifdef CUSTOM_MATLAB_OUTPUT
+        ModeCustom(void);
+    #else
+        // inherit constructor
+        using Mode::Mode;
+    #endif
+
+    Number mode_number() const override { return Number::CUSTOM; }
+    const char* name() const override { return "CUSTOM"; }
+    const char* name4() const override { return "CUSTOM"; }
+
+    // methods that affect movement of the vehicle in this mode
+    void update() override;
+
+    MatlabControllerClass custom_controller;
+
+    static const struct AP_Param::GroupInfo var_info[];
+
+protected:
+
+    bool _enter() override;
+ 
+    // custom logging
+    static const int num_log_batches = sizeof(log_config)/sizeof(log_config[0]);
+    static const int max_num_signals_per_batch = 14;
+    static const int max_signal_name_length = 3;
+    static const int max_batch_name_length = 4;
+    typedef uint8_t signal_name_t[max_signal_name_length];
+    char label_full[num_log_batches][6+max_num_signals_per_batch*(max_signal_name_length+1)+1];
+    int label_length[num_log_batches];
+    char batch_name_full[num_log_batches][max_batch_name_length];
+    int batch_name_length[num_log_batches];
+    int log_signal_idx_cumsum[num_log_batches];
+    // log initialization function
+    void log_setup(const logConfigBus log_config_in[]);
+    // set log labels (e.g. "TimeUS,s1,s2,s3") that are passed to AP::logger().Write(…)
+    void set_log_labels(const logConfigBus log_config[]);
+    // set log batch names (e.g. "ML1" or "MLXY") that are passed to AP::logger().Write(…)
+    void set_log_batch_names(const logConfigBus log_config[]);
+    // set auxilliary cumulative index that is needed to pick the log signals from the log signals array
+    void set_log_signal_idx_cumsum(const logConfigBus log_config[]);
+    // wrapper of AP::logger().Write() for use of arrays (implementaion does not look good but there is probably no simpler alternative)
+    void write_log_custom(const char *name, const char *labels, float *signals, int size);
+    // signal names are part of the label (e.g. "s1" or "s2" or "s3")
+    void extract_one_signal_name(const uint8_t log_names_int[], int number, signal_name_t &log_name);
+
+    #ifdef Mode_Custom_Use_External_Controller
+        void step_external();
+    #endif
+
+private:
+
+#ifdef CUSTOM_MATLAB_OUTPUT
+    SocketAPM socket_debug; //
+    const char *_debug_address = "127.0.0.1";
+    int _debug_port = 9004;
+#endif
+};
 
 class ModeRTL : public Mode
 {

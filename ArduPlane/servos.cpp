@@ -987,18 +987,26 @@ void Plane::servos_output(void)
     auto &srv = AP::srv();
     srv.cork();
 
-    // support twin-engine aircraft
-    servos_twin_engine_mix();
+    if (control_mode != &mode_custom) {
+        // support twin-engine aircraft
+        servos_twin_engine_mix();
 
-    // run vtail and elevon mixers
-    channel_function_mixer(SRV_Channel::k_aileron, SRV_Channel::k_elevator, SRV_Channel::k_elevon_left, SRV_Channel::k_elevon_right);
-    channel_function_mixer(SRV_Channel::k_rudder,  SRV_Channel::k_elevator, SRV_Channel::k_vtail_right, SRV_Channel::k_vtail_left);
+        // run vtail and elevon mixers
+        channel_function_mixer(SRV_Channel::k_aileron, SRV_Channel::k_elevator, SRV_Channel::k_elevon_left, SRV_Channel::k_elevon_right);
+        channel_function_mixer(SRV_Channel::k_rudder,  SRV_Channel::k_elevator, SRV_Channel::k_vtail_right, SRV_Channel::k_vtail_left);
 
-#if HAL_QUADPLANE_ENABLED
-    // cope with tailsitters and bicopters
-    quadplane.tailsitter.output();
-    quadplane.tiltrotor.bicopter_output();
-#endif
+    #if HAL_QUADPLANE_ENABLED
+        // cope with tailsitters and bicopters
+        quadplane.tailsitter.output();
+        quadplane.tiltrotor.bicopter_output();
+    #endif
+
+        // support forced flare option
+        force_flare();
+
+        // implement differential spoilers
+        dspoiler_update();
+
 
     // support forced flare option
     force_flare();
@@ -1021,11 +1029,13 @@ void Plane::servos_output(void)
 
     SRV_Channels::calc_pwm();
 
+    }
+
     SRV_Channels::output_ch_all();
 
     srv.push();
 
-    if (g2.servo_channels.auto_trim_enabled()) {
+    if (g2.servo_channels.auto_trim_enabled() && control_mode != &mode_custom) {
         servos_auto_trim();
     }
 }

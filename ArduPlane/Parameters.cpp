@@ -1035,6 +1035,12 @@ const AP_Param::Info Plane::var_info[] = {
     GOBJECT(quicktune, "QWIK_",  AP_Quicktune),
 #endif
     
+    // ModeCustom and MatlabControllerClass
+    // @Group: ML
+    // @Path: ../ArduPlane/mode_custom.cpp
+    // @Path: ../libraries/AC_AttitudeControl/MatlabController.cpp
+    GOBJECT(mode_custom, "ML_", ModeCustom),
+
     AP_VAREND
 };
 

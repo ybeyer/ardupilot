@@ -162,10 +162,10 @@ protected:
     void _rotate_and_correct_gyro(uint8_t instance, Vector3f &gyro) __RAMFUNC__;
 
     // rotate gyro vector, offset and publish
-    void _publish_gyro(uint8_t instance, const Vector3f &gyro) __RAMFUNC__; /* front end */
+    void _publish_gyro(uint8_t instance, const Vector3f &gyro, const Vector3f &ml_gyro) __RAMFUNC__; /* front end */
 
     // apply notch and lowpass gyro filters and sample for FFT
-    void apply_gyro_filters(const uint8_t instance, const Vector3f &gyro);
+    void apply_gyro_filters(const uint8_t instance, const Vector3f &gyro, const float dt);
     void save_gyro_window(const uint8_t instance, const Vector3f &gyro, uint8_t phase);
 
     // this should be called every time a new gyro raw sample is
@@ -180,7 +180,7 @@ protected:
     void _notify_new_delta_angle(uint8_t instance, const Vector3f &dangle);
     
     // rotate accel vector, scale, offset and publish
-    void _publish_accel(uint8_t instance, const Vector3f &accel) __RAMFUNC__; /* front end */
+    void _publish_accel(uint8_t instance, const Vector3f &accel, const Vector3f &ml_accel) __RAMFUNC__; /* front end */
 
     // this should be called every time a new accel raw sample is available -
     // be it published or not
@@ -270,9 +270,11 @@ protected:
 
     // return the default filter frequency in Hz for the sample rate
     uint16_t _accel_filter_cutoff(void) const { return _imu._accel_filter_cutoff; }
+    uint16_t _ml_accel_filter_cutoff(void) const { return _imu._ml_accel_filter_cutoff; }
 
     // return the default filter frequency in Hz for the sample rate
     uint16_t _gyro_filter_cutoff(void) const { return _imu._gyro_filter_cutoff; }
+    uint16_t _ml_gyro_filter_cutoff(void) const { return _imu._ml_gyro_filter_cutoff; }
 
     // return the requested loop rate at which samples will be made available in Hz
     uint16_t get_loop_rate_hz(void) const {
@@ -290,7 +292,10 @@ protected:
 
     // support for updating filter at runtime
     uint16_t _last_accel_filter_hz;
+    uint16_t _ml_last_accel_filter_hz;
     uint16_t _last_gyro_filter_hz;
+    uint16_t _ml_last_gyro_filter_hz;
+    bool _last_ml_gyro_notch_filter_enabled;
 
     void set_gyro_orientation(uint8_t instance, enum Rotation rotation) {
         _imu._gyro_orientation[instance] = rotation;

@@ -346,13 +346,36 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("_GYRO_FILTER", 18, AP_InertialSensor, _gyro_filter_cutoff,  DEFAULT_GYRO_FILTER),
 
+    // @Param: ML_GYR_FLTER
+    // @DisplayName: Gyro filter cutoff frequency for the MATLAB mode
+    // @Description: Filter cutoff frequency for gyroscopes. This can be set to a lower value to try to cope with very high vibration levels in aircraft. A value of zero means no filtering (not recommended!)
+    // @Units: Hz
+    // @Range: 0 256
+    // @User: Advanced
+    AP_GROUPINFO("ML_GYR_FLTER", 54, AP_InertialSensor, _ml_gyro_filter_cutoff, 127),
+
+    // @Param: ML_GYR_HNTCH
+    // @DisplayName: Enable gyro notch filters for the MATLAB mode
+    // @Description: A value of nonzero means that the ArduPilot gyro notch filter pipeline is also used for the MATLAB mode
+    // @Values: 0:Disabled,1:Enabled
+    // @User: Advanced
+    AP_GROUPINFO("ML_GYR_HNTCH", 55, AP_InertialSensor, _ml_gyro_notch_filter_conf,  0),
+
     // @Param: _ACCEL_FILTER
     // @DisplayName: Accel filter cutoff frequency
     // @Description: Filter cutoff frequency for accelerometers. This can be set to a lower value to try to cope with very high vibration levels in aircraft. A value of zero means no filtering (not recommended!)
     // @Units: Hz
     // @Range: 0 256
     // @User: Advanced
-    AP_GROUPINFO("_ACCEL_FILTER", 19, AP_InertialSensor, _accel_filter_cutoff,  DEFAULT_ACCEL_FILTER),
+    AP_GROUPINFO("_ACCEL_FILTER", 19, AP_InertialSensor, _accel_filter_cutoff, 127),
+
+    // @Param: ML_ACC_FLTER
+    // @DisplayName: Accel filter cutoff frequency for the MATLAB mode
+    // @Description: Filter cutoff frequency for accelerometers. This can be set to a lower value to try to cope with very high vibration levels in aircraft. A value of zero means no filtering (not recommended!)
+    // @Units: Hz
+    // @Range: 0 256
+    // @User: Advanced
+    AP_GROUPINFO("ML_ACC_FLTER", 59, AP_InertialSensor, _ml_accel_filter_cutoff,  DEFAULT_ACCEL_FILTER),
 
     // @Param: _USE
     // @DisplayName: Use first IMU for attitude, velocity and position estimates

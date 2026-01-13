@@ -96,6 +96,7 @@ void Plane::failsafe_short_on_event(enum failsafe_state fstype, ModeReason reaso
     case Mode::Number::LOITER_ALT_QLAND:
 #endif
     case Mode::Number::INITIALISING:
+    case Mode::Number::CUSTOM: //added. might change this later because of failsafe-settings
         break;
     }
     if (failsafe.saved_mode_number != control_mode->mode_number()) {
@@ -210,6 +211,7 @@ void Plane::failsafe_long_on_event(enum failsafe_state fstype, ModeReason reason
     case Mode::Number::LOITER_ALT_QLAND:
 #endif
     case Mode::Number::INITIALISING:
+    case Mode::Number::CUSTOM:
         break;
     }
     gcs().send_text(MAV_SEVERITY_WARNING, "%s Failsafe On: %s", (reason == ModeReason:: GCS_FAILSAFE) ? "GCS" : "RC Long", control_mode->name());

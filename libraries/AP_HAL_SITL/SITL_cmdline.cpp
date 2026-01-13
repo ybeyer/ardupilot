@@ -42,6 +42,7 @@
 #include <SITL/SIM_StratoBlimp.h>
 
 #include <AP_Filesystem/AP_Filesystem.h>
+#include <SITL/SIM_Simulink.h>
 
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 
@@ -182,6 +183,7 @@ static const struct {
 #if AP_SIM_STRATOBLIMP_ENABLED
     { "stratoblimp",        StratoBlimp::create },
 #endif
+    { "simulink",           Simulink::create },
 };
 
 void SITL_State::_set_signal_handlers(void) const

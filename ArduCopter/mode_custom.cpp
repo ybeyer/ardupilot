@@ -103,16 +103,24 @@ void ModeCustom::run()
         velocity_NED[2] = 0;
     }
 
-    // To do: This is raw measurement (above 1kHz) samples at 400Hz.
-    // Noise could be reduced by downsampling.
-    Vector3f Omega_Kb_raw = AP::ins().get_gyro();
+    // get measured inputs
+    Vector3f Omega_Kb_raw = AP::ins().get_gyro_for_fft() / (INT16_MAX/radians(2000));
+    Vector3f Omega_Kb_ntch = AP::ins().get_gyro_ntch();     // gyro filtered by notch filter (only if ML_GYR_HNTCH=1)
+    // Vector3f Omega_Kb_f = AP::ins().get_gyro();          // filtered gyro (Static Notches -> Dynamic Notches -> Lowpass (INS_GYRO_FILTER)), Kb
+    Vector3f Omega_Kb = AP::ins().get_ml_gyro();            // filtered gyro (ML-Lowpass (INS_ML_GYRO_FILTER and notch (if ML_GYR_HNTCH=1)), Kb
+    // Vector3f OmegaML_Kb_f_dt = AP::ins().get_ml_gyro_dt();   // derivative (two-point backward finite difference) of filtered gyro, Kb
 
-    // accel_ef_blended is acceleration at IMU position
+    // get acceleration in body-fixed frame
+    Vector3f acc_FRD_raw = AP::ins().get_raw_accel() - AP::ins().get_accel_offsets();
+    Vector3f acc_FRD = AP::ins().get_ml_accel();            // filtered accel (ML-Lowpass (INS_ML_ACC_FLTER)), Kb
+    Vector3f acc_NED_at_IMU = acc_FRD;
+    // acceleration in earth-fixed frame
+    attitude_vehicle_quat.earth_to_body(acc_NED_at_IMU);    // note: this is the right function although the name is misleading in this case
     // https://ardupilot.org/copter/docs/common-sensor-offset-compensation.html
-    Vector3f accel_ef_at_imu = ahrs_.get_accel_ef();
     Vector3f imu_pos_offset = AP::ins().get_imu_pos_offset(AP::ins().get_first_usable_accel());
-    Vector3f accel_ef_at_cog = imu_accel_to_cog_accel(  accel_ef_at_imu, imu_pos_offset, Omega_Kb_raw,
+    Vector3f acc_NED_at_COG = imu_accel_to_cog_accel(  acc_NED_at_IMU, imu_pos_offset, Omega_Kb,
                                                         ahrs_.get_rotation_body_to_ned() );
+
     float roll_angle = attitude_vehicle_quat.get_euler_roll();
     float pitch_angle = attitude_vehicle_quat.get_euler_pitch();
     float yaw_angle = attitude_vehicle_quat.get_euler_yaw();
@@ -193,9 +201,9 @@ void ModeCustom::run()
 
 
     // assign measured controller inputs to measure struct
-    rtU_.measure.omega_Kb[0] = Omega_Kb_raw[0];
-    rtU_.measure.omega_Kb[1] = Omega_Kb_raw[1];
-    rtU_.measure.omega_Kb[2] = Omega_Kb_raw[2];
+    rtU_.measure.omega_Kb[0] = Omega_Kb[0];
+    rtU_.measure.omega_Kb[1] = Omega_Kb[1];
+    rtU_.measure.omega_Kb[2] = Omega_Kb[2];
     rtU_.measure.q_bg[0] = attitude_vehicle_quat.q1;
     rtU_.measure.q_bg[1] = attitude_vehicle_quat.q2;
     rtU_.measure.q_bg[2] = attitude_vehicle_quat.q3;
@@ -203,9 +211,9 @@ void ModeCustom::run()
     rtU_.measure.EulerAngles[0] = roll_angle;
     rtU_.measure.EulerAngles[1] = pitch_angle;
     rtU_.measure.EulerAngles[2] = yaw_angle;
-    rtU_.measure.a_Kg[0] = accel_ef_at_cog.x;
-    rtU_.measure.a_Kg[1] = accel_ef_at_cog.y;
-    rtU_.measure.a_Kg[2] = accel_ef_at_cog.z;
+    rtU_.measure.a_Kg[0] = acc_NED_at_COG.x;
+    rtU_.measure.a_Kg[1] = acc_NED_at_COG.y;
+    rtU_.measure.a_Kg[2] = acc_NED_at_COG.z;
     rtU_.measure.V_Kg[0] = velocity_NED[0];
     rtU_.measure.V_Kg[1] = velocity_NED[1];
     rtU_.measure.V_Kg[2] = velocity_NED[2];
@@ -268,6 +276,18 @@ void ModeCustom::run()
         "MLPM", "TimeUS,TimeTotalUS,TimeStepUS,TimeLogUS",
         "QQQQ",
         AP_HAL::micros64(), time_total, time_step, time_log );    
+
+    // Log inertial sensor filter signals
+    AP::logger().Write(
+        "MLFI", "TimeUS,pr,qr,rr,pn,qn,rn,pf,qf,rf,axr,ayr,azr,axf,ayf,azf",
+        "Qfffffffffffffff",
+        AP_HAL::micros64(),
+        (double)Omega_Kb_raw[0], (double)Omega_Kb_raw[1], (double)Omega_Kb_raw[2],
+        (double)Omega_Kb_ntch[0], (double)Omega_Kb_ntch[1], (double)Omega_Kb_ntch[2],
+        (double)Omega_Kb[0], (double)Omega_Kb[1], (double)Omega_Kb[2],
+        (double)acc_FRD_raw[0], (double)acc_FRD_raw[1], (double)acc_FRD_raw[2],
+        (double)acc_FRD[0], (double)acc_FRD[1], (double)acc_FRD[2]
+        );
 
 }
 

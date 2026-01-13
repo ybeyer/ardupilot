@@ -248,7 +248,7 @@ class Board:
             '-Wno-trigraphs',
             '-Werror=shadow',
             '-Werror=return-type',
-            '-Werror=unused-result',
+            #'-Werror=unused-result',
             '-Werror=narrowing',
             '-Werror=attributes',
             '-Werror=overflow',
@@ -379,7 +379,7 @@ class Board:
             '-Werror=sign-compare',
             '-Werror=type-limits',
             '-Werror=undef',
-            '-Werror=unused-result',
+            #'-Werror=unused-result',
             '-Werror=shadow',
             '-Werror=delete-non-virtual-dtor',
             '-Wfatal-errors',
@@ -1104,7 +1104,7 @@ class chibios(Board):
 
         # make board name available for USB IDs
         env.CHIBIOS_BOARD_NAME = 'HAL_BOARD_NAME="%s"' % self.name
-        env.HAL_MAX_STACK_FRAME_SIZE = 'HAL_MAX_STACK_FRAME_SIZE=%d' % 1300 # set per Wframe-larger-than, ensure its same
+        env.HAL_MAX_STACK_FRAME_SIZE = 'HAL_MAX_STACK_FRAME_SIZE=%d' % 5000 # set per Wframe-larger-than, ensure its same
         env.CFLAGS += cfg.env.CPU_FLAGS + [
             '-Wlogical-op',
             '-Wframe-larger-than=5000',
