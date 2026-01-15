@@ -1714,7 +1714,7 @@ private:
     // set auxilliary cumulative index that is needed to pick the log signals from the log signals array
     void set_log_signal_idx_cumsum(const logConfigBus log_config[]);
     // wrapper of AP::logger().Write() for use of arrays (implementaion does not look good but there is probably no simpler alternative)
-    void write_log_custom(const char *name, const char *labels, float *signals, int size);
+    void write_log_custom(const char *name, const char *labels, float *signals, int size, uint64_t time);
     // signal names are part of the label (e.g. "s1" or "s2" or "s3")
     void extract_one_signal_name(const uint8_t log_names_int[], int number, signal_name_t &log_name);
 

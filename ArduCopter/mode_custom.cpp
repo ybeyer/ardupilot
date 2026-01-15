@@ -241,9 +241,9 @@ void ModeCustom::run()
     
     // run Simulink controller
     custom_controller.rtU = rtU_;
-    uint64_t time_step = AP_HAL::micros();
+    uint64_t time = AP_HAL::micros64();
     custom_controller.step();
-    time_step = AP_HAL::micros() - time_step;
+    uint64_t time_step = AP_HAL::micros() - time;
     rtY_ = custom_controller.rtY;
 
     // DEBUGGING:
@@ -258,7 +258,7 @@ void ModeCustom::run()
     for (int i=0;i<num_log_batches;i++) {
         write_log_custom(batch_name_full[i], label_full[i],
             &custom_controller.rtY.logs[log_signal_idx_cumsum[i]],
-            log_config[i].num_signals);
+            log_config[i].num_signals, time);
     }
     time_log = AP_HAL::micros() - time_log;
 
@@ -271,17 +271,36 @@ void ModeCustom::run()
 
     time_total = AP_HAL::micros() - time_total;
 
+    // Log rotation
+    AP::logger().Write(
+        "MLI1", "TimeUS,p,q,r,q0,q1,q2,q3",
+        "Qfffffff",
+        time,
+        (double)rtU_.measure.omega_Kb[0], (double)rtU_.measure.omega_Kb[1], (double)rtU_.measure.omega_Kb[2],
+        (double)rtU_.measure.q_bg[0], (double)rtU_.measure.q_bg[1], (double)rtU_.measure.q_bg[2], (double)rtU_.measure.q_bg[3]
+        );
+
+    // Log translation
+    AP::logger().Write(
+        "MLI2", "TimeUS,axg,ayg,azg,uKg,vKg,wKg,xg,yg,zg",
+        "Qfffffffff",
+        time,
+        (double)rtU_.measure.a_Kg[0], (double)rtU_.measure.a_Kg[1], (double)rtU_.measure.a_Kg[2],
+        (double)rtU_.measure.V_Kg[0], (double)rtU_.measure.V_Kg[1], (double)rtU_.measure.V_Kg[2],
+        (double)rtU_.measure.s_Kg[0], (double)rtU_.measure.s_Kg[1], (double)rtU_.measure.s_Kg[2]
+        );
+
     // Log the execution times    
     AP::logger().Write(
         "MLPM", "TimeUS,TimeTotalUS,TimeStepUS,TimeLogUS",
         "QQQQ",
-        AP_HAL::micros64(), time_total, time_step, time_log );    
+        time, time_total, time_step, time_log );    
 
     // Log inertial sensor filter signals
     AP::logger().Write(
         "MLFI", "TimeUS,pr,qr,rr,pn,qn,rn,pf,qf,rf,axr,ayr,azr,axf,ayf,azf",
         "Qfffffffffffffff",
-        AP_HAL::micros64(),
+        time,
         (double)Omega_Kb_raw[0], (double)Omega_Kb_raw[1], (double)Omega_Kb_raw[2],
         (double)Omega_Kb_ntch[0], (double)Omega_Kb_ntch[1], (double)Omega_Kb_ntch[2],
         (double)Omega_Kb[0], (double)Omega_Kb[1], (double)Omega_Kb[2],
@@ -339,7 +358,7 @@ void ModeCustom::set_log_signal_idx_cumsum(const logConfigBus log_config_in[]){
     }
 };
 
-void ModeCustom::write_log_custom(const char *name, const char *labels, float *sf, int size) {
+void ModeCustom::write_log_custom(const char *name, const char *labels, float *sf, int size, uint64_t time) {
     double s[size];
     for (int i=0; i<size; i++) {
         s[i] = (double)sf[i];
@@ -347,35 +366,35 @@ void ModeCustom::write_log_custom(const char *name, const char *labels, float *s
     if (size==0) {
         return;
     } else if (size==1) {
-        AP::logger().Write(name, labels,"Qf",AP_HAL::micros64(),s[0]);
+        AP::logger().Write(name, labels,"Qf",time,s[0]);
     } else if (size==2) {
-        AP::logger().Write(name, labels,"Qff",AP_HAL::micros64(),s[0],s[1]);
+        AP::logger().Write(name, labels,"Qff",time,s[0],s[1]);
     } else if (size==3) {
-        AP::logger().Write(name, labels,"Qfff",AP_HAL::micros64(),s[0],s[1],s[2]);
+        AP::logger().Write(name, labels,"Qfff",time,s[0],s[1],s[2]);
     } else if (size==4) {
-        AP::logger().Write(name, labels,"Qffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3]);
+        AP::logger().Write(name, labels,"Qffff",time,s[0],s[1],s[2],s[3]);
     } else if (size==5) {
-        AP::logger().Write(name, labels,"Qfffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4]);
+        AP::logger().Write(name, labels,"Qfffff",time,s[0],s[1],s[2],s[3],s[4]);
     } else if (size==6) {
-        AP::logger().Write(name, labels,"Qffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5]);
+        AP::logger().Write(name, labels,"Qffffff",time,s[0],s[1],s[2],s[3],s[4],s[5]);
     } else if (size==7) {
-        AP::logger().Write(name, labels,"Qfffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6]);
+        AP::logger().Write(name, labels,"Qfffffff",time,s[0],s[1],s[2],s[3],s[4],s[5],s[6]);
     } else if (size==8) {
-        AP::logger().Write(name, labels,"Qffffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7]);
+        AP::logger().Write(name, labels,"Qffffffff",time,s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7]);
     } else if (size==9) {
-        AP::logger().Write(name, labels,"Qfffffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8]);
+        AP::logger().Write(name, labels,"Qfffffffff",time,s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8]);
     } else if (size==10) {
-        AP::logger().Write(name, labels,"Qffffffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9]);
+        AP::logger().Write(name, labels,"Qffffffffff",time,s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9]);
     } else if (size==11) {
-        AP::logger().Write(name, labels,"Qfffffffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10]);
+        AP::logger().Write(name, labels,"Qfffffffffff",time,s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10]);
     } else if (size==12) {
-        AP::logger().Write(name, labels,"Qffffffffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10],s[11]);
+        AP::logger().Write(name, labels,"Qffffffffffff",time,s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10],s[11]);
     } else if (size==13) {
-        AP::logger().Write(name, labels,"Qfffffffffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10],s[11],s[12]);
+        AP::logger().Write(name, labels,"Qfffffffffffff",time,s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10],s[11],s[12]);
     } else if (size==14) {
-        AP::logger().Write(name, labels,"Qffffffffffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10],s[11],s[12],s[13]);
+        AP::logger().Write(name, labels,"Qffffffffffffff",time,s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10],s[11],s[12],s[13]);
     } else if (size==15) {
-        AP::logger().Write(name, labels,"Qfffffffffffffff",AP_HAL::micros64(),s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10],s[11],s[12],s[13],s[14]);
+        AP::logger().Write(name, labels,"Qfffffffffffffff",time,s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],s[8],s[9],s[10],s[11],s[12],s[13],s[14]);
     }
 };
 
