@@ -367,7 +367,7 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] = {
     // @Units: Hz
     // @Range: 0 256
     // @User: Advanced
-    AP_GROUPINFO("_ACCEL_FILTER", 19, AP_InertialSensor, _accel_filter_cutoff, 127),
+    AP_GROUPINFO("_ACCEL_FILTER", 19, AP_InertialSensor, _accel_filter_cutoff, DEFAULT_ACCEL_FILTER),
 
     // @Param: _ML_ACC_FLTER
     // @DisplayName: Accel filter cutoff frequency for the MATLAB mode
@@ -375,7 +375,7 @@ const AP_Param::GroupInfo AP_InertialSensor::var_info[] = {
     // @Units: Hz
     // @Range: 0 256
     // @User: Advanced
-    AP_GROUPINFO("_ML_ACC_FLTER", 59, AP_InertialSensor, _ml_accel_filter_cutoff,  DEFAULT_ACCEL_FILTER),
+    AP_GROUPINFO("_ML_ACC_FLTER", 59, AP_InertialSensor, _ml_accel_filter_cutoff,  127),
 
     // @Param: _USE
     // @DisplayName: Use first IMU for attitude, velocity and position estimates
