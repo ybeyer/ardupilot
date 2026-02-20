@@ -190,11 +190,7 @@ void ModeCustom::update()
 
     // get controller outputs struct
     uint64_t time = AP_HAL::micros64();
-    #ifdef Mode_Custom_Use_External_Controller
-        step_external();
-    #else
-        custom_controller.step(); //run a step in controller.
-    #endif
+    custom_controller.step(); //run a step in controller.
     uint64_t time_step = AP_HAL::micros64() - time;
     rtY_ = &(custom_controller.rtY);
 
@@ -386,54 +382,3 @@ void ModeCustom::extract_one_signal_name(const uint8_t log_names_int[], int numb
     }
 };
 
-#ifdef Mode_Custom_Use_External_Controller
-void ModeCustom::step_external(){
-    bytes_avail = 0;
-    bytes_read = 0;
-    bool bytes_ok = false;
-
-    // Receive actuator commands and logs
-    bytes_avail = fc_uart->available();
-    if (bytes_avail > 3)
-    {
-        uint8_t header[3] = {0, 0, 0};
-        header[0] = fc_uart->read();
-        header[1] = fc_uart->read();
-        header[2] = fc_uart->read();
-
-        if ((header[0] == 97) && (header[1] == 98) && (header[2] == 99))
-        {
-            uint8_t command_buffer[200];
-            memset(command_buffer, 0, sizeof(command_buffer));
-
-            bytes_read = fc_uart->read(command_buffer, sizeof(command_buffer));
-
-            if (bytes_read == 110)
-            {
-                uint16_t CRC, CRC_RECV;
-                CRC = crc_calculate(command_buffer, sizeof(ExtY));
-                memcpy(&CRC_RECV, &(command_buffer[108]), sizeof(CRC_RECV));
-
-                // if checksum is correct, copy buffer into output struct
-                if (CRC == CRC_RECV)
-                {
-                    bytes_ok = true;
-                    memcpy(&custom_controller.rtY, command_buffer, sizeof(ExtY));
-                }
-            }
-        }
-    }
-    fc_uart->discard_input();
-
-    if (bytes_ok == false)
-        missed_frames++;
-
-    // Send inputs and measurements
-    uint16_t CRC_SEND = crc_calculate((uint8_t *)&(custom_controller.rtU), sizeof(ExtU));
-    // message identifier
-    fc_uart->print("abc");
-    fc_uart->write((uint8_t *)&(custom_controller.rtU), sizeof(ExtU));
-    fc_uart->write((uint8_t *)&(CRC_SEND), sizeof(CRC_SEND));
-    fc_uart->flush();
-};
-#endif

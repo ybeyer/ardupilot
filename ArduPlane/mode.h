@@ -1,7 +1,6 @@
 #pragma once
 
 // #define CUSTOM_MATLAB_OUTPUT //define for the custom simulink output
-// #define Mode_Custom_Use_External_Controller
 
 #include <AP_Param/AP_Param.h>
 #include <AP_Common/Location.h>
@@ -497,9 +496,6 @@ protected:
     // signal names are part of the label (e.g. "s1" or "s2" or "s3")
     void extract_one_signal_name(const uint8_t log_names_int[], int number, signal_name_t &log_name);
 
-    #ifdef Mode_Custom_Use_External_Controller
-        void step_external();
-    #endif
 
 private:
 
